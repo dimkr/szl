@@ -1,0 +1,18 @@
+.TH szlsh 1
+.SH NAME
+.B szlsh
+\- szl script interpreter
+.SH SYNOPSIS
+.B szlsh
+{-c \fIscript\fR | \fIpath\fR}
+.SH DESCRIPTION
+Runs a szl script.
+.SH FILES
+.TP
+.B @EXT_DIR@
+The directory of szl extensions.
+.TP
+.B @DOC_DIR@/szl.txt
+The szl user manual.
+.SH AUTHOR
+Dima Krasner (dima@dimakrasner.com)

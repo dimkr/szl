@@ -1,0 +1,22 @@
+         _
+ ___ ___| |
+/ __|_  / |
+\__ \/ /| |
+|___/___|_|
+
+
+Overview
+========
+
+szl is a tiny, embeddable scripting engine.
+
+See szl.html for more information.
+
+Credits and Legal Information
+=============================
+
+szl is free and unencumbered software released under the terms of the MIT
+license; see COPYING for the license text. For a list of its authors and
+contributors, see AUTHORS.
+
+The ASCII art logo at the top was made using FIGlet (http://www.figlet.org/).

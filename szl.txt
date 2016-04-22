@@ -1,0 +1,570 @@
+szl
+===
+Dima Krasner <dima@dimakrasner.com>
+:Author Initials: DK
+:numbered:
+:website: http://github.com/dimkr/szl
+
+Introduction
+------------
++szl+ (pronounced "seezle") is a scripting language heavily inspired by Tcl and
+shell. It follows three design principles:
+
+1. Less syntax: there should be only *one way* to achieve a certain effect, to
+   make the language easier to learn
+2. Minimal syntax is not enough for code clarity; it also has to be *consistent*
+   and therefore *predictable*
+- Everything is a string
+- Every statement is a procedure call
+3. Minimal standard library, but comprehensive and useful enough to allow the
+   addition of more complex operations
+
+The term "+szl+" refers to *both* the programming language and its official
+interpreter, depending on the context.
+
+This Document
+-------------
+This is a comprehensive manual, for the +szl+ user or for developers who wish to
+extend +szl+ or integrate it into their projects.
+
+[WARNING]
+This manual may reflect a future state of +szl+.
+
+Use Cases
+~~~~~~~~~
++szl+ is especially useful when:
+
+1. One desires to write a script that automates a task, but shell scripting
+   isn't powerful enough, because shell language lacks programming language
+   features such as exceptions
+2. One needs a balanced, not too low-level and not too high-level programming
+   language for quick prototyping
+3. One needs an embedded interpreter in a big software project, used as a logic
+   layer, high-level glue between components written in different languages or
+   as a scripting engine for advanced users (for example, in a console window of
+   an action game)
+4. One wants to introduce non-technical people to programming, using an easy to
+   learn scripting language with a simple syntax
+
+History
+~~~~~~~
++szl+ began its life as a pet project: a clean-room , partial re-implementation
+of http://jim.tcl.tk/[jimtcl], for self-education purposes.
+
+However, quickly enough, as more and more new ideas were translated into code,
++szl+ evolved into a much different beast.
+
+Getting Started
+~~~~~~~~~~~~~~~
+[quote, 'Friedrich Nietzsche']
+The doer alone learneth.
+
+Each and every +szl+ script is a text file which consists of lines in the
+following form:
+
+--------------------------------------
+proc arg arg
+--------------------------------------
+
+Lines that begin with '#' are comments and ignored by the interpreter:
+
+--------------------------------------
+# this is a very useful script
+proc arg arg
+--------------------------------------
+
+To run a script, run +szlsh+ (the +szl+ interpreter) in a console:
+
+--------------------------------------
+$ szlsh script.szl
+--------------------------------------
+
+Basically, each statement is a series of space-delimited tokens. The first
+token, which is usually a verb, is the name of a procedure (think, _function_).
+The procedure receives the rest of the tokens as arguments (input), does
+something and returns an object (output). For example, in the following
+statement, 'calc' receives '1' and '2' as arguments and returns '3' as output:
+
+--------------------------------------
+calc 1 + 2
+--------------------------------------
+
+[NOTE]
+Some procedures do not receive any arguments.
+
+Objects (sometimes referred to as 'variables') are identified by name and can be
+used to store values (strings or numbers). To create a new object or change the
+value of an existing one, use 'set':
+
+--------------------------------------
+set number 5
+--------------------------------------
+
+'set' receives the object name and its value. To query the value of an object,
+prefix its name with '$', like this:
+
+--------------------------------------
+puts $number
+--------------------------------------
+
+'$number' will be expanded: the value of 'number' will be fetched and passed to
+'puts' as its argument.
+
+To call a procedure with arguments that contain spaces, they can be grouped
+using quotes or braces:
+
+--------------------------------------
+set message "hello world"
+set message {hello world}
+--------------------------------------
+
+The difference between the two is that whatever comes between quotes gets
+expanded (for example, '"it is $number"' will be expanded into 'it is 5'), while
+tokens wrapped with braces are passed as-is without any processing. For example,
+the following statement will print '$number' and *not* the value of 'number':
+
+--------------------------------------
+puts {$number}
+--------------------------------------
+
+Some procedures (for example, 'if') accept +szl+ statements as their arguments.
+For example, in the the following snippet (which prints 'ok'), 'puts ok' is an
+argument of 'if':
+
+--------------------------------------
+if 1 {puts ok}
+--------------------------------------
+
+Multiple +szl+ statements passed as an argument can be also be laid out like
+this:
+
+--------------------------------------
+if 1 {
+	puts hello
+	puts world
+}
+--------------------------------------
+
+[NOTE]
+A block can be idented using either spaces, tabs or both. Whitespace at the
+beginning or end of statements is ignored.
+
+Also, brackets can be nested:
+
+--------------------------------------
+if {test $number != 5} {
+	if {test $number == 4} {
+		puts hello
+		puts world
+	}
+}
+--------------------------------------
+
+To obtain the return value of a procedure, wrap the statement that calls it with
+brackets. Tokens which consist of a statement enclosed in brackets are
+executed and evaluated as their return value. For example, the following example
+executes 'calc 1 + 2.5' and stores the return value of this procedure in a
+variable:
+
+--------------------------------------
+set sum [calc 1 + 2.5]
+--------------------------------------
+
+As with braces, brackets may be nested:
+
+--------------------------------------
+set number 1
+while {[test [calc $number + 1] != 10]} {
+	puts $number
+	set number [calc $number + 1]
+}
+--------------------------------------
+
+[NOTE]
+Every procedure has a return value. If a procedure does not specify a return
+value, it returns an empty string.
+
++szl+ can be extended with additional procedures, using 'proc'. The following
+example defines a procedure called 'print_hello' and calls it:
+
+--------------------------------------
+proc print_hello {
+	puts hello
+}
+
+print_hello
+--------------------------------------
+
+Procedure arguments are accessible using variables named '1', '2' and so on. The
+following snippet (which prints 'hello') improves upon the previous example and
+demonstrates this:
+
+--------------------------------------
+proc print_something {
+	puts $1
+}
+
+print_something hello
+--------------------------------------
+
+The number of arguments passed to a function is accessible through the '#'
+variable:
+
+--------------------------------------
+proc print_argument_count {
+	puts "received $# arguments"
+}
+
+print_argument_count a b c
+--------------------------------------
+
+[NOTE]
+Bear in mind that the number of arguments is zero-based (i.e. the argument count
+starts at zero): '$0' is the procedure name. In other words, all procedures
+receive at least one argument, the procedure name.
+
+The return value of a procedure is either:
+
+1. The value set by to 'return', if 'return' was called within the procedure
+   body ...
+2. **or** the return value of the last statement of the procedure body, if
+   'return' was not called
+
+For example, the following functions are identical, functionality-wise:
+--------------------------------------
+proc foo {
+	puts "before check"
+	test 1 == 2
+}
+
+proc bar {
+	puts "before check"
+	return [test 1 == 2]
+	puts "after check"
+}
+--------------------------------------
+
+Large +szl+ scripts can be split into several files, for easier maintenance and
+the ability to share parts between projects. For example, utility procedures can
+be put in 'util.szl'. Then, 'source' can be used to execute this file through
+the script body:
+
+--------------------------------------
+source util.szl
+--------------------------------------
+
+Standard Library
+----------------
+Builtin Procedures
+~~~~~~~~~~~~~~~~~~
+Variables
+^^^^^^^^^
++set+ 'name val'::
+	Creates a new variable in the global scope. The variable will not be garbage
+	collected until the interpreter exits. The procedure return value is the
+	variable value (useful for one-liners).
+
++local+ 'name val'::
+	Similar to 'set', but creates the new variable in local scope. The variable
+	will be garbage collected once the current procedure returns.
+
++length+ 'obj'::
+	Returns the length of a variable value.
+
++append+ 'name obj'::
+	Appends a string to an existing object.
+
++join+ 'delim obj obj ?...?'::
+	Joins multiple objects, with a delimiter. 'delim' may be an empty string.
+
++calc+ 'obj op obj'::
+	Performs an arithmetic operation on two objects. The operation may be '+',
+	'-', '*' or '-'.
+
+I/O
+^^^
++puts+ 'msg'::
+	Prints a string to standard output.
+
+Procedures
+^^^^^^^^^^
++proc+ 'name exp'::
+	Defines a new procedure.
+
++return+ '?obj?'::
+	Stops the execution of a procedure and sets its return value. If no return
+	value is specified, the procedure returns an empty string.
+
++load+ 'name'::
+	Loads a 'szl' extension, to make additional procedures available.
+
+Flow Control
+^^^^^^^^^^^^
++test+ 'obj op obj'::
+	Compares two objects and returns '1' if the specified condition is true,
+	otherwise '0'. 'op' may be '==', '!=', '<', '>', '\<=', '>=', '&&', '||' or
+	'^'.
+
++not+ 'cond'::
+	Returns '0' if 'cond' is true, otherwise '1'.
+
++if+ 'cond exp ?else exp?'::
+	Conditionally runs a block.
+
++while+ 'cond exp'::
+	Runs a block as long as 'cond' is true.
+
++break+::
+	Stops the execution of a block.
+
++continue+::
+	Skips the next statements a block.
+
++sleep+ 'sec'::
+	Suspends the script execution for a given time, specified in seconds. 'sec'
+	may be a floating-point number (e.g. '4.5').
+
++try+ 'exp ?except exp? ?finally exp?'::
+	Runs an block. Optionally, if a statement failed, jumps to a second, error
+	handling block. Unconditionally, a third (usually, cleanup code) block is
+	executed afterwards. The error handling block can access the error via the
+	special variable 'ex', like this:
+
+--------------------------------------
+try {
+	puts
+} except {
+	puts "The error: $ex"
+}
+--------------------------------------
+
+[TIP]
+Any set of statements can be wrapped with a 'try' block without a matching
+'except', to silently ignore errors.
+
++throw+ '?msg?'::
+	Triggers an error condition and optionally sets specifies the value of 'ex'.
+
++source+ 'path'::
+	Execute a 'szl' script.
+
+Extensions
+~~~~~~~~~~
+zlib
+^^^^
+The 'zlib' extension is a +szl+ wrapper for http://zlib.net/[zlib], a general
+purpose data compression library.
+
++zlib.crc32+ 'data ?init?'::
+	Returns the CRC32 checksum of a buffer. Optionally, an initial value may be
+	specified; this is most useful for calculating the checksum of chunked data
+	read from a stream (for instance, a pipe).
+
++zlib.deflate+ 'string ?level?'::
+	Compresses a buffer and outputs a raw, Deflate-compressed stream.
+	Optionally, a compression level ('1'-'9') may be specified to choose the
+	desired speed vs. compression rate ratio.
+
++zlib.inflate+ 'data ?bufsiz?'::
+	Decompresses a raw, Deflate-compressed stream. When the uncompressed data
+	size is known and specified, memory allocation is *more efficient*.
+	Otherwise, decomperssion is chunked and therefore slower.
+
++zlib.gzip+ 'string ?level?'::
+	Compresses a buffer and adds a gzip header.
+
++zlib.gunzip+ 'data ?bufsiz?'::
+	Decompresses a gzip-compressed buffer. Decompression is chunked, with a
+	default, *small* buffer size of 64K which guarantees lower memory
+	footprint at the cost of speed. It is *highly recommended* to use a bigger
+	size, on systems without a severe memory constraint.
+
+Best Practices
+~~~~~~~~~~~~~~
+Efficiency
+^^^^^^^^^^
+[quote, 'Socrates']
+Every action has its pleasures and its price.
+
+1. Always prefer braces over quotes, since the evaluation of constant strings is
+   much faster than an attempt to expand a string that does not require any
+   expansion.
+2. Avoid the wrapping of strings with quotes, if they do not contain spaces.
+3. Avoid the creation of redundant variables; it's OK and even recommended not
+   to save the return value of a statement if you don't need it.
+4. Avoid redundant statements, like 'return [foo]' instead of 'foo' at the end
+   of a procedure. The extra procedure call ('return') is a waste of time.
+5. Whenever possible, use local variables ('local') instead of globals ('set').
+   They get garbage collected earlier, so this results in reduced memory usage.
+6. Always simplify logical expressions, to reduce the number of procedure calls.
+   For example, 'test $foo != $bar' runs faster than 'not [test $foo == $bar]'.
+7. When joining more than two objects, avoid multiple 'append' calls and use
+   'join' instead. 'append' does not create a new object and therefore it is
+   more efficient for joining only two strings.
+8. Always trim useless trailing whitespace in scripts (or use a text editor that
+   takes care of this automatically), to speed up parsing.
+
+Error Handling
+^^^^^^^^^^^^^^
+For error handling, use the shorter and more manageable approach of early
+'throw' and late 'except' -
+--------------------------------------
+try {
+	f 1 2 3
+	g 4 5 6
+	h 7 8 9
+	.
+	.
+	.
+} except {
+	puts "an error has occurred: $ex"
+}
+--------------------------------------
+instead of boolean return values and a pyramid of nested checks, e.g.:
+--------------------------------------
+if {[f 1 2 3]} {
+	if {[g 4 5 6]} {
+		if {[h 7 8 9]} {
+			.
+			.
+			.
+		} else {
+			puts "h failed"
+		}
+	} else {
+		puts "g failed"
+	}
+} else {
+	puts "f failed"
+}
+--------------------------------------
+This is highly beneficial, for several reasons:
+
+- Error handling is implemented *using less statements*: one 'try' statement,
+  instead of multiple 'if' calls.
+- It is easy to deal with new potential failures introduced over time, as the
+  'try' block gets bigger. In the 'if' approach, each error needs an additional
+  'if'.
+- The code is much easier to understand, because it's linear and left-aligned:
+  there is only one level of identation.
+
+Implementation
+--------------
+Language
+~~~~~~~~
++szl+ is implemented in C (or more specifically, 99) and targest
+http://www.kernel.org/[Linux] distributions.
+
+Objects
+~~~~~~~
+Each and every +szl+ variable or procedure is represented by a +struct szl_obj+.
+
+Memory Management
+~~~~~~~~~~~~~~~~~
++szl+ implements automatic garbage collection using manual reference counting.
+Procedures always return a new reference, which may be the first reference of a
+newly allocated object or an additional reference to an existing one.
+
+When a procedure returns, its local variables are garbage collected.
+
+Type System
+~~~~~~~~~~~
+Each +szl+ object may be represented internally using one or more of four types:
+
+1. String
+2. Integer
+3. Floating-point integer
+4. Boolean
+
+Most +szl+ objects start their lifetime as strings. When a string is passed to a
+procedure that performs a numeric operation, a numeric representation is added
+to the passed object (i.e. so it has two representations, textual and numeric).
+In similar fashion, objects are assigned a truth value once they are passed to a
+procedure that performs a logical operation.
+
+Booleans
+^^^^^^^^
++szl+ has no "real" boolean type. Insead, '""', '"0"' and '0' are treated as
+false and everything else is treated as true. Procedures that return boolean
+values return the integers '1' and '0'.
+
+Builtin Objects
+~~~~~~~~~~~~~~~
+Each +szl+ interpreter creates three objects at initialization time:
+
+1. '""'
+2. '0'
+3. '1'
+
+All procedures that return an empty string return a new reference to the same
+object. Similarily, all procedures that return '0', '1' (for example, boolean
+procedures) use the same objects, instead of creating new, identical objects.
+This reduces memory consumption and improves efficiency, as these values are
+very common.
+
+Statement Execution
+~~~~~~~~~~~~~~~~~~~
+Internally, each +szl+ statement that is executed returns two things:
+
+1. A status code, member of 'enum szl_res'
+2. An object (a new reference to a newly-created or existing object), which acts
+   as return value upon success or as an error message upon failure
+
+The status code determines the direction of the script flow:
+
+* 'SZL_OK': business as usual; the interpreter will continue to the next
+  statement.
+* 'SZL_ERR': the interpreter will not execute the next statement; the current
+  statement's return value (typically, an error string describing why it
+  failed) will be used as the return value of the entire block and the error
+  condition will be reported to the caller.
+* 'SZL_BREAK': the interpreter will halt execution of statements in the current
+  block.
+* 'SZL_CONT': instead of executing the next statement in the loop body, the
+  interpreter will continue to the next iteration.
+
+For example, in pseudo-code, the logic of 'while' is similar to this:
+--------------------------------------
+for each line in (loop body):
+	free(previous_return_value)
+
+	status_code + return_value = [line]
+
+	if status_code != SZL_CONTINUE and status_code != SZL_OK
+	     break
+
+	previous_return_value = return_value
+
+return $last_return_value
+--------------------------------------
+
+'break' and 'continue' are empty procedures that only return a status code
+('SZL_BREAK' and 'SZL_CONT', respectively). 'throw' returns 'SZL_BREAK', but
+also has a return value: the future value of 'ex'.
+
+Call Stack
+~~~~~~~~~~~
++szl+ always keeps track of two running procedures:
+
+1. The currently running procedure, which changes every time a procedure is
+   called
+2. The _global procedure_: all local objects accessible from any part of the
+   script (procedures and variables set directly in the script body, not inside
+   a procedure body) are represented internally as local variables of this
+   special, non-callable, so-called _global procedure_
+
+Extensions
+~~~~~~~~~~
++szl+ extensions are shared objects that export a function of type
+'szl_ext_init', with a name in the form 'SZL_EXT_INIT_FUNC_NAME_FMT'. This
+function shall register the procedures and objects provided by the extension
+using 'szl_new_proc()'.
+
+Build System
+~~~~~~~~~~~~
++szl+ is built using https://www.gnu.org/software/make/[GNU Make].
+
+To make +szl+ more elegant, all builtin procedures are part of extensions; the
+variables 'BUILTIN_EXT_NAMES' and 'EXTERNAL_EXT_NAMES' control which extensions
+are built into +szlsh+ and loaded by default and which ones are built as
+external libraries loaded via 'load'.

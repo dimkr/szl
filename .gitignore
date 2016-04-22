@@ -1,0 +1,7 @@
+*.o
+*.a
+*.so
+szl_builtin.c
+szl_conf.h
+szlsh
+szl.html
