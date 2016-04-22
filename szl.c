@@ -56,14 +56,14 @@ struct szl_interp *szl_interp_new(void)
 
 	interp->init = crc32(0, Z_NULL, 0);
 
-	interp->empty = szl_new_str(interp, "", 0);
+	interp->empty = szl_new_str("", 0);
 	if (!interp->empty) {
 		free(interp);
 		return NULL;
 	}
 
 	interp->zero = NULL;
-	interp->zero = szl_new_int(interp, 0);
+	interp->zero = szl_new_int(0);
 	if (!interp->zero) {
 		szl_obj_unref(interp->empty);
 		free(interp);
@@ -71,7 +71,7 @@ struct szl_interp *szl_interp_new(void)
 	}
 
 	interp->one = NULL;
-	interp->one = szl_new_int(interp, 1);
+	interp->one = szl_new_int(1);
 	if (!interp->one) {
 		szl_obj_unref(interp->zero);
 		szl_obj_unref(interp->empty);
@@ -199,9 +199,7 @@ void szl_obj_unref(struct szl_obj *obj)
 	}
 }
 
-struct szl_obj *szl_new_str_noalloc(struct szl_interp *interp,
-                                    char *s,
-                                    size_t len)
+struct szl_obj *szl_new_str_noalloc(char *s, const size_t len)
 {
 	struct szl_obj *obj;
 
@@ -222,7 +220,7 @@ struct szl_obj *szl_new_str_noalloc(struct szl_interp *interp,
 	return obj;
 }
 
-struct szl_obj *szl_new_str(struct szl_interp *interp, const char *s, int len)
+struct szl_obj *szl_new_str(const char *s, int len)
 {
 	struct szl_obj *obj;
 	char *s2;
@@ -237,21 +235,16 @@ struct szl_obj *szl_new_str(struct szl_interp *interp, const char *s, int len)
 	if (!s2)
 		return NULL;
 
-	obj = szl_new_str_noalloc(interp, s2, rlen);
+	obj = szl_new_str_noalloc(s2, rlen);
 	if (!obj)
 		free(s2);
 
 	return obj;
 }
 
-struct szl_obj *szl_new_int(struct szl_interp *interp, const szl_int i)
+struct szl_obj *szl_new_int(const szl_int i)
 {
 	struct szl_obj *obj;
-
-	if ((i == 0) && interp->zero)
-		return szl_obj_ref(interp->zero);
-	else if ((i == 1) && interp->one)
-		return szl_obj_ref(interp->one);
 
 	obj = (struct szl_obj *)malloc(sizeof(*obj));
 	if (!obj)
@@ -270,7 +263,7 @@ struct szl_obj *szl_new_int(struct szl_interp *interp, const szl_int i)
 	return obj;
 }
 
-struct szl_obj *szl_new_double(struct szl_interp *interp, const szl_double d)
+struct szl_obj *szl_new_double(const szl_double d)
 {
 	struct szl_obj *obj;
 
@@ -343,7 +336,7 @@ struct szl_obj *szl_new_proc(struct szl_interp *interp,
 
 enum szl_res szl_append(struct szl_obj *obj,
                         const char *buf,
-                        int len)
+                        const size_t len)
 {
 	char *s;
 	size_t nlen = obj->len + (size_t)len;
@@ -485,21 +478,21 @@ void szl_set_result_str(struct szl_interp *interp,
                         struct szl_obj **out,
                         const char *s)
 {
-	szl_set_result(out, szl_new_str(interp, s, -1));
+	szl_set_result(out, szl_new_str(s, -1));
 }
 
 void szl_set_result_int(struct szl_interp *interp,
                         struct szl_obj **out,
                         const szl_int i)
 {
-	szl_set_result(out, szl_new_int(interp, i));
+	szl_set_result(out, szl_new_int(i));
 }
 
 void szl_set_result_double(struct szl_interp *interp,
                            struct szl_obj **out,
                            const szl_double d)
 {
-	szl_set_result(out, szl_new_double(interp, d));
+	szl_set_result(out, szl_new_double(d));
 }
 
 void szl_set_result_bool(struct szl_interp *interp,
@@ -526,7 +519,7 @@ void szl_set_result_fmt(struct szl_interp *interp,
 
 	len = vasprintf(&s, fmt, ap);
 	if (len >= 0) {
-		obj = szl_new_str_noalloc(interp, s, len);
+		obj = szl_new_str_noalloc(s, len);
 		if (obj)
 			szl_set_result(out, obj);
 		else
@@ -727,7 +720,7 @@ static struct szl_obj *szl_expand(struct szl_interp *interp,
 		return NULL;
 	}
 
-	obj = szl_new_str(interp, "", 0);
+	obj = szl_new_str("", 0);
 	if (!obj) {
 		free(toks);
 		free(s2);
@@ -791,7 +784,7 @@ enum szl_res szl_eval(struct szl_interp *interp,
 	/* if the expression is wrapped with {}, leave it as-is */
 	if ((start[0] == '{') && (*(end - 1) == '}')) {
 		*(end - 1) = '\0';
-		szl_set_result(out, szl_new_str(interp, start + 1, end - start - 2));
+		szl_set_result(out, szl_new_str(start + 1, end - start - 2));
 	}
 
 	/* if the expression is wrapped with [], it's a procedure call - call it and
@@ -824,7 +817,7 @@ enum szl_res szl_eval(struct szl_interp *interp,
 
 	/* otherwise, treat it as an unquoted string literal */
 	else
-		szl_set_result(out, szl_new_str(interp, start, end - start));
+		szl_set_result(out, szl_new_str(start, end - start));
 
 	free(s2);
 
@@ -982,7 +975,7 @@ static enum szl_res szl_run_line(struct szl_interp *interp,
 	}
 
 	/* create the $# object */
-	argc_obj = szl_new_int(interp, argc);
+	argc_obj = szl_new_int(argc);
 	if (!argc_obj) {
 		szl_obj_unref(objv[0]);
 		free(objv);
@@ -1019,7 +1012,7 @@ static enum szl_res szl_run_line(struct szl_interp *interp,
 		}
 	}
 
-	res = szl_set_in_proc(interp, "#", argc_obj, objv[0]);
+	res = szl_set_in_proc(interp, SZL_OBJC_OBJECT_NAME, argc_obj, objv[0]);
 	if (res != SZL_OK)
 		goto bail;
 
@@ -1108,7 +1101,7 @@ static char **szl_split_lines(struct szl_interp *interp,
 
 			/* if the line contains nothing but whitespace, skip it */
 			for (; isspace(*line); ++line);
-			if (*line && line[0] != '#') {
+			if (*line && line[0] != SZL_COMMENT_PREFIX) {
 				mn = *n + 1;
 				mlines = (char **)realloc(lines, sizeof(char *) * mn);
 				if (!mlines)

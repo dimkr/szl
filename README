@@ -10,7 +10,13 @@ Overview
 
 szl is a tiny, embeddable scripting engine.
 
-See szl.html for more information.
+For more information, see the user manual:
+
+  $ make szl.html
+
+For API documentation:
+
+  $ make api_docs
 
 Credits and Legal Information
 =============================

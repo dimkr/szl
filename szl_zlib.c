@@ -118,7 +118,7 @@ static int szl_zlib_compress(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	obj = szl_new_str_noalloc(interp, (char *)buf, (size_t)strm.total_out);
+	obj = szl_new_str_noalloc((char *)buf, (size_t)strm.total_out);
 	if (!obj) {
 		free(buf);
 		return SZL_ERR;
@@ -180,7 +180,7 @@ static enum szl_res szl_zlib_decompress(struct szl_interp *interp,
 	if (!buf)
 		return SZL_ERR;
 
-	out = szl_new_str(interp, "", 0);
+	out = szl_new_str("", 0);
 
 	strm.next_in = (Bytef*)in;
 	strm.avail_in = (uInt)len;

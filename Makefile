@@ -108,6 +108,9 @@ szlsh.1: szlsh.1.in
 szl.html: szl.txt
 	asciidoc -o $@ $^
 
+api_docs: doxygen.conf
+	doxygen $^
+
 install: all
 	$(INSTALL) -D -m 755 szlsh $(DESTDIR)/$(BIN_DIR)/szlsh
 	$(INSTALL) -D -d -m 755 $(DESTDIR)/$(EXT_DIR)
@@ -122,4 +125,4 @@ install: all
 	$(INSTALL) -m 644 COPYING $(DESTDIR)/$(DOC_DIR)/szl/COPYING
 
 clean:
-	rm -f szlsh $(EXTERNAL_EXT_LIBS) $(OBJECTS) $(GENERATED)
+	rm -rf szlsh $(EXTERNAL_EXT_LIBS) $(OBJECTS) $(GENERATED)

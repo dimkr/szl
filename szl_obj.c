@@ -140,7 +140,7 @@ static enum szl_res szl_obj_proc_join(struct szl_interp *interp,
 	if (!delim)
 		return SZL_ERR;
 
-	obj = szl_new_str(interp, "", 0);
+	obj = szl_new_str("", 0);
 	if (!obj)
 		return SZL_ERR;
 
