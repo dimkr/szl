@@ -46,14 +46,12 @@ static enum szl_res szl_zlib_proc_crc32(struct szl_interp *interp,
 	size_t len;
 
 	if (objc == 2)
-		init = crc32(0L, Z_NULL, 0);
-	else {
-		if (szl_obj_int(objv[2], &init) != SZL_OK)
+		init = (szl_int)crc32(0L, Z_NULL, 0);
+	else if (szl_obj_int(objv[2], &init) != SZL_OK)
 			return SZL_ERR;
-	}
 
 	s = szl_obj_str(objv[1], &len);
-	if (!s)
+	if (!s || !len)
 		return SZL_ERR;
 
 	szl_set_result_int(interp,
@@ -68,11 +66,11 @@ static enum szl_res szl_zlib_proc_crc32(struct szl_interp *interp,
 }
 
 static int szl_zlib_compress(struct szl_interp *interp,
-							 const char *in,
-							 const size_t len,
-							 const long level,
-							 const int wbits,
-							 struct szl_obj **ret)
+                             const char *in,
+                             const size_t len,
+                             const szl_int level,
+                             const int wbits,
+                             struct szl_obj **ret)
 {
 	z_stream strm = {0};
 	Bytef *buf;
@@ -85,7 +83,7 @@ static int szl_zlib_compress(struct szl_interp *interp,
 	}
 
 	if (deflateInit2(&strm,
-	                 level,
+	                 (int)level,
 	                 Z_DEFLATED,
 	                 wbits,
 	                 MAX_MEM_LEVEL,
@@ -137,24 +135,20 @@ static enum szl_res szl_zlib_proc_deflate(struct szl_interp *interp,
 	const char *in;
 	size_t len;
 
-	if ((objc == 3) &&
-	    ((szl_obj_int(objv[2], &level) != SZL_OK) ||
-	     ((level != Z_DEFAULT_COMPRESSION) &&
-	      ((level <= Z_NO_COMPRESSION) ||
-	      (level >= Z_BEST_COMPRESSION)))))
+	if ((objc == 3) && (szl_obj_int(objv[2], &level) != SZL_OK))
 		return SZL_ERR;
 
 	in = szl_obj_str(objv[1], &len);
-	if (!in)
+	if (!in || !len)
 		return SZL_ERR;
 
-	return szl_zlib_compress(interp, in, len, (long)level, -MAX_WBITS, ret);
+	return szl_zlib_compress(interp, in, len, level, -MAX_WBITS, ret);
 }
 
 static enum szl_res szl_zlib_decompress(struct szl_interp *interp,
                                         const char *in,
                                         const size_t len,
-                                        const size_t bufsiz,
+                                        const szl_int bufsiz,
                                         const int wbits,
                                         struct szl_obj **ret)
 {
@@ -166,7 +160,7 @@ static enum szl_res szl_zlib_decompress(struct szl_interp *interp,
 	if ((bufsiz <= 0) || (bufsiz > INT_MAX)) {
 		szl_set_result_str(interp,
 		                   ret,
-		                   "buffer size must be 0 to "PASTE(INT_MAX));
+		                   "buffer size must be between 0 and "PASTE(INT_MAX));
 		return SZL_ERR;
 	}
 
@@ -176,7 +170,7 @@ static enum szl_res szl_zlib_decompress(struct szl_interp *interp,
 	/* allocate a buffer - decompression is done in chunks, into this buffer;
 	 * when the decompressed data size is given, decompression is faster because
 	 * it's done in one pass, with less memcpy() overhead */
-	buf = malloc(bufsiz);
+	buf = malloc((size_t)bufsiz);
 	if (!buf)
 		return SZL_ERR;
 
@@ -194,9 +188,10 @@ static enum szl_res szl_zlib_decompress(struct szl_interp *interp,
 			case Z_OK:
 			case Z_STREAM_END:
 				/* append each chunk to the output object */
-				if (szl_append(out,
-				               buf,
-				               bufsiz - (size_t)strm.avail_out) == SZL_OK)
+				if (szl_append(
+				             out,
+				             buf,
+				             (size_t)bufsiz - (size_t)strm.avail_out) == SZL_OK)
 					break;
 
 			default:
@@ -223,21 +218,12 @@ static enum szl_res szl_zlib_proc_inflate(struct szl_interp *interp,
                                           struct szl_obj **objv,
                                           struct szl_obj **ret)
 {
-	szl_int bufsiz = DEF_DECOMPRESS_BUFSIZ;
 	const char *in;
+	szl_int bufsiz = DEF_DECOMPRESS_BUFSIZ;
 	size_t len;
 
-	if (objc != 2) {
-		if (szl_obj_int(objv[2], &bufsiz) != SZL_OK)
-			return SZL_ERR;
-
-		if ((bufsiz <= 0) || (bufsiz > INT_MAX)) {
-			szl_set_result_str(interp,
-			                   ret,
-			                   "buffer size must be 0 to "PASTE(INT_MAX));
-			return SZL_ERR;
-		}
-	}
+	if ((objc == 3) && (szl_obj_int(objv[2], &bufsiz) != SZL_OK))
+		return SZL_ERR;
 
 	in = szl_obj_str(objv[1], &len);
 	if (!in || !len)
