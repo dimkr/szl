@@ -21,7 +21,11 @@
 # THE SOFTWARE.
 
 proc do {
-	while 1 {
+	if [test $2 != {while}] {
+		throw {bad do usage: do exp while cond}
+	}
+
+	while {1} {
 		eval $1
 		if [not [eval $3]] break
 	}

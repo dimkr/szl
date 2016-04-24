@@ -315,6 +315,9 @@ Flow Control
 +while+ 'cond exp'::
 	Runs a block as long as 'cond' is true.
 
++do+ 'exp while cond'::
+	Similar to 'while', but checks 'cond' after the first execution of 'exp'.
+
 +break+::
 	Stops the execution of a block.
 
