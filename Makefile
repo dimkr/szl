@@ -26,13 +26,14 @@ CFLAGS ?= -O2 -pipe
 LIBS ?=
 LDFLAGS ?= -Wl,-s
 DESTDIR ?=
-LIB_DIR ?= /lib
-BIN_DIR ?= /bin
-MAN_DIR ?= /usr/share/man
-DOC_DIR ?= /usr/share/doc
+PREFIX ?= /usr
+LIB_DIR ?= $(PREFIX)/lib
+BIN_DIR ?= $(PREFIX)/bin
+MAN_DIR ?= $(PREFIX)/share/man
+DOC_DIR ?= $(PREFIX)/share/doc
 EXT_DIR ?= $(LIB_DIR)/szl
 
-CFLAGS += -std=gnu99 -Wall -pedantic -D_GNU_SOURCE
+CFLAGS += -std=gnu99 -Wall -pedantic -fvisibility=hidden -D_GNU_SOURCE
 LDFLAGS += -L.
 LIBS += -lszl -lm -ldl
 

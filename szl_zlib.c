@@ -291,6 +291,7 @@ static enum szl_res szl_zlib_proc_gunzip(struct szl_interp *interp,
 	return szl_zlib_decompress(interp, in, len, bufsiz, WBITS_GZIP, ret);
 }
 
+SZL_EXT_INIT
 enum szl_res szl_init_zlib(struct szl_interp *interp)
 {
 	if ((!szl_new_proc(interp,

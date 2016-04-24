@@ -10,11 +10,22 @@ Overview
 
 szl is a tiny, embeddable scripting engine.
 
-For more information, see the user manual:
+For more information, see the user manual at http://www.dimakrasner.com/szl.
+
+Building
+========
+
+  make
+  make install
+
+Documentation
+=============
+
+To build the user manual:
 
   $ make szl.html
 
-For API documentation:
+To build the API documentation:
 
   $ make api_docs
 

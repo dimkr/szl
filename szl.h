@@ -247,6 +247,13 @@ struct szl_local {
  */
 typedef enum szl_res (*szl_ext_init)(struct szl_interp *);
 
+
+/**
+ * @def SZL_EXT_INIT
+ * A "decorator" for external extension initialization functions
+ */
+#	define SZL_EXT_INIT __attribute__((__visibility__("default")))
+
 /**
  * @}
  *
