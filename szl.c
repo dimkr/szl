@@ -86,7 +86,6 @@ struct szl_interp *szl_interp_new(void)
 	                              NULL,
 	                              NULL,
 	                              NULL,
-	                              NULL,
 	                              NULL);
 	if (!interp->global) {
 		szl_obj_unref(interp->one);
@@ -189,9 +188,6 @@ void szl_obj_unref(struct szl_obj *obj)
 		if (obj->del)
 			obj->del(obj->priv);
 
-		if (obj->exp)
-			szl_obj_unref(obj->exp);
-
 		if (obj->s)
 			free(obj->s);
 
@@ -212,7 +208,6 @@ struct szl_obj *szl_new_str_noalloc(char *s, const size_t len)
 	obj->type = SZL_TYPE_STR;
 	obj->proc = NULL;
 	obj->del = NULL;
-	obj->exp = NULL;
 	obj->locals = NULL;
 	obj->nlocals = 0;
 	obj->refc = 1;
@@ -255,7 +250,6 @@ struct szl_obj *szl_new_int(const szl_int i)
 	obj->type = SZL_TYPE_INT;
 	obj->proc = NULL;
 	obj->del = NULL;
-	obj->exp = NULL;
 	obj->locals = NULL;
 	obj->nlocals = 0;
 	obj->refc = 1;
@@ -276,7 +270,6 @@ struct szl_obj *szl_new_double(const szl_double d)
 	obj->type = SZL_TYPE_DOUBLE;
 	obj->proc = NULL;
 	obj->del = NULL;
-	obj->exp = NULL;
 	obj->locals = NULL;
 	obj->nlocals = 0;
 	obj->refc = 1;
@@ -291,8 +284,7 @@ struct szl_obj *szl_new_proc(struct szl_interp *interp,
                              const char *help,
                              const szl_proc proc,
                              const szl_delproc del,
-                             void *priv,
-                             struct szl_obj *exp)
+                             void *priv)
 {
 	struct szl_obj *obj;
 
@@ -310,8 +302,6 @@ struct szl_obj *szl_new_proc(struct szl_interp *interp,
 	if (name[0] && (szl_set(interp, name, obj) != SZL_OK)) {
 		if (del)
 			del(priv);
-		if (obj->exp)
-			szl_obj_unref(obj->exp);
 		free(obj->s);
 		free(obj);
 		return NULL;
@@ -326,10 +316,6 @@ struct szl_obj *szl_new_proc(struct szl_interp *interp,
 	obj->priv = priv;
 	obj->locals = NULL;
 	obj->nlocals = 0;
-	if (exp)
-		obj->exp = szl_obj_ref(exp);
-	else
-		obj->exp = NULL;
 
 	return obj;
 }

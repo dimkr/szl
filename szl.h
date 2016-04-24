@@ -200,8 +200,6 @@ struct szl_obj {
 	const char *help; /**< A usage message shown if the number of arguments is below @ref min_argc or above @ref max_argc */
 	struct szl_local **locals; /**< Local procedure variables */
 	size_t nlocals; /**< The number of elements in @ref locals */
-
-	struct szl_obj *exp; /**< szl procedure implementation */
 };
 
 /**
@@ -345,8 +343,7 @@ struct szl_obj *szl_new_double(const szl_double d);
  *                                  const char *help,
  *                                  const szl_proc proc,
  *                                  const szl_delproc del,
- *                                  void *priv,
- *                                  struct szl_obj *exp)
+ *                                  void *priv)
  * @brief Creates a new procedure object and registers it in the global scope
  * @param interp [in,out] An interpreter
  * @param name [in] The procedure name
@@ -356,7 +353,6 @@ struct szl_obj *szl_new_double(const szl_double d);
  * @param proc [in] A C callback implementing the procedure or NULL
  * @param del [in] A cleanup callback for the procedure private data or NULL
  * @param priv [in] Private data for use by proc and del, or NULL
- * @param exp [in,out] A szl block implementing the procedure or NULL
  * @return A new reference to the created procedure object or NULL
  * @note If name is an empty string, the procedure is not registered in the
  *       global scope and its reference count is zero
@@ -368,8 +364,7 @@ struct szl_obj *szl_new_proc(struct szl_interp *interp,
                              const char *help,
                              const szl_proc proc,
                              const szl_delproc del,
-                             void *priv,
-                             struct szl_obj *exp);
+                             void *priv);
 
 /**
  * @def szl_empty
@@ -616,6 +611,18 @@ enum szl_res szl_get(struct szl_interp *interp,
                      struct szl_obj **out,
                      const char *name);
 
+/**
+ * @fn enum szl_set_in_proc(struct szl_interp *interp,
+ *                          const char *name,
+ *                          struct szl_obj *obj,
+ *                          struct szl_obj *proc)
+ * @brief Registers an existing object with a given name, in a given scope
+ * @param interp [in,out] An interpreter
+ * @param name [in] The object name
+ * @param obj [in,out] The object
+ * @param proc [in,out] The scope
+ * @return SZL_OK or SZL_ERR
+ */
 enum szl_res szl_set_in_proc(struct szl_interp *interp,
                              const char *name,
                              struct szl_obj *obj,

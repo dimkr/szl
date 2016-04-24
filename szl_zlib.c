@@ -300,7 +300,6 @@ enum szl_res szl_init_zlib(struct szl_interp *interp)
 	                   "zlib.crc32 buf ?init?",
 	                   szl_zlib_proc_crc32,
 	                   NULL,
-	                   NULL,
 	                   NULL)) ||
 	    (!szl_new_proc(interp,
 	                   "zlib.deflate",
@@ -308,7 +307,6 @@ enum szl_res szl_init_zlib(struct szl_interp *interp)
 	                   3,
 	                   "zlib.deflate string ?level?",
 	                   szl_zlib_proc_deflate,
-	                   NULL,
 	                   NULL,
 	                   NULL)) ||
 	    (!szl_new_proc(interp,
@@ -318,7 +316,6 @@ enum szl_res szl_init_zlib(struct szl_interp *interp)
 	                   "zlib.inflate data ?bufsiz?",
 	                   szl_zlib_proc_inflate,
 	                   NULL,
-	                   NULL,
 	                   NULL)) ||
 	    (!szl_new_proc(interp,
 	                   "zlib.gzip",
@@ -327,7 +324,6 @@ enum szl_res szl_init_zlib(struct szl_interp *interp)
 	                   "zlib.gzip data ?level?",
 	                   szl_zlib_proc_gzip,
 	                   NULL,
-	                   NULL,
 	                   NULL)) ||
 	    (!szl_new_proc(interp,
 	                   "zlib.gunzip",
@@ -335,7 +331,6 @@ enum szl_res szl_init_zlib(struct szl_interp *interp)
 	                   3,
 	                   "zlib.gunzip data ?bufsiz?",
 	                   szl_zlib_proc_gunzip,
-	                   NULL,
 	                   NULL,
 	                   NULL)))
 		return SZL_ERR;

@@ -74,7 +74,6 @@ enum szl_res szl_init_math(struct szl_interp *interp)
 	                  "calc obj op obj",
 	                  szl_math_proc_calc,
 	                  NULL,
-	                  NULL,
 	                  NULL))
 		return SZL_ERR;
 

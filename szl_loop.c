@@ -111,7 +111,6 @@ enum szl_res szl_init_loop(struct szl_interp *interp)
 	                   "while cond exp",
 	                   szl_loop_proc_while,
 	                   NULL,
-	                   NULL,
 	                   NULL)) ||
 	    (!szl_new_proc(interp,
 	                   "break",
@@ -120,7 +119,6 @@ enum szl_res szl_init_loop(struct szl_interp *interp)
 	                   "break",
 	                   szl_loop_proc_break,
 	                   NULL,
-	                   NULL,
 	                   NULL)) ||
 	    (!szl_new_proc(interp,
 	                   "continue",
@@ -128,7 +126,6 @@ enum szl_res szl_init_loop(struct szl_interp *interp)
 	                   1,
 	                   "continue",
 	                   szl_loop_proc_continue,
-	                   NULL,
 	                   NULL,
 	                   NULL)))
 		return SZL_ERR;

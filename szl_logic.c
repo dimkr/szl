@@ -194,7 +194,6 @@ enum szl_res szl_init_logic(struct szl_interp *interp)
 	                   "test obj op obj",
 	                   szl_logic_proc_test,
 	                   NULL,
-	                   NULL,
 	                   NULL)) ||
 	    (!szl_new_proc(interp,
 	                   "not",
@@ -203,7 +202,6 @@ enum szl_res szl_init_logic(struct szl_interp *interp)
 	                   "not obj",
 	                   szl_logic_proc_not,
 	                   NULL,
-	                   NULL,
 	                   NULL)) ||
 	    (!szl_new_proc(interp,
 	                   "if",
@@ -211,7 +209,6 @@ enum szl_res szl_init_logic(struct szl_interp *interp)
 	                   5,
 	                   "if cond exp else exp",
 	                   szl_logic_proc_if,
-	                   NULL,
 	                   NULL,
 	                   NULL)))
 		return SZL_ERR;

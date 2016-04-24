@@ -280,7 +280,7 @@ Variables
 	'-', '*' or '-'.
 
 +eval+ 'obj'::
-	Evaluate a +szl+ expression.
+	Evaluates a +szl+ expression.
 
 I/O
 ^^^

@@ -123,7 +123,6 @@ enum szl_res szl_init_exc(struct szl_interp *interp)
 	                   "try exp ?except exp? ?finally exp?",
 	                   szl_exc_proc_try,
 	                   NULL,
-	                   NULL,
 	                   NULL)) ||
 	    (!szl_new_proc(interp,
 	                  "throw",
@@ -131,7 +130,6 @@ enum szl_res szl_init_exc(struct szl_interp *interp)
 	                  2,
 	                  "throw ?msg?",
 	                  szl_exc_proc_throw,
-	                  NULL,
 	                  NULL,
 	                  NULL)))
 		return SZL_ERR;

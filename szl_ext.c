@@ -63,7 +63,6 @@ enum szl_res szl_init_ext(struct szl_interp *interp)
 	                   "load name",
 	                   szl_ext_proc_load,
 	                   NULL,
-	                   NULL,
 	                   NULL)) ||
 	    (!szl_new_proc(interp,
 	                   "source",
@@ -71,7 +70,6 @@ enum szl_res szl_init_ext(struct szl_interp *interp)
 	                   2,
 	                   "source path",
 	                   szl_ext_proc_source,
-	                   NULL,
 	                   NULL,
 	                   NULL)))
 		return SZL_ERR;

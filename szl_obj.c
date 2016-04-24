@@ -194,7 +194,6 @@ enum szl_res szl_init_obj(struct szl_interp *interp)
 	                   "set name val",
 	                   szl_obj_proc_set,
 	                   NULL,
-	                   NULL,
 	                   NULL)) ||
 	    (!szl_new_proc(interp,
 	                   "local",
@@ -202,7 +201,6 @@ enum szl_res szl_init_obj(struct szl_interp *interp)
 	                   3,
 	                   "local name val",
 	                   szl_obj_proc_local,
-	                   NULL,
 	                   NULL,
 	                   NULL)) ||
 	    (!szl_new_proc(interp,
@@ -212,7 +210,6 @@ enum szl_res szl_init_obj(struct szl_interp *interp)
 	                   "length obj",
 	                   szl_obj_proc_length,
 	                   NULL,
-	                   NULL,
 	                   NULL)) ||
 	    (!szl_new_proc(interp,
 	                   "append",
@@ -220,7 +217,6 @@ enum szl_res szl_init_obj(struct szl_interp *interp)
 	                   3,
 	                   "append name obj",
 	                   szl_obj_proc_append,
-	                   NULL,
 	                   NULL,
 	                   NULL)) ||
 	    (!szl_new_proc(interp,
@@ -230,7 +226,6 @@ enum szl_res szl_init_obj(struct szl_interp *interp)
 	                   "join delim obj obj ?...?",
 	                   szl_obj_proc_join,
 	                   NULL,
-	                   NULL,
 	                   NULL)) ||
 	    (!szl_new_proc(interp,
 	                   "eval",
@@ -238,7 +233,6 @@ enum szl_res szl_init_obj(struct szl_interp *interp)
 	                   2,
 	                   "eval obj",
 	                   szl_obj_proc_eval,
-	                   NULL,
 	                   NULL,
 	                   NULL)))
 		return SZL_ERR;

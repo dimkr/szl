@@ -68,7 +68,6 @@ enum szl_res szl_init_posix(struct szl_interp *interp)
 	                  "sleep sec",
 	                  szl_posix_proc_sleep,
 	                  NULL,
-	                  NULL,
 	                  NULL))
 		return SZL_ERR;
 

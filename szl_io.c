@@ -52,7 +52,6 @@ enum szl_res szl_init_io(struct szl_interp *interp)
 	                  "puts msg",
 	                  szl_io_proc_puts,
 	                  NULL,
-	                  NULL,
 	                  NULL))
 		return SZL_ERR;
 
