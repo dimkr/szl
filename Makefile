@@ -46,9 +46,10 @@ INSTALL = install -v
 SRCS = $(wildcard *.c)
 OBJECTS = $(SRCS:.c=.o)
 
-PLATFORM_MODULE = szl_posix.c
+STATIC_LIB = libszl.a
+PROGS = szlsh
 
-BUILTIN_EXT_NAMES = obj io math logic loop exc proc ext
+BUILTIN_EXT_NAMES = posix obj io math logic loop exc proc ext sugar
 BUILTIN_EXT_SRCS = $(addsuffix .c,$(addprefix szl_,$(BUILTIN_EXT_NAMES)))
 BUILTIN_EXT_OBJECTS = $(BUILTIN_EXT_SRCS:.c=.o)
 
@@ -60,9 +61,9 @@ EXTERNAL_EXT_LIBS = $(EXTERNAL_EXT_SRCS:.c=.so)
 DOCS = szlsh.1 szl.html
 
 TEMPLATES = $(wildcard *.in)
-GENERATED = $(TEMPLATES:.in=) szl_builtin.c $(DOCS)
+GENERATED = $(TEMPLATES:.in=) szl_builtin.c $(DOCS) api_docs
 
-all: szlsh $(EXTERNAL_EXT_LIBS) $(DOCS)
+all: $(PROGS) $(EXTERNAL_EXT_LIBS) $(DOCS)
 
 szl_builtin.c:
 	echo "#include \"szl.h\"" > $@
@@ -87,20 +88,38 @@ szl_conf.h: szl_conf.h.in
 %.o: %.c szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-szl.o: szl.c szl_posix.c szl.h
+szl.o: szl.c szl.h
 	$(CC) -c -o $@ $< $(CFLAGS) $(ZLIB_CFLAGS)
 
 szlsh.o: szlsh.c szl.h szl_conf.h
-	$(CC) -c -o $@ $< $(CFLAGS) $(ZLIB_CFLAGS)
+	$(CC) -c -o $@ $< $(CFLAGS)
 
-libszl.a: szl.o szl_builtin.o $(PLATFORM_MODULE) $(BUILTIN_EXT_OBJECTS)
+libszl.a: szl.o szl_builtin.o $(BUILTIN_EXT_OBJECTS)
 	$(AR) rcs $@ $^
 
 szlsh: szlsh.o libszl.a
 	$(CC) -o $@ $< $(LDFLAGS) $(LIBS) $(ZLIB_LIBS)
 
+szl_zlib.o: szl_zlib.c szl_conf.h
+	$(CC) -c -o $@ $< $(CFLAGS) $(ZLIB_CFLAGS)
+
 szl_zlib.so: szl_zlib.o
 	$(CC) -o $@ $^ $(LDFLAGS) -shared $(EXT_LIBS) $(ZLIB_LIBS)
+
+%.inc: %.szl
+	sed -e s~'^\t*'~~g \
+	    -e s~'\\'~'\\\\'~g \
+	    -e s~'"'~'\\"'~g \
+	    -e s~'^'~'"'~g \
+	    -e s~'$$'~'\\n" \\'~g \
+	    $^ | \
+	grep -v \
+	     -e ^\"\# \
+	     -e '^"\\n" \\' > $@; \
+	echo \"\" >> $@
+
+szl_sugar.o: szl_sugar.c szl_conf.h szl_sugar.inc
+	$(CC) -c -o $@ $< $(CFLAGS)
 
 szlsh.1: szlsh.1.in
 	sed -e s~@EXT_DIR@~$(EXT_DIR)~ -e s~@DOC_DIR@~$(DOC_DIR)~ $^ > $@
@@ -125,4 +144,4 @@ install: all
 	$(INSTALL) -m 644 COPYING $(DESTDIR)/$(DOC_DIR)/szl/COPYING
 
 clean:
-	rm -rf szlsh $(EXTERNAL_EXT_LIBS) $(OBJECTS) $(GENERATED)
+	rm -rf $(EXTERNAL_EXT_LIBS) $(PROGS) $(STATIC_LIB) $(OBJECTS) $(GENERATED)

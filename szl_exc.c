@@ -116,19 +116,16 @@ static enum szl_res szl_exc_proc_throw(struct szl_interp *interp,
 
 enum szl_res szl_init_exc(struct szl_interp *interp)
 {
-	if (!szl_new_proc(interp,
-	                  "try",
-	                  2,
-	                  6,
-	                  "try exp ?except exp? ?finally exp?",
-	                  szl_exc_proc_try,
-	                  NULL,
-	                  NULL,
-	                  NULL))
-		return SZL_ERR;
-
-
-	if (!szl_new_proc(interp,
+	if ((!szl_new_proc(interp,
+	                   "try",
+	                   2,
+	                   6,
+	                   "try exp ?except exp? ?finally exp?",
+	                   szl_exc_proc_try,
+	                   NULL,
+	                   NULL,
+	                   NULL)) ||
+	    (!szl_new_proc(interp,
 	                  "throw",
 	                  1,
 	                  2,
@@ -136,7 +133,7 @@ enum szl_res szl_init_exc(struct szl_interp *interp)
 	                  szl_exc_proc_throw,
 	                  NULL,
 	                  NULL,
-	                  NULL))
+	                  NULL)))
 		return SZL_ERR;
 
 	return SZL_OK;

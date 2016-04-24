@@ -170,6 +170,21 @@ static enum szl_res szl_obj_proc_join(struct szl_interp *interp,
 	return SZL_OK;
 }
 
+static enum szl_res szl_obj_proc_eval(struct szl_interp *interp,
+                                      const int objc,
+                                      struct szl_obj **objv,
+                                      struct szl_obj **ret)
+{
+	const char *s;
+	size_t len;
+
+	s = szl_obj_str(objv[1], &len);
+	if (!s || !len)
+		return SZL_ERR;
+
+	return szl_run_const(interp, ret, s, len);
+}
+
 enum szl_res szl_init_obj(struct szl_interp *interp)
 {
 	if ((!szl_new_proc(interp,
@@ -214,6 +229,15 @@ enum szl_res szl_init_obj(struct szl_interp *interp)
 	                   -1,
 	                   "join delim obj obj ?...?",
 	                   szl_obj_proc_join,
+	                   NULL,
+	                   NULL,
+	                   NULL)) ||
+	    (!szl_new_proc(interp,
+	                   "eval",
+	                   2,
+	                   2,
+	                   "eval obj",
+	                   szl_obj_proc_eval,
 	                   NULL,
 	                   NULL,
 	                   NULL)))

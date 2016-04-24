@@ -31,9 +31,9 @@
 #include <unistd.h>
 #include <stdarg.h>
 #include <math.h>
+#include <dlfcn.h>
 
 #include "szl.h"
-#include "szl_platform.h"
 
 extern enum szl_res szl_init_builtin_exts(struct szl_interp *interp);
 
@@ -119,7 +119,7 @@ static void szl_unload_ext(struct szl_ext *ext)
 	unsigned int i;
 
 	if (ext->handle) {
-		szl_close_ext(ext->handle);
+		dlclose(ext->handle);
 		ext->handle = NULL;
 	}
 
@@ -547,7 +547,7 @@ static szl_hash szl_hash_name(struct szl_interp *interp, const char *name)
 
 struct szl_local *szl_get_byhash(struct szl_interp *interp,
                                  struct szl_obj *proc,
-                                 const szl_hash hash, const char *name)
+                                 const szl_hash hash)
 {
 	size_t i;
 
@@ -570,17 +570,17 @@ enum szl_res szl_get(struct szl_interp *interp,
 		hash = szl_hash_name(interp, name);
 
 		/* try the current frame's locals first */
-		local = szl_get_byhash(interp, interp->current, hash, name);
+		local = szl_get_byhash(interp, interp->current, hash);
 
 		/* then, fall back to the caller's */
 		if ((!local) && (interp->current != interp->caller))
-			local = szl_get_byhash(interp, interp->caller, hash, name);
+			local = szl_get_byhash(interp, interp->caller, hash);
 
 		/* finally, try the global frame */
 		if ((!local) &&
 			(interp->global != interp->caller) &&
 			(interp->global != interp->current))
-			local = szl_get_byhash(interp, interp->global, hash, name);
+			local = szl_get_byhash(interp, interp->global, hash);
 	}
 
 	if (!local) {
@@ -594,20 +594,18 @@ enum szl_res szl_get(struct szl_interp *interp,
 	return SZL_OK;
 }
 
-static enum szl_res szl_set_in_proc(struct szl_interp *interp,
-                                    const char *name,
-                                    struct szl_obj *obj,
-                                    struct szl_obj *proc)
+static enum szl_res szl_set_in_proc_by_hash(struct szl_interp *interp,
+                                            const szl_hash hash,
+                                            struct szl_obj *obj,
+                                            struct szl_obj *proc)
 {
 	struct szl_local *old;
 	struct szl_local **locals;
 	size_t nlocals = proc->nlocals + 1;
-	szl_hash hash;
-	hash = szl_hash_name(interp, name);
 
 	/* if a previous object already exists with the same name, override its
 	 * value */
-	old = szl_get_byhash(interp, proc, hash, name);
+	old = szl_get_byhash(interp, proc, hash);
 	if (old) {
 		szl_obj_unref(old->obj);
 		old->obj = szl_obj_ref(obj);
@@ -630,6 +628,40 @@ static enum szl_res szl_set_in_proc(struct szl_interp *interp,
 	locals[proc->nlocals]->name = hash;
 	locals[proc->nlocals]->obj = szl_obj_ref(obj);
 	proc->nlocals = nlocals;
+
+	return SZL_OK;
+}
+
+enum szl_res szl_set_in_proc(struct szl_interp *interp,
+                             const char *name,
+                             struct szl_obj *obj,
+                             struct szl_obj *proc)
+{
+	return szl_set_in_proc_by_hash(interp,
+	                               szl_hash_name(interp, name),
+	                               obj,
+	                               proc);
+}
+
+static enum szl_res szl_copy_locals(struct szl_interp *interp,
+                                    struct szl_obj *caller,
+                                    struct szl_obj *current)
+{
+	size_t i;
+	enum szl_res res;
+
+	/* we never inherit globals, so all procedures share the same object
+	 * values */
+	if (caller != interp->global) {
+		for (i = 0; i < caller->nlocals; ++i) {
+			res = szl_set_in_proc_by_hash(interp,
+			                              caller->locals[i]->name,
+			                              caller->locals[i]->obj,
+			                              current);
+			if (res != SZL_OK)
+				return res;
+		}
+	}
 
 	return SZL_OK;
 }
@@ -940,8 +972,7 @@ static enum szl_res szl_run_line(struct szl_interp *interp,
                                  size_t len,
                                  struct szl_obj **out)
 {
-	char buf[SZL_MAX_OBJC_DIGITS + 1];
-	struct szl_obj **objv, *argc_obj, *prev_caller = szl_obj_ref(interp->caller);
+	struct szl_obj **objv, *prev_caller = szl_obj_ref(interp->caller);
 	char **argv;
 	enum szl_res res;
 	int argc, i, j;
@@ -974,14 +1005,7 @@ static enum szl_res szl_run_line(struct szl_interp *interp,
 		return res;
 	}
 
-	/* create the $# object */
-	argc_obj = szl_new_int(argc);
-	if (!argc_obj) {
-		szl_obj_unref(objv[0]);
-		free(objv);
-		free(argv);
-		return res;
-	}
+	szl_copy_locals(interp, interp->current, objv[0]);
 
 	/* set the current function, so evaluation of refers to the right frame */
 	interp->caller = szl_obj_ref(interp->current);
@@ -991,7 +1015,9 @@ static enum szl_res szl_run_line(struct szl_interp *interp,
 	for (i = 1; i < argc; ++i) {
 		if (szl_eval(interp, &objv[i], argv[i]) != SZL_OK) {
 			if (objv[i])
-				szl_obj_unref(objv[i]);
+				szl_set_result(out, objv[i]);
+			else
+				szl_set_result_fmt(interp, out, "bad arg: %s", argv[i]);
 
 			for (j = 1; j < i; ++j)
 				szl_obj_unref(objv[j]);
@@ -1003,30 +1029,15 @@ static enum szl_res szl_run_line(struct szl_interp *interp,
 			interp->caller = prev_caller;
 			szl_obj_unref(prev_caller);
 
-			szl_obj_unref(argc_obj);
-
 			free(objv);
-			szl_set_result_fmt(interp, out, "bad arg: %s", argv[i]);
 			free(argv);
 			return SZL_ERR;
 		}
 	}
 
-	res = szl_set_in_proc(interp, SZL_OBJC_OBJECT_NAME, argc_obj, objv[0]);
-	if (res != SZL_OK)
-		goto bail;
-
-	for (i = 0; i < argc; ++i) {
-		sprintf(buf, "%d", i);
-		res = szl_set_in_proc(interp, buf, objv[i], objv[0]);
-		if (res != SZL_OK)
-			goto bail;
-	}
-
 	/* call objv[0] */
 	res = szl_call(interp, argc, objv, out);
 
-bail:
 	/* free all locals */
 	szl_free_locals(objv[0]);
 
@@ -1037,7 +1048,6 @@ bail:
 
 	for (i = 0; i < argc; ++i)
 		szl_obj_unref(objv[i]);
-	szl_obj_unref(argc_obj);
 	free(objv);
 	free(argv);
 
@@ -1172,20 +1182,21 @@ enum szl_res szl_load(struct szl_interp *interp, const char *name)
 	enum szl_res res;
 
 	snprintf(path, sizeof(path), SZL_EXT_PATH_FMT, name);
-	if (szl_open_ext(path, &handle) != SZL_OK)
+	handle = dlopen(path, RTLD_LAZY);
+	if (!handle)
 		return SZL_ERR;
 
 	snprintf(init_name, sizeof(init_name), SZL_EXT_INIT_FUNC_NAME_FMT, name);
-	init = (szl_ext_init)szl_find_ext_func(handle, init_name);
+	init = (szl_ext_init)dlsym(handle, init_name);
 	if (!init) {
-		szl_close_ext(handle);
+		dlclose(handle);
 		return SZL_ERR;
 	}
 
 	exts = (struct szl_ext *)realloc(interp->exts,
 	                                 sizeof(struct szl_ext) * nexts);
 	if (!exts) {
-		szl_close_ext(handle);
+		dlclose(handle);
 		return SZL_ERR;
 	}
 
@@ -1198,7 +1209,7 @@ enum szl_res szl_load(struct szl_interp *interp, const char *name)
 
 	res = init(interp);
 	if (res != SZL_OK) {
-		szl_close_ext(handle);
+		dlclose(handle);
 		interp->exts[interp->nexts - 1].handle = NULL;
 		return SZL_ERR;
 	}

@@ -22,6 +22,8 @@
  * THE SOFTWARE.
  */
 
+#include <stdio.h>
+
 #include "szl.h"
 
 static enum szl_res szl_proc_eval_proc(struct szl_interp *interp,
@@ -29,13 +31,33 @@ static enum szl_res szl_proc_eval_proc(struct szl_interp *interp,
                                        struct szl_obj **objv,
                                        struct szl_obj **out)
 {
+	char buf[SZL_MAX_OBJC_DIGITS + 1];
+	struct szl_obj *argc_obj;
 	const char *s;
-	size_t len;
+	size_t len, i;
 	enum szl_res res;
 
 	s = szl_obj_str(interp->current->exp, &len);
 	if (!s)
 		return SZL_ERR;
+
+	/* create the $# object */
+	argc_obj = szl_new_int(objc);
+	if (!argc_obj)
+		return SZL_ERR;
+
+	res = szl_set_in_proc(interp, SZL_OBJC_OBJECT_NAME, argc_obj, objv[0]);
+	szl_obj_unref(argc_obj);
+	if (res != SZL_OK)
+		return res;
+
+	/* create the argument objects ($0, $1, ...) */
+	for (i = 0; i < objc; ++i) {
+		sprintf(buf, "%d", i);
+		res = szl_set_in_proc(interp, buf, objv[i], objv[0]);
+		if (res != SZL_OK)
+			return res;
+	}
 
 	res = szl_run_const(interp, out, s, len);
 
@@ -51,8 +73,14 @@ static enum szl_res szl_proc_proc_proc(struct szl_interp *interp,
                                        struct szl_obj **objv,
                                        struct szl_obj **ret)
 {
+	const char *name;
+
+	name = szl_obj_str(objv[1], NULL);
+	if (!name)
+		return SZL_ERR;
+
 	if (szl_new_proc(interp,
-	                 szl_obj_str(objv[1], NULL),
+	                 name,
 	                 -1,
 	                 -1,
 	                 NULL,

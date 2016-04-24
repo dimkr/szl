@@ -616,6 +616,11 @@ enum szl_res szl_get(struct szl_interp *interp,
                      struct szl_obj **out,
                      const char *name);
 
+enum szl_res szl_set_in_proc(struct szl_interp *interp,
+                             const char *name,
+                             struct szl_obj *obj,
+                             struct szl_obj *proc);
+
 /**
  * @fn enum szl_res szl_set(struct szl_interp *interp,
  *                          const char *name,

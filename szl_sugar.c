@@ -22,18 +22,22 @@
  * THE SOFTWARE.
  */
 
-#ifndef _SZL_PLATFORM_H_INCLUDED
-#	define _SZL_PLATFORM_H_INCLUDED
+#include "szl.h"
 
-#	include "szl.h"
+static const char szl_sugar_body[] = {
+#include "szl_sugar.inc"
+};
 
-enum szl_res szl_proc_sleep(struct szl_interp *interp,
-                            const int objc,
-                            struct szl_obj **objv,
-                            struct szl_obj **ret);
+enum szl_res szl_init_sugar(struct szl_interp *interp)
+{
+	struct szl_obj *tmp = NULL;
+	enum szl_res res;
 
-enum szl_res szl_open_ext(const char *path, void **handle);
-void szl_close_ext(void *handle);
-void *szl_find_ext_func(void *handle, const char *name);
-
-#endif
+	res = szl_run_const(interp,
+	                    &tmp,
+	                    szl_sugar_body,
+	                    sizeof(szl_sugar_body) - 1);
+	if (tmp)
+		szl_obj_unref(tmp);
+	return res;
+}

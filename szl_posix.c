@@ -30,10 +30,10 @@
 
 #include "szl.h"
 
-enum szl_res szl_proc_sleep(struct szl_interp *interp,
-                            const int objc,
-                            struct szl_obj **objv,
-                            struct szl_obj **ret)
+static enum szl_res szl_posix_proc_sleep(struct szl_interp *interp,
+                                         const int objc,
+                                         struct szl_obj **objv,
+                                         struct szl_obj **ret)
 {
 	struct timespec req, rem;
 	szl_double d;
@@ -59,21 +59,18 @@ enum szl_res szl_proc_sleep(struct szl_interp *interp,
 	return SZL_OK;
 }
 
-enum szl_res szl_open_ext(const char *path, void **handle)
+enum szl_res szl_init_posix(struct szl_interp *interp)
 {
-	*handle = dlopen(path, RTLD_LAZY);
-	if (!*handle)
+	if (!szl_new_proc(interp,
+	                  "sleep",
+	                  2,
+	                  2,
+	                  "sleep sec",
+	                  szl_posix_proc_sleep,
+	                  NULL,
+	                  NULL,
+	                  NULL))
 		return SZL_ERR;
 
 	return SZL_OK;
-}
-
-void szl_close_ext(void *handle)
-{
-	dlclose(handle);
-}
-
-void *szl_find_ext_func(void *handle, const char *name)
-{
-	return dlsym(handle, name);
 }

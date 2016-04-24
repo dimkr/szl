@@ -29,6 +29,7 @@ static enum szl_res szl_loop_proc_while(struct szl_interp *interp,
                                         struct szl_obj **objv,
                                         struct szl_obj **ret)
 {
+	struct szl_obj *val;
 	const char *cond, *body;
 	size_t blen;
 	enum szl_res res;
@@ -43,23 +44,29 @@ static enum szl_res szl_loop_proc_while(struct szl_interp *interp,
 		return SZL_ERR;
 
 	do {
-		*ret = NULL;
-		res = szl_eval(interp, ret, cond);
-		if ((res != SZL_OK) || !*ret)
-			break;
-
-		isfalse = szl_obj_isfalse(*ret);
-		szl_obj_unref(*ret);
-		*ret = NULL;
-		if (isfalse)
-			break;
-
-		res = szl_run_const(interp, ret, body, blen);
 		if (*ret) {
 			szl_obj_unref(*ret);
 			*ret = NULL;
 		}
+		res = szl_eval(interp, &val, cond);
+		if (res != SZL_OK) {
+			if (val)
+				szl_set_result(ret, val);
+			break;
+		}
 
+		isfalse = szl_obj_isfalse(val);
+		szl_obj_unref(val);
+		if (isfalse) {
+			res = SZL_OK;
+			break;
+		}
+
+		/* we pass the block return value */
+		res = szl_run_const(interp, ret, body, blen);
+
+		/* stop if we encounter an error; pass the body evaluation return value
+		 * because it the error */
 		if (res == SZL_ERR)
 			return SZL_ERR;
 
@@ -76,7 +83,6 @@ static enum szl_res szl_loop_proc_while(struct szl_interp *interp,
 		 */
 	} while (1);
 
-	szl_empty_result(interp, ret);
 	return res;
 }
 

@@ -10,8 +10,8 @@ Introduction
 +szl+ (pronounced "seezle") is a scripting language heavily inspired by Tcl and
 shell. It follows three design principles:
 
-1. Less syntax: there should be only *one way* to achieve a certain effect, to
-   make the language easier to learn
+1. Less syntax: there should be only *one, obvious way* to achieve a certain
+   effect, to make the language easier to learn
 2. Minimal syntax is not enough for code clarity; it also has to be *consistent*
    and therefore *predictable*
 - Everything is a string
@@ -149,17 +149,6 @@ if 1 {
 A block can be idented using either spaces, tabs or both. Whitespace at the
 beginning or end of statements is ignored.
 
-Also, brackets can be nested:
-
---------------------------------------
-if {test $number != 5} {
-	if {test $number == 4} {
-		puts hello
-		puts world
-	}
-}
---------------------------------------
-
 To obtain the return value of a procedure, wrap the statement that calls it with
 brackets. Tokens which consist of a statement enclosed in brackets are
 executed and evaluated as their return value. For example, the following example
@@ -170,7 +159,8 @@ variable:
 set sum [calc 1 + 2.5]
 --------------------------------------
 
-As with braces, brackets may be nested:
+Both braces and brackets may be nested, to form more complex logic using less
+code:
 
 --------------------------------------
 set number 1
@@ -244,10 +234,18 @@ proc bar {
 }
 --------------------------------------
 
-Large +szl+ scripts can be split into several files, for easier maintenance and
-the ability to share parts between projects. For example, utility procedures can
-be put in 'util.szl'. Then, 'source' can be used to execute this file through
-the script body:
+To obtain access to more procedures, +szl+ provides an extensions mechanism. For
+example, to be able to compress files using the 'zlib.gzip' procedure, the
+'zlib' extension should be loaded:
+
+--------------------------------------
+load zlib
+--------------------------------------
+
+In addition, large +szl+ scripts can be split into several files, for easier
+maintenance and the ability to share parts (like helper procedures) between
+projects. For example, utility procedures can be put in 'util.szl'. Then,
+'source' can be used to execute this file through the script body:
 
 --------------------------------------
 source util.szl
@@ -280,6 +278,9 @@ Variables
 +calc+ 'obj op obj'::
 	Performs an arithmetic operation on two objects. The operation may be '+',
 	'-', '*' or '-'.
+
++eval+ 'obj'::
+	Evaluate a +szl+ expression.
 
 I/O
 ^^^
