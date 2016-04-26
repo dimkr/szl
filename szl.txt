@@ -433,7 +433,8 @@ Every action has its pleasures and its price.
    to save the return value of a statement if you don't need it.
 4. Avoid redundant statements, like 'return [foo]' instead of 'foo' at the end
    of a procedure. The extra procedure call ('return') is a waste of time.
-5. Whenever possible, use local variables ('local') instead of globals ('set').
+5. Whenever possible, use local variables ('local') instead of globals
+   ('global').
    They get garbage collected earlier, so this results in reduced memory usage.
 6. Always simplify logical expressions, to reduce the number of procedure calls.
    For example, 'test $foo != $bar' runs faster than 'not [test $foo == $bar]'.
