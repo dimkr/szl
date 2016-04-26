@@ -287,6 +287,34 @@ I/O
 +puts+ 'msg'::
 	Prints a string to standard output.
 
++open+ 'path mode'::
+	Opens a file for reading. 'mode' is 'fputs()'-style (i.e. 'r', 'w', 'r+',
+	etc'): see 'man fputs' for the meaning of each mode.
+
+'$file read len'::
+	Reads 'len' bytes from 'file'.
+
+'$file write obj'::
+	Writes 'obj' to 'file'.
+
+'$file flush'::
+	Flushes the output buffer of 'file'.
+
+'$file close'::
+	Closes 'file' immediately. If 'close' is not called, the file will be closed
+	automatically later, during garbage collection.
+
++socket+ 'type host service'::
+	Creates a new TCP or UDP socket. Client sockets ('stream.client' and
+	'dgram.client') are connected to 'host:service', while server sockets
+	('stream.server' and 'dgram.server') are bound to 'host:service'. In server
+	mode, if 'service' is an empty string, the socket is bound to the wildcard
+	address. Sockets behave very much like files.
+
+'$socket accept'::
+	Waits for a client to connect to a 'stream.server' socket and returns a new
+	socket.
+
 Procedures
 ^^^^^^^^^^
 +proc+ 'name exp'::

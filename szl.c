@@ -32,6 +32,7 @@
 #include <stdarg.h>
 #include <math.h>
 #include <dlfcn.h>
+#include <time.h>
 
 #include "szl.h"
 
@@ -109,6 +110,8 @@ struct szl_interp *szl_interp_new(void)
 		szl_interp_free(interp);
 		return NULL;
 	}
+
+	interp->seed = (unsigned int)time(NULL);
 
 	return interp;
 }
@@ -193,6 +196,14 @@ void szl_obj_unref(struct szl_obj *obj)
 
 		free(obj);
 	}
+}
+
+void szl_new_obj_name(struct szl_interp *interp,
+                      const char *pfix,
+                      char *buf,
+                      const size_t len)
+{
+	snprintf(buf, len, "%s.%x", pfix, rand_r(&interp->seed));
 }
 
 struct szl_obj *szl_new_str_noalloc(char *s, const size_t len)
@@ -979,9 +990,17 @@ static enum szl_res szl_run_line(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	/* the first token is the procedure */
+	/* the first token is the procedure - try to find a variable named that way
+	 * and if it fails evaluate this token */
 	objv[0] = NULL;
 	res = szl_get(interp, &objv[0], argv[0]);
+	if (res == SZL_ERR) {
+		if (objv[0]) {
+			szl_obj_unref(objv[0]);
+			objv[0] = NULL;
+		}
+		res = szl_eval(interp, &objv[0], argv[0]);
+	}
 	if (res != SZL_OK) {
 		if (objv[0])
 			szl_obj_unref(objv[0]);
@@ -991,7 +1010,13 @@ static enum szl_res szl_run_line(struct szl_interp *interp,
 		return res;
 	}
 
-	szl_copy_locals(interp, interp->current, objv[0]);
+	res = szl_copy_locals(interp, interp->current, objv[0]);
+	if (res != SZL_OK) {
+		szl_obj_unref(objv[0]);
+		free(objv);
+		free(argv);
+		return res;
+	}
 
 	/* set the current function, so evaluation of refers to the right frame */
 	interp->caller = szl_obj_ref(interp->current);
@@ -1005,7 +1030,7 @@ static enum szl_res szl_run_line(struct szl_interp *interp,
 			else
 				szl_set_result_fmt(interp, out, "bad arg: %s", argv[i]);
 
-			for (j = 1; j < i; ++j)
+			for (j = 0; j < i; ++j)
 				szl_obj_unref(objv[j]);
 
 			szl_free_locals(objv[0]);

@@ -222,6 +222,7 @@ struct szl_interp {
 	struct szl_obj *one; /**< A 1 integer singleton */
 
 	uLong init; /**< The initial CRC32 checksum */
+	unsigned int seed; /**< A PRNG seed */
 
 	struct szl_obj *global; /**< The frame of statements executed in the global scope, outside of a procedure */
 
@@ -306,6 +307,24 @@ void szl_obj_unref(struct szl_obj *obj);
  * @ingroup low_level
  * @{
  */
+
+/**
+ * @fn void szl_new_obj_name(struct szl_interp *interp,
+ *                           const char *pfix,
+ *                           char *buf,
+ *                           const size_t len)
+ * @brief Creates a random name for a newly created variable
+ * @param interp [in,out] An interpreter
+ * @param pfix [in] A prefix for the variable name
+ * @param buf [out] The output buffer
+ * @param len [in] The buffer size
+ *
+ * The returned name is in the format "prefix.number".
+ */
+void szl_new_obj_name(struct szl_interp *interp,
+                      const char *pfix,
+                      char *buf,
+                      const size_t len);
 
 /**
  * @fn struct szl_obj *szl_new_str_noalloc(char *s, const size_t len)
