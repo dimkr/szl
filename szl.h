@@ -91,6 +91,13 @@
 #	define SZL_OBJC_OBJECT_NAME "#"
 
 /**
+ * @def SZL_PREV_RET_OBJ_NAME
+ * The name of the special object containing the previously called procedure's
+ * return value
+ */
+#	define SZL_PREV_RET_OBJ_NAME "_"
+
+/**
  * @}
  *
  * @defgroup types Data types
@@ -159,7 +166,8 @@ enum szl_type {
 	SZL_TYPE_STR    = 1 << 1, /**< String */
 	SZL_TYPE_INT    = 1 << 2, /**< Integer */
 	SZL_TYPE_DOUBLE = 1 << 3, /**< Floating-point number */
-	SZL_TYPE_BOOL   = 1 << 4 /**< Boolean value */
+	SZL_TYPE_BOOL   = 1 << 4, /**< Boolean value */
+	SZL_TYPE_PROC   = 1 << 5 /**< Procedure */
 };
 
 struct szl_obj;

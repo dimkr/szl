@@ -318,7 +318,7 @@ struct szl_obj *szl_new_proc(struct szl_interp *interp,
 		return NULL;
 	}
 
-	obj->type = SZL_TYPE_STR;
+	obj->type = SZL_TYPE_STR | SZL_TYPE_PROC;
 	obj->min_argc = min_argc;
 	obj->max_argc = max_argc;
 	obj->help = help;
@@ -669,8 +669,12 @@ static enum szl_res szl_call(struct szl_interp *interp,
 
 	*ret = NULL;
 
-	if ((!objv[0]->proc) ||
-	    (objc <= 0) ||
+	if (!(objv[0]->type & SZL_TYPE_PROC)) {
+		szl_set_result_str(interp, ret, "not a proc");
+		return SZL_ERR;
+	}
+
+	if ((objc <= 0) ||
 	    (objc >= SZL_MAX_PROC_OBJC) ||
 	    ((objv[0]->min_argc != -1) && (objc < objv[0]->min_argc)) ||
 	    ((objv[0]->max_argc != -1) && (objc > objv[0]->max_argc))) {
@@ -976,7 +980,7 @@ static enum szl_res szl_run_line(struct szl_interp *interp,
 	 * and if it fails evaluate this token */
 	objv[0] = NULL;
 	res = szl_get(interp, &objv[0], argv[0]);
-	if (res == SZL_ERR) {
+	if (res != SZL_OK) {
 		if (objv[0]) {
 			szl_obj_unref(objv[0]);
 			objv[0] = NULL;
@@ -1012,10 +1016,10 @@ static enum szl_res szl_run_line(struct szl_interp *interp,
 			else
 				szl_set_result_fmt(interp, out, "bad arg: %s", argv[i]);
 
+			szl_free_locals(objv[0]);
+
 			for (j = 0; j < i; ++j)
 				szl_obj_unref(objv[j]);
-
-			szl_free_locals(objv[0]);
 
 			interp->current = interp->caller;
 			szl_obj_unref(interp->caller);
@@ -1044,6 +1048,24 @@ static enum szl_res szl_run_line(struct szl_interp *interp,
 	free(objv);
 	free(argv);
 
+	/* set the special SZL_PREV_RET_OBJ_NAME variable so it points to the
+	 * procedure return value */
+	if (res == SZL_OK) {
+		if (*out)
+			res = szl_local(interp,
+			                interp->caller,
+			                SZL_PREV_RET_OBJ_NAME,
+			                *out);
+		else {
+			*out = szl_empty(interp);
+			res = szl_local(interp,
+			                interp->caller,
+			                SZL_PREV_RET_OBJ_NAME, *out);
+			szl_obj_unref(*out);
+			*out = NULL;
+		}
+	}
+
 	return res;
 }
 
@@ -1056,6 +1078,7 @@ static enum szl_res szl_run_lines(struct szl_interp *interp,
 	enum szl_res res;
 
 	/* run all lines except the last one */
+	*out = NULL;
 	for (i = 0; i < n - 1; ++i) {
 		res = szl_run_line(interp, s[i], strlen(s[i]), out);
 		if (res != SZL_OK)
@@ -1069,6 +1092,7 @@ static enum szl_res szl_run_lines(struct szl_interp *interp,
 		}
 	}
 
+	*out = NULL;
 	return szl_run_line(interp, s[n - 1], strlen(s[n - 1]), out);
 }
 
@@ -1254,7 +1278,7 @@ enum szl_res szl_source(struct szl_interp *interp, const char *path)
 
 enum szl_res szl_main(int argc, char *argv[])
 {
-	struct szl_obj *out;
+	struct szl_obj *out = NULL;
 	struct szl_interp *interp;
 	enum szl_res res;
 
