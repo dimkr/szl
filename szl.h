@@ -624,6 +624,13 @@ void szl_usage(struct szl_interp *interp,
                struct szl_obj *proc);
 
 /**
+ * @fn void szl_unset(struct szl_obj **out)
+ * @brief A quick way to discard a previous return value
+ * @param out [in,out] The procedure return value object
+ */
+void szl_unset(struct szl_obj **out);
+
+/**
  * @}
  *
  * @defgroup vars Variables

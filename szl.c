@@ -537,6 +537,14 @@ void szl_usage(struct szl_interp *interp,
 		szl_set_result_fmt(interp, out, "bad %s usage: %s", s, proc->help);
 }
 
+void szl_unset(struct szl_obj **out)
+{
+	if (*out) {
+		szl_obj_unref(*out);
+		*out = NULL;
+	}
+}
+
 static szl_hash szl_hash_name(struct szl_interp *interp, const char *name)
 {
 	return crc32(interp->init, (const Bytef *)name, (uInt)strlen(name));
@@ -981,10 +989,7 @@ static enum szl_res szl_run_line(struct szl_interp *interp,
 	objv[0] = NULL;
 	res = szl_get(interp, &objv[0], argv[0]);
 	if (res != SZL_OK) {
-		if (objv[0]) {
-			szl_obj_unref(objv[0]);
-			objv[0] = NULL;
-		}
+		szl_unset(&objv[0]);
 		res = szl_eval(interp, &objv[0], argv[0]);
 	}
 	if (res != SZL_OK) {
@@ -1086,10 +1091,7 @@ static enum szl_res szl_run_lines(struct szl_interp *interp,
 
 		/* if this isn't the last line, get rid of the previous one's return
 		 * value */
-		if (*out) {
-			szl_obj_unref(*out);
-			*out = NULL;
-		}
+		szl_unset(out);
 	}
 
 	*out = NULL;

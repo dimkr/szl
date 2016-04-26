@@ -44,10 +44,7 @@ static enum szl_res szl_loop_proc_while(struct szl_interp *interp,
 		return SZL_ERR;
 
 	do {
-		if (*ret) {
-			szl_obj_unref(*ret);
-			*ret = NULL;
-		}
+		szl_unset(ret);
 		res = szl_eval(interp, &val, cond);
 		if (res != SZL_OK) {
 			if (val)

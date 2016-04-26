@@ -95,10 +95,7 @@ static enum szl_res szl_exc_proc_try(struct szl_interp *interp,
 	}
 
 	if (finally) {
-		if (*ret) {
-			szl_obj_unref(*ret);
-			*ret = NULL;
-		}
+		szl_unset(ret);
 		res = szl_run_const(interp, ret, finally, flen);
 	}
 
