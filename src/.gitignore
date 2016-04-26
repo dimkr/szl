@@ -5,6 +5,3 @@ szl_builtin.c
 szl_conf.h
 *.inc
 szlsh
-szlsh.1
-szl.html
-api_doc

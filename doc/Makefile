@@ -20,19 +20,30 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-all: .src .doc
+include ../Makefile.common
+
+DOCS = szlsh.1 szl.html
+
+TEMPLATES = $(wildcard *.in)
+GENERATED = $(TEMPLATES:.in=) szl_builtin.c $(DOCS) api_doc
+
+all: $(DOCS)
+
+%.1: %.1.in
+	sed -e s~@EXT_DIR@~$(EXT_DIR)~ -e s~@DOC_DIR@~$(DOC_DIR)~ $^ > $@
+
+%.html: %.txt
+	asciidoc -o $@ $^
+
+api_doc: doxygen.conf
+	doxygen $^
+
 install: all
-
-.src:
-	cd src; $(MAKE)
-
-.doc:
-	cd doc; $(MAKE)
-
-install:
-	cd doc; $(MAKE) install
-	cd src; $(MAKE) install
+	$(INSTALL) -D -m 644 szlsh.1 $(DESTDIR)/$(MAN_DIR)/szlsh.1
+	$(INSTALL) -D -m 644 szl.html $(DESTDIR)/$(DOC_DIR)/szl/szl.html
+	$(INSTALL) -m 644 ../README $(DESTDIR)/$(DOC_DIR)/szl/README
+	$(INSTALL) -m 644 ../AUTHORS $(DESTDIR)/$(DOC_DIR)/szl/AUTHORS
+	$(INSTALL) -m 644 ../COPYING $(DESTDIR)/$(DOC_DIR)/szl/COPYING
 
 clean:
-	cd doc; $(MAKE) clean
-	cd src; $(MAKE) clean
+	rm -rf $(GENERATED)

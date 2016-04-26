@@ -20,19 +20,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-all: .src .doc
-install: all
+DESTDIR ?=
+PREFIX ?= /usr
+LIB_DIR ?= $(PREFIX)/lib
+BIN_DIR ?= $(PREFIX)/bin
+MAN_DIR ?= $(PREFIX)/share/man
+DOC_DIR ?= $(PREFIX)/share/doc
+EXT_DIR ?= $(LIB_DIR)/szl
 
-.src:
-	cd src; $(MAKE)
-
-.doc:
-	cd doc; $(MAKE)
-
-install:
-	cd doc; $(MAKE) install
-	cd src; $(MAKE) install
-
-clean:
-	cd doc; $(MAKE) clean
-	cd src; $(MAKE) clean
+INSTALL = install -v
