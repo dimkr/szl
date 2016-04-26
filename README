@@ -8,26 +8,26 @@
 Overview
 ========
 
-szl is a tiny, embeddable scripting engine.
+szl is a tiny, embeddable scripting engine inspired by Tcl and shell.
 
 For more information, see the user manual at http://www.dimakrasner.com/szl.
 
 Building
 ========
 
-  make
-  make install
+  $ make
+  $ make install
 
 Documentation
 =============
 
 To build the user manual:
 
-  $ make szl.html
+  $ cd doc; make szl.html
 
 To build the API documentation:
 
-  $ make api_docs
+  $ cd doc; make api_docs
 
 Credits and Legal Information
 =============================
