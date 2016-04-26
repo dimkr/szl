@@ -310,7 +310,7 @@ struct szl_obj *szl_new_proc(struct szl_interp *interp,
 	}
 
 	obj->refc = 0;
-	if (name[0] && (szl_set(interp, name, obj) != SZL_OK)) {
+	if (name[0] && (szl_local(interp, interp->global, name, obj) != SZL_OK)) {
 		if (del)
 			del(priv);
 		free(obj->s);
@@ -591,10 +591,10 @@ enum szl_res szl_get(struct szl_interp *interp,
 	return SZL_OK;
 }
 
-static enum szl_res szl_set_in_proc_by_hash(struct szl_interp *interp,
-                                            const szl_hash hash,
-                                            struct szl_obj *obj,
-                                            struct szl_obj *proc)
+static enum szl_res szl_local_by_hash(struct szl_interp *interp,
+                                      const szl_hash hash,
+                                      struct szl_obj *obj,
+                                      struct szl_obj *proc)
 {
 	struct szl_local *old;
 	struct szl_local **locals;
@@ -629,15 +629,12 @@ static enum szl_res szl_set_in_proc_by_hash(struct szl_interp *interp,
 	return SZL_OK;
 }
 
-enum szl_res szl_set_in_proc(struct szl_interp *interp,
-                             const char *name,
-                             struct szl_obj *obj,
-                             struct szl_obj *proc)
+enum szl_res szl_local(struct szl_interp *interp,
+                       struct szl_obj *proc,
+                       const char *name,
+                       struct szl_obj *obj)
 {
-	return szl_set_in_proc_by_hash(interp,
-	                               szl_hash_name(interp, name),
-	                               obj,
-	                               proc);
+	return szl_local_by_hash(interp, szl_hash_name(interp, name), obj, proc);
 }
 
 static enum szl_res szl_copy_locals(struct szl_interp *interp,
@@ -651,31 +648,16 @@ static enum szl_res szl_copy_locals(struct szl_interp *interp,
 	 * values */
 	if (caller != interp->global) {
 		for (i = 0; i < caller->nlocals; ++i) {
-			res = szl_set_in_proc_by_hash(interp,
-			                              caller->locals[i]->name,
-			                              caller->locals[i]->obj,
-			                              current);
+			res = szl_local_by_hash(interp,
+			                        caller->locals[i]->name,
+			                        caller->locals[i]->obj,
+			                        current);
 			if (res != SZL_OK)
 				return res;
 		}
 	}
 
 	return SZL_OK;
-}
-
-enum szl_res szl_local(struct szl_interp *interp,
-                       struct szl_obj *proc,
-                       const char *name,
-                       struct szl_obj *obj)
-{
-	return szl_set_in_proc(interp, name, obj, proc);
-}
-
-enum szl_res szl_set(struct szl_interp *interp,
-                     const char *name,
-                     struct szl_obj *obj)
-{
-	return szl_set_in_proc(interp, name, obj, interp->global);
 }
 
 static enum szl_res szl_call(struct szl_interp *interp,

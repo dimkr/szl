@@ -94,13 +94,13 @@ Some procedures do not receive any arguments.
 
 Objects (sometimes referred to as 'variables') are identified by name and can be
 used to store values (strings or numbers). To create a new object or change the
-value of an existing one, use 'set':
+value of an existing one, use 'local':
 
 --------------------------------------
-set number 5
+local number 5
 --------------------------------------
 
-'set' receives the object name and its value. To query the value of an object,
+'local' receives the object name and its value. To query the value of an object,
 prefix its name with '$', like this:
 
 --------------------------------------
@@ -114,8 +114,8 @@ To call a procedure with arguments that contain spaces, they can be grouped
 using quotes or braces:
 
 --------------------------------------
-set message "hello world"
-set message {hello world}
+local message "hello world"
+local message {hello world}
 --------------------------------------
 
 The difference between the two is that whatever comes between quotes gets
@@ -156,17 +156,17 @@ executes 'calc 1 + 2.5' and stores the return value of this procedure in a
 variable:
 
 --------------------------------------
-set sum [calc 1 + 2.5]
+local sum [calc 1 + 2.5]
 --------------------------------------
 
 Both braces and brackets may be nested, to form more complex logic using less
 code:
 
 --------------------------------------
-set number 1
+local number 1
 while {[test [calc $number + 1] != 10]} {
 	puts $number
-	set number [calc $number + 1]
+	local number [calc $number + 1]
 }
 --------------------------------------
 
@@ -257,14 +257,14 @@ Builtin Procedures
 ~~~~~~~~~~~~~~~~~~
 Variables
 ^^^^^^^^^
-+set+ 'name val'::
-	Creates a new variable in the global scope. The variable will not be garbage
-	collected until the interpreter exits. The procedure return value is the
-	variable value (useful for one-liners).
-
 +local+ 'name val'::
-	Similar to 'set', but creates the new variable in local scope. The variable
-	will be garbage collected once the current procedure returns.
+	Creates a new variable in local scope. The variable will be garbage
+	collected once the current procedure returns. The procedure return value is
+	the variable value (useful for one-liners).
+
++global+ 'name val'::
+	Similar to 'local', but creates the new variable in the global scope. The
+	variable will not be garbage collected until the interpreter exits.
 
 +length+ 'obj'::
 	Returns the length of a variable value.

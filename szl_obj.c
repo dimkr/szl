@@ -24,10 +24,10 @@
 
 #include "szl.h"
 
-static enum szl_res szl_obj_proc_set(struct szl_interp *interp,
-                                     const int objc,
-                                     struct szl_obj **objv,
-                                     struct szl_obj **ret)
+static enum szl_res szl_obj_proc_global(struct szl_interp *interp,
+                                        const int objc,
+                                        struct szl_obj **objv,
+                                        struct szl_obj **ret)
 {
 	enum szl_res res;
 	const char *s;
@@ -36,7 +36,7 @@ static enum szl_res szl_obj_proc_set(struct szl_interp *interp,
 	if (!s)
 		return SZL_ERR;
 
-	res = szl_set(interp, s, objv[2]);
+	res = szl_local(interp, interp->global, s, objv[2]);
 	/* return the value upon success - useful for one-liners */
 	if (res == SZL_OK) {
 		szl_set_result(ret, szl_obj_ref(objv[2]));
@@ -188,11 +188,11 @@ static enum szl_res szl_obj_proc_eval(struct szl_interp *interp,
 enum szl_res szl_init_obj(struct szl_interp *interp)
 {
 	if ((!szl_new_proc(interp,
-	                   "set",
+	                   "global",
 	                   3,
 	                   3,
-	                   "set name val",
-	                   szl_obj_proc_set,
+	                   "global name val",
+	                   szl_obj_proc_global,
 	                   NULL,
 	                   NULL)) ||
 	    (!szl_new_proc(interp,

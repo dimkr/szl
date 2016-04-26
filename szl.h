@@ -638,37 +638,6 @@ enum szl_res szl_get(struct szl_interp *interp,
                      const char *name);
 
 /**
- * @fn enum szl_set_in_proc(struct szl_interp *interp,
- *                          const char *name,
- *                          struct szl_obj *obj,
- *                          struct szl_obj *proc)
- * @brief Registers an existing object with a given name, in a given scope
- * @param interp [in,out] An interpreter
- * @param name [in] The object name
- * @param obj [in,out] The object
- * @param proc [in,out] The scope
- * @return SZL_OK or SZL_ERR
- */
-enum szl_res szl_set_in_proc(struct szl_interp *interp,
-                             const char *name,
-                             struct szl_obj *obj,
-                             struct szl_obj *proc);
-
-/**
- * @fn enum szl_res szl_set(struct szl_interp *interp,
- *                          const char *name,
- *                          struct szl_obj *obj)
- * @brief Registers an existing object with a given name, in the global scope
- * @param interp [in,out] An interpreter
- * @param name [in] The object name
- * @param obj [in,out] The object
- * @return SZL_OK or SZL_ERR
- */
-enum szl_res szl_set(struct szl_interp *interp,
-                     const char *name,
-                     struct szl_obj *obj);
-
-/**
  * @fn enum szl_res szl_local(struct szl_interp *interp,
  *                            struct szl_obj *proc,
  *                            const char *name,

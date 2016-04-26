@@ -46,7 +46,7 @@ static enum szl_res szl_proc_eval_proc(struct szl_interp *interp,
 	if (!argc_obj)
 		return SZL_ERR;
 
-	res = szl_set_in_proc(interp, SZL_OBJC_OBJECT_NAME, argc_obj, objv[0]);
+	res = szl_local(interp, objv[0], SZL_OBJC_OBJECT_NAME, argc_obj);
 	szl_obj_unref(argc_obj);
 	if (res != SZL_OK)
 		return res;
@@ -54,7 +54,7 @@ static enum szl_res szl_proc_eval_proc(struct szl_interp *interp,
 	/* create the argument objects ($0, $1, ...) */
 	for (i = 0; i < objc; ++i) {
 		sprintf(buf, "%d", i);
-		res = szl_set_in_proc(interp, buf, objv[i], objv[0]);
+		res = szl_local(interp, objv[0], buf, objv[i]);
 		if (res != SZL_OK)
 			return res;
 	}
