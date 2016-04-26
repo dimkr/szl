@@ -304,6 +304,8 @@ I/O
 	Closes 'file' immediately. If 'close' is not called, the file will be closed
 	automatically later, during garbage collection.
 
+Network
+^^^^^^^
 +socket+ 'type host service'::
 	Creates a new TCP or UDP socket. Client sockets ('stream.client' and
 	'dgram.client') are connected to 'host:service', while server sockets
@@ -379,6 +381,11 @@ Any set of statements can be wrapped with a 'try' block without a matching
 
 +source+ 'path'::
 	Execute a 'szl' script.
+
+Processes
+~~~~~~~~~
++exec+ 'cmd'::
+	Runs a shell command, waits for it to terminate and returns its output.
 
 Extensions
 ~~~~~~~~~~
@@ -484,7 +491,7 @@ Implementation
 --------------
 Language
 ~~~~~~~~
-+szl+ is implemented in C (or more specifically, 99) and targest
++szl+ is implemented in C (or more specifically, C99) and targets
 http://www.kernel.org/[Linux] distributions.
 
 Objects
