@@ -30,10 +30,12 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <paths.h>
+#include <stdio.h>
 
 #include "szl.h"
 
-#define EXEC_BUFSIZ 4096
+#define SZL_EXEC_BUFSIZ BUFSIZ
+#define SZL_EXIT_CODE_OBJ_NAME "?"
 
 static enum szl_res szl_posix_proc_sleep(struct szl_interp *interp,
                                          const int objc,
@@ -71,6 +73,7 @@ static enum szl_res szl_posix_proc_exec(struct szl_interp *interp,
 {
 	char *buf, *mbuf;
 	const char *cmd;
+	struct szl_obj *exit_code;
 	size_t len, mlen, rlen;
 	pid_t pid;
 	int fds[2], out, status;
@@ -102,16 +105,16 @@ static enum szl_res szl_posix_proc_exec(struct szl_interp *interp,
 
 	close(fds[1]);
 
-	buf = (char *)malloc(EXEC_BUFSIZ + 1);
+	buf = (char *)malloc(SZL_EXEC_BUFSIZ + 1);
 	if (!buf) {
 		close(fds[0]);
 		return SZL_ERR;
 	}
 
-	len = mlen = EXEC_BUFSIZ;
+	len = mlen = SZL_EXEC_BUFSIZ;
 	rlen = 0;
 	do {
-		clen = read(fds[0], buf + rlen, EXEC_BUFSIZ);
+		clen = read(fds[0], buf + rlen, SZL_EXEC_BUFSIZ);
 		if (clen < 0) {
 			res = SZL_ERR;
 			break;
@@ -119,7 +122,7 @@ static enum szl_res szl_posix_proc_exec(struct szl_interp *interp,
 		if (clen == 0)
 			break;
 
-		mlen = len + EXEC_BUFSIZ;
+		mlen = len + SZL_EXEC_BUFSIZ;
 		mbuf = (char *)realloc(buf, mlen);
 		if (!mbuf) {
 			free(buf);
@@ -139,15 +142,38 @@ static enum szl_res szl_posix_proc_exec(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	if (res == SZL_OK) {
-		buf[rlen] = '\0';
-		*ret = szl_new_str_noalloc(buf, rlen);
-		if (*ret)
-			return SZL_OK;
+	if (res != SZL_OK) {
+		free(buf);
+		return res;
 	}
 
-	free(buf);
-	return res;
+	if (!WIFEXITED(status)) {
+		free(buf);
+		return SZL_ERR;
+	}
+
+	exit_code = szl_new_int(WEXITSTATUS(status));
+	if (!exit_code) {
+		free(buf);
+		return SZL_ERR;
+	}
+
+	res = szl_local(interp,
+	                interp->caller,
+	                SZL_EXIT_CODE_OBJ_NAME,
+	                exit_code);
+	szl_obj_unref(exit_code);
+	if (res != SZL_OK) {
+		free(buf);
+		return SZL_ERR;
+	}
+
+	buf[rlen] = '\0';
+	*ret = szl_new_str_noalloc(buf, rlen);
+	if (*ret)
+		return SZL_OK;
+
+	return SZL_ERR;
 }
 
 enum szl_res szl_init_posix(struct szl_interp *interp)

@@ -385,7 +385,14 @@ Any set of statements can be wrapped with a 'try' block without a matching
 Processes
 ~~~~~~~~~
 +exec+ 'cmd'::
-	Runs a shell command, waits for it to terminate and returns its output.
+	Runs a shell command, waits for it to terminate and returns its output. In
+	addition, the process exit code is put in the special variable '?', in the
+	scope of the calling procedure:
+
+--------------------------------------
+exec {cp --help 2>&1}
+puts $?
+--------------------------------------
 
 Extensions
 ~~~~~~~~~~
