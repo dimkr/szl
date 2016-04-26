@@ -707,7 +707,12 @@ static void szl_trim(char *s, char **start, char **end)
 {
 	size_t len;
 
-	len = strlen(s);
+	if (!s[0]) {
+		*start = *end = s;
+		return;
+	}
+
+	len = 1 + strlen(s + 1);
 	if (len == 1)
 		*end = &s[1];
 	else {
@@ -793,6 +798,11 @@ enum szl_res szl_eval(struct szl_interp *interp,
 	enum szl_res res = SZL_OK;
 	char *s2, *start, *end;
 	size_t len;
+
+	if (!s[0]) {
+		*out = szl_empty(interp);
+		return SZL_OK;
+	}
 
 	*out = NULL;
 	len = strlen(s);
