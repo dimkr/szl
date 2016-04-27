@@ -18,6 +18,20 @@ Building
   $ make
   $ make install
 
+Note: On x86_64 replace the "make" command with
+
+  $ CC="cc -fPIC" make
+
+You will need to run
+
+  $ make clean
+
+first if your attempt to build with
+
+  $ make
+
+failed.
+
 Documentation
 =============
 
