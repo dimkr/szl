@@ -25,7 +25,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <ctype.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -38,14 +37,16 @@
 
 extern enum szl_res szl_init_builtin_exts(struct szl_interp *interp);
 
-static enum szl_res szl_run_line(struct szl_interp *,
-                                 char *,
-                                 size_t,
-                                 struct szl_obj **);
-static char **szl_split_line(struct szl_interp *interp,
-                             char *s,
-                             int *argc,
-                             struct szl_obj **out);
+SZL_STATIC
+enum szl_res szl_run_line(struct szl_interp *,
+                          char *,
+                          size_t,
+                          struct szl_obj **);
+SZL_STATIC
+char **szl_split_line(struct szl_interp *interp,
+                      char *s,
+                      int *argc,
+                      struct szl_obj **out);
 
 struct szl_interp *szl_interp_new(void)
 {
@@ -116,7 +117,8 @@ struct szl_interp *szl_interp_new(void)
 	return interp;
 }
 
-static void szl_unload_ext(struct szl_ext *ext)
+SZL_STATIC
+void szl_unload_ext(struct szl_ext *ext)
 {
 	unsigned int i;
 
@@ -166,7 +168,8 @@ struct szl_obj *szl_obj_ref(struct szl_obj *obj)
 }
 
 
-static void szl_free_locals(struct szl_obj *proc)
+SZL_STATIC
+void szl_free_locals(struct szl_obj *proc)
 {
 	size_t i;
 
@@ -545,11 +548,13 @@ void szl_unset(struct szl_obj **out)
 	}
 }
 
-static szl_hash szl_hash_name(struct szl_interp *interp, const char *name)
+SZL_STATIC
+szl_hash szl_hash_name(struct szl_interp *interp, const char *name)
 {
 	return crc32(interp->init, (const Bytef *)name, (uInt)strlen(name));
 }
 
+SZL_STATIC
 struct szl_local *szl_get_byhash(struct szl_interp *interp,
                                  struct szl_obj *proc,
                                  const szl_hash hash)
@@ -599,10 +604,11 @@ enum szl_res szl_get(struct szl_interp *interp,
 	return SZL_OK;
 }
 
-static enum szl_res szl_local_by_hash(struct szl_interp *interp,
-                                      const szl_hash hash,
-                                      struct szl_obj *obj,
-                                      struct szl_obj *proc)
+SZL_STATIC
+enum szl_res szl_local_by_hash(struct szl_interp *interp,
+                               const szl_hash hash,
+                               struct szl_obj *obj,
+                               struct szl_obj *proc)
 {
 	struct szl_local *old;
 	struct szl_local **locals;
@@ -645,9 +651,10 @@ enum szl_res szl_local(struct szl_interp *interp,
 	return szl_local_by_hash(interp, szl_hash_name(interp, name), obj, proc);
 }
 
-static enum szl_res szl_copy_locals(struct szl_interp *interp,
-                                    struct szl_obj *caller,
-                                    struct szl_obj *current)
+SZL_STATIC
+enum szl_res szl_copy_locals(struct szl_interp *interp,
+                             struct szl_obj *caller,
+                             struct szl_obj *current)
 {
 	size_t i;
 	enum szl_res res;
@@ -668,10 +675,11 @@ static enum szl_res szl_copy_locals(struct szl_interp *interp,
 	return SZL_OK;
 }
 
-static enum szl_res szl_call(struct szl_interp *interp,
-                             const int objc,
-                             struct szl_obj **objv,
-                             struct szl_obj **ret)
+SZL_STATIC
+enum szl_res szl_call(struct szl_interp *interp,
+                      const int objc,
+                      struct szl_obj **objv,
+                      struct szl_obj **ret)
 {
 	enum szl_res res;
 
@@ -703,7 +711,20 @@ static enum szl_res szl_call(struct szl_interp *interp,
 	return res;
 }
 
-static void szl_trim(char *s, char **start, char **end)
+SZL_STATIC
+int szl_isspace(const char ch)
+{
+	return ((ch == ' ') || (ch == '\t') || (ch == '\n') || (ch == '\r'));
+}
+
+SZL_STATIC
+void szl_ltrim(char *s, char **start)
+{
+	for (*start = s; szl_isspace(*start[0]); ++*start);
+}
+
+SZL_STATIC
+void szl_trim(char *s, char **start, char **end)
 {
 	size_t len;
 
@@ -716,19 +737,20 @@ static void szl_trim(char *s, char **start, char **end)
 	if (len == 1)
 		*end = &s[1];
 	else {
-		*end = &s[len];
-		if (!**end && isspace(*(*end - 1))) {
-			while ((*end > s) && isspace(**end)) --*end;
-			*(*end + 1) = '\0';
-		}
+		*end = &s[len - 1];
+		if (szl_isspace(**end)) {
+			for (--*end; (*end > s) && szl_isspace(**end); --*end);
+			++*end;
+			**end = '\0';
+		} else
+			*end = &s[len];
 	}
 
-	for (*start = s; (*start <= *end) && isspace(**start); ++*start);
+	szl_ltrim(s, start);
 }
 
-static struct szl_obj *szl_expand(struct szl_interp *interp,
-                                  const char *s,
-                                  int len)
+SZL_STATIC
+struct szl_obj *szl_expand(struct szl_interp *interp, const char *s, int len)
 {
 	struct szl_obj *tmp = NULL, *obj;
 	char **toks, *s2;
@@ -860,19 +882,31 @@ enum szl_res szl_eval(struct szl_interp *interp,
 	return res;
 }
 
-static char *szl_get_next_token(char *s)
+SZL_STATIC
+char *szl_get_next_token(char *s)
 {
 	char *pos;
-	int odelim = 0, cdelim = 0;
+	char odelim, cdelim = '\0';
+	int nodelim = 0, ncdelim = 0;
 
-	if (s[0] == '[') {
-		for (pos = s; *pos; ++pos) {
-			if (*pos == '[')
-				++odelim;
-			else if (*pos == ']') {
-				++cdelim;
-				if (odelim == cdelim) {
-					for (pos += 1; *pos && isspace(*pos); ++pos);
+	if (s[0] == '\0')
+		return NULL;
+
+	if (s[0] == '[')
+		cdelim = ']';
+	else if (s[0] == '{')
+		cdelim = '}';
+
+	if (cdelim != '\0') {
+		odelim = s[0];
+
+		for (pos = s; pos[0] != '\0'; ++pos) {
+			if (*pos == odelim)
+				++nodelim;
+			else if (*pos == cdelim) {
+				++ncdelim;
+				if (nodelim == ncdelim) {
+					for (pos += 1; szl_isspace(pos[0]); ++pos);
 					if (*pos) {
 						*(pos - 1) = '\0';
 						return pos;
@@ -881,15 +915,17 @@ static char *szl_get_next_token(char *s)
 				}
 			}
 		}
+
+		/* syntax error: unterminated expression */
+		return NULL;
 	}
-	else if (s[0] == '{') {
-		for (pos = s; *pos; ++pos) {
-			if (*pos == '{')
-				++odelim;
-			else if (*pos == '}') {
-				++cdelim;
-				if (odelim == cdelim) {
-					for (pos += 1; *pos && isspace(*pos); ++pos);
+
+	if (s[0] == '"') {
+		for (pos = s; pos[0] != '\0'; ++pos) {
+			if ((pos[0] == '"') && szl_isspace(pos[1])) {
+				++nodelim;
+				if (nodelim % 2 == 0) {
+					for (pos += 1; szl_isspace(pos[0]); ++pos);
 					if (*pos) {
 						*(pos - 1) = '\0';
 						return pos;
@@ -898,38 +934,42 @@ static char *szl_get_next_token(char *s)
 				}
 			}
 		}
+
+		/* syntax error: unterminated quotes */
+		return NULL;
 	}
-	else if (s[0] == '"') {
-		for (pos = s; *pos; ++pos) {
-			if ((pos[0] == '"') && ((pos[1] == ' ') || (pos[1] == '\t'))) {
-				++odelim;
-				if (odelim % 2 == 0) {
-					for (pos += 1; *pos && isspace(*pos); ++pos);
-					if (*pos) {
-						*(pos - 1) = '\0';
-						return pos;
-					}
-					return NULL;
-				}
-			}
-		}
-	}
-	else if (*s) {
-		for (pos = s; *pos && !isspace(*pos); ++pos);
-		if (!*pos)
+
+	if (szl_isspace(s[0])) {
+		for (pos = s; szl_isspace(pos[0]); ++pos);
+		if (pos[0] == '\0') {
+			/* expression ends with whitespace */
 			return NULL;
+		}
 
-		*pos = '\0';
-		return pos + 1;
+		/* terminate the previous token */
+		s[0] = '\0';
+
+		/* terminate the current token */
+		*(pos - 1) = '\0';
+		return pos;
 	}
 
+	/* otherwise, skip all leading non-whitespace characters and look for the
+	 * next token after them */
+	pos = s + 1;
+	do {
+		if (szl_isspace(pos[0]))
+			return szl_get_next_token(pos);
+		++pos;
+	} while (pos[0] != '\0');
 	return NULL;
 }
 
-static char **szl_split_line(struct szl_interp *interp,
-                             char *s,
-                             int *argc,
-                             struct szl_obj **out)
+SZL_STATIC
+char **szl_split_line(struct szl_interp *interp,
+                      char *s,
+                      int *argc,
+                      struct szl_obj **out)
 {
 	char *tok,  *next, **argv = NULL, **margv, *start, *end;
 	int margc = 1;
@@ -952,6 +992,7 @@ static char **szl_split_line(struct szl_interp *interp,
 				free(argv);
 			return NULL;
 		}
+
 		margv[*argc] = tok;
 
 		*argc = margc;
@@ -968,10 +1009,11 @@ static char **szl_split_line(struct szl_interp *interp,
 	return argv;
 }
 
-static enum szl_res szl_run_line(struct szl_interp *interp,
-                                 char *s,
-                                 size_t len,
-                                 struct szl_obj **out)
+SZL_STATIC
+enum szl_res szl_run_line(struct szl_interp *interp,
+                          char *s,
+                          size_t len,
+                          struct szl_obj **out)
 {
 	struct szl_obj **objv, *prev_caller = szl_obj_ref(interp->caller);
 	char **argv;
@@ -1084,10 +1126,11 @@ static enum szl_res szl_run_line(struct szl_interp *interp,
 	return res;
 }
 
-static enum szl_res szl_run_lines(struct szl_interp *interp,
-                                  char **s,
-                                  const size_t n,
-                                  struct szl_obj **out)
+SZL_STATIC
+enum szl_res szl_run_lines(struct szl_interp *interp,
+                           char **s,
+                           const size_t n,
+                           struct szl_obj **out)
 {
 	size_t i;
 	enum szl_res res;
@@ -1108,10 +1151,11 @@ static enum szl_res szl_run_lines(struct szl_interp *interp,
 	return szl_run_line(interp, s[n - 1], strlen(s[n - 1]), out);
 }
 
-static char **szl_split_lines(struct szl_interp *interp,
-                              char *s,
-                              const size_t len,
-                              size_t *n)
+SZL_STATIC
+char **szl_split_lines(struct szl_interp *interp,
+                       char *s,
+                       const size_t len,
+                       size_t *n)
 {
 	char **lines = NULL, **mlines, *line, *next = NULL;
 	size_t i = 0;
@@ -1130,17 +1174,18 @@ static char **szl_split_lines(struct szl_interp *interp,
 			--nbrackets;
 		else if (s[i] == '"')
 			++nquotes;
-		else if (((s[i] == '\n') || (i == len - 1)) &&
-		         (nbraces == 0) &&
-		         (nbrackets == 0) &&
-		         (nquotes % 2 == 0)) {
+
+		if (((s[i] == '\n') || (i == len - 1)) &&
+		     (nbraces == 0) &&
+		     (nbrackets == 0) &&
+		     (nquotes % 2 == 0)) {
 			if (s[i] == '\n')
 				s[i] = '\0';
 			next = &s[i + 1];
 
 			/* if the line contains nothing but whitespace, skip it */
-			for (; isspace(*line); ++line);
-			if (*line && line[0] != SZL_COMMENT_PREFIX) {
+			for (; szl_isspace(*line); ++line);
+			if (line[0] != '\0' && line[0] != SZL_COMMENT_PREFIX) {
 				mn = *n + 1;
 				mlines = (char **)realloc(lines, sizeof(char *) * mn);
 				if (!mlines)

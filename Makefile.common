@@ -20,6 +20,18 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+CC ?= cc
+AR ?= ar
+CFLAGS ?= -O2 -pipe
+LIBS ?=
+LDFLAGS ?= -Wl,-s
+
+CFLAGS += -std=gnu99 -Wall -pedantic -fvisibility=hidden -D_GNU_SOURCE
+LIBS += -lszl -lm -ldl
+
+ZLIB_CFLAGS = $(shell pkg-config --cflags zlib)
+ZLIB_LIBS = $(shell pkg-config --libs zlib)
+
 DESTDIR ?=
 PREFIX ?= /usr
 LIB_DIR ?= $(PREFIX)/lib
@@ -29,3 +41,6 @@ DOC_DIR ?= $(PREFIX)/share/doc
 EXT_DIR ?= $(LIB_DIR)/szl
 
 INSTALL = install -v
+
+SRCS = $(wildcard *.c)
+OBJECTS = $(SRCS:.c=.o)

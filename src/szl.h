@@ -263,6 +263,12 @@ typedef enum szl_res (*szl_ext_init)(struct szl_interp *);
  */
 #	define SZL_EXT_INIT __attribute__((__visibility__("default")))
 
+#	ifdef SZL_TEST
+#		define SZL_STATIC static
+#	else
+#		define SZL_STATIC
+#	endif
+
 /**
  * @}
  *

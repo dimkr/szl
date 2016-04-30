@@ -20,23 +20,23 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-all: .src .test .doc
-install: all
+include ../Makefile.common
 
-.src:
-	cd src; $(MAKE)
+CFLAGS += -I../src -DSZL_TEST
+LDFLAGS += -L../src
 
-.test: .src
-	cd test; $(MAKE)
+PROGS = test_szl_trim test_szl_split_line test_szl_split_lines
 
-.doc:
-	cd doc; $(MAKE)
+all: run_all
 
-install:
-	cd doc; $(MAKE) install
-	cd src; $(MAKE) install
+%.o: %.c
+	$(CC) -c -o $@ $< $(CFLAGS)
+
+test_%: test_%.o szl_test.o
+	$(CC) -o $@ $^ $(LDFLAGS) $(LIBS) $(ZLIB_LIBS)
+
+run_all: $(PROGS)
+	for i in $(PROGS); do ./$$i || exit 1; done
 
 clean:
-	cd doc; $(MAKE) clean
-	cd test; $(MAKE) clean
-	cd src; $(MAKE) clean
+	rm -f $(PROGS) $(OBJECTS)

@@ -22,23 +22,9 @@
 
 include ../Makefile.common
 
-CC ?= cc
-AR ?= ar
-CFLAGS ?= -O2 -pipe
-LIBS ?=
-LDFLAGS ?= -Wl,-s
-
-CFLAGS += -std=gnu99 -Wall -pedantic -fvisibility=hidden -D_GNU_SOURCE
 LDFLAGS += -L.
-LIBS += -lszl -lm -ldl
-
-ZLIB_CFLAGS = $(shell pkg-config --cflags zlib)
-ZLIB_LIBS = $(shell pkg-config --libs zlib)
 
 EXT_LIBS = -lszl
-
-SRCS = $(wildcard *.c)
-OBJECTS = $(SRCS:.c=.o)
 
 STATIC_LIB = libszl.a
 PROGS = szlsh

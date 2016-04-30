@@ -7,7 +7,7 @@ Dima Krasner <dima@dimakrasner.com>
 
 Introduction
 ------------
-+szl+ (pronounced "seezle") is a scripting language heavily inspired by Tcl and
++szl+ (pronounced "sizzle") is a scripting language heavily inspired by Tcl and
 shell. It follows three design principles:
 
 1. Less syntax: there should be only *one, obvious way* to achieve a certain
@@ -18,6 +18,9 @@ shell. It follows three design principles:
 - Every statement is a procedure call
 3. Minimal standard library, but comprehensive and useful enough to allow the
    addition of more complex operations
+
+[quote, 'Vincent Van Gogh']
+Great things are ... done by a series of small things brought together.
 
 The term "+szl+" refers to *both* the programming language and its official
 interpreter, depending on the context.
@@ -35,8 +38,9 @@ Use Cases
 +szl+ is especially useful when:
 
 1. One desires to write a script that automates a task, but shell scripting
-   isn't powerful enough, because shell language lacks programming language
-   features such as exceptions
+   isn't powerful enough (because shell language lacks programming language
+   features such as exceptions), while other scripting languages are too
+   powerful and require too much work to execute processes and read their output
 2. One needs a balanced, not too low-level and not too high-level programming
    language for quick prototyping
 3. One needs an embedded interpreter in a big software project, used as a logic
@@ -48,7 +52,7 @@ Use Cases
 
 History
 ~~~~~~~
-+szl+ began its life as a pet project: a clean-room , partial re-implementation
++szl+ began its life as a pet project: a clean-room, partial re-implementation
 of http://jim.tcl.tk/[jimtcl], for self-education purposes.
 
 However, quickly enough, as more and more new ideas were translated into code,
@@ -262,64 +266,69 @@ Builtin Procedures
 Variables
 ^^^^^^^^^
 +local+ 'name val'::
-	Creates a new variable in local scope. The variable will be garbage
-	collected once the current procedure returns. The procedure return value is
-	the variable value (useful for one-liners).
+	Creates a new variable in local scope.
+
+[TIP]
+'local' returns the variable value, which is useful for one-liners (for example,
+when one wishes to create a new variable and pass its value to another
+procedure).
 
 +global+ 'name val'::
 	Similar to 'local', but creates the new variable in the global scope. The
-	variable will not be garbage collected until the interpreter exits.
+	variable will be accessible from all procedures.
+
+[NOTE]
+If a procedure uses 'local' to define a local variable with the same name as
+a previously defined global variable, attempts to obtain the variable value from
+within the procedure will refer to the local variable.
 
 +length+ 'obj'::
-	Returns the length of a variable value.
+	Returns the length of an object.
 
 +append+ 'name obj'::
-	Appends a string to an existing object.
+	Appends a string to a variable.
 
 +join+ 'delim obj obj ?...?'::
-	Joins multiple objects, with a delimiter. 'delim' may be an empty string.
+	Joins multiple objects, with a delimiter (which may be an empty string).
+
+[NOTE]
+'join' is the most efficient way to concatenate more than two strings.
 
 +calc+ 'obj op obj'::
 	Performs an arithmetic operation on two objects. The operation may be '+',
 	'-', '*' or '-'.
 
-+eval+ 'obj'::
++eval+ 'exp'::
 	Evaluates a +szl+ expression.
 
 I/O
 ^^^
 +puts+ 'msg'::
-	Prints a string to standard output.
+	Prints an object to standard output.
 
 +open+ 'path mode'::
-	Opens a file for reading. 'mode' is 'fputs()'-style (i.e. 'r', 'w', 'r+',
-	etc'): see 'man fputs' for the meaning of each mode.
+	Opens a file. 'mode' is 'fputs()'-style (i.e. 'r', 'w', 'r+', etc'): see
+	'man fputs' for the meaning of each mode.
 
 '$file read len'::
-	Reads 'len' bytes from 'file'.
+	Reads a given amount of bytes from a file.
 
 '$file write obj'::
-	Writes 'obj' to 'file'.
+	Writes an object to a file.
+
+[NOTE]
+	Reading and writing operations on files buffered. To ensure data passed to
+	'write' is flushed to disk immediately, use 'flush'.
 
 '$file flush'::
-	Flushes the output buffer of 'file'.
+	Flushes the output buffer of a file.
 
 '$file close'::
-	Closes 'file' immediately. If 'close' is not called, the file will be closed
-	automatically later, during garbage collection.
+	Closes a file.
 
-Network
-^^^^^^^
-+socket+ 'type host service'::
-	Creates a new TCP or UDP socket. Client sockets ('stream.client' and
-	'dgram.client') are connected to 'host:service', while server sockets
-	('stream.server' and 'dgram.server') are bound to 'host:service'. In server
-	mode, if 'service' is an empty string, the socket is bound to the wildcard
-	address. Sockets behave very much like files.
-
-'$socket accept'::
-	Waits for a client to connect to a 'stream.server' socket and returns a new
-	socket.
+[NOTE]
+'close' is called automatically, once all references to a file object are gone.
+In most cases, an implicit 'close' call is redundant.
 
 Procedures
 ^^^^^^^^^^
@@ -337,20 +346,21 @@ Flow Control
 ^^^^^^^^^^^^
 +test+ 'obj op obj'::
 	Compares two objects and returns '1' if the specified condition is true,
-	otherwise '0'. 'op' may be '==', '!=', '<', '>', '\<=', '>=', '&&', '||' or
-	'^'.
+	otherwise '0'. The comparison operation may be '==', '!=', '<', '>', '\<=',
+	'>=', '&&', '||' or '^'.
 
 +not+ 'cond'::
-	Returns '0' if 'cond' is true, otherwise '1'.
+	Returns '0' if a condition is true, otherwise '1'.
 
 +if+ 'cond exp ?else exp?'::
 	Conditionally runs a block.
 
 +while+ 'cond exp'::
-	Runs a block as long as 'cond' is true.
+	Runs a block as long as a condition is met.
 
 +do+ 'exp while cond'::
-	Similar to 'while', but checks 'cond' after the first execution of 'exp'.
+	Similar to 'while', but checks the condition after the first execution of
+	the loop body.
 
 +break+::
 	Stops the execution of a block.
@@ -359,8 +369,8 @@ Flow Control
 	Skips the next statements a block.
 
 +sleep+ 'sec'::
-	Suspends the script execution for a given time, specified in seconds. 'sec'
-	may be a floating-point number (e.g. '4.5').
+	Suspends the script execution for a given time, specified in seconds. The
+	interval may be a floating-point number (e.g. '4.5').
 
 +try+ 'exp ?except exp? ?finally exp?'::
 	Runs an block. Optionally, if a statement failed, jumps to a second, error
@@ -372,7 +382,9 @@ Flow Control
 try {
 	puts
 } except {
-	puts "The error: $ex"
+	puts "Caught an error: $ex"
+} finally {
+	puts "Always executed"
 }
 --------------------------------------
 
@@ -381,10 +393,31 @@ Any set of statements can be wrapped with a 'try' block without a matching
 'except', to silently ignore errors.
 
 +throw+ '?msg?'::
-	Triggers an error condition and optionally sets specifies the value of 'ex'.
+	Triggers an error condition and optionally specifies the value of 'ex', if
+	the error condition is caught by an outer 'try' call.
 
 +source+ 'path'::
-	Execute a 'szl' script.
+	Execute a 'szl' script in the global scope.
+
+Network
+^^^^^^^
++socket+ 'type host service'::
+	Creates a new TCP or UDP socket. Client sockets ('stream.client' and
+	'dgram.client') are connected to 'host:service', while server sockets
+	('stream.server' and 'dgram.server') are bound to 'host:service'.
+
+[NOTE]
+In server mode, if 'service' is an empty string, the socket is bound to the
+wildcard address.
+
+[TIP]
+Sockets behave very much like files (e.g. they provide 'read' and 'write').
+During testing, sockets can be easily swapped with files to simulate incoming
+data.
+
+'$socket accept'::
+	Waits for a client to connect to a 'stream.server' socket and returns a new
+	socket.
 
 Processes
 ~~~~~~~~~
@@ -392,6 +425,10 @@ Processes
 	Runs a shell command, waits for it to terminate and returns its output. In
 	addition, the process exit code is put in the special variable '?', in the
 	scope of the calling procedure:
+
+[TIP]
+'exec' passes 'cmd' to the default shell, so 'cmd' may rely on shell features
+such as redirection (e.g. '2>&1').
 
 --------------------------------------
 exec {cp --help 2>&1}
@@ -450,9 +487,10 @@ Every action has its pleasures and its price.
 6. Always simplify logical expressions, to reduce the number of procedure calls.
    For example, 'test $foo != $bar' runs faster than 'not [test $foo == $bar]'.
 7. When joining more than two objects, avoid multiple 'append' calls and use
-   'join' instead. 'append' does not create a new object and therefore it is
-   more efficient for joining only two strings.
-8. Always trim useless trailing whitespace in scripts (or use a text editor that
+   'join' instead.
+8. 'append' does not create a new object and therefore it is more efficient for
+   joining only two strings.
+9. Always trim useless trailing whitespace in scripts (or use a text editor that
    takes care of this automatically), to speed up parsing.
 
 Error Handling
@@ -501,14 +539,29 @@ This is highly beneficial, for several reasons:
 
 Implementation
 --------------
-Language
+Overview
 ~~~~~~~~
-+szl+ is implemented in C (or more specifically, C99) and targets
-http://www.kernel.org/[Linux] distributions.
++szl+ is implemented as C (or more specifically, C99) library and targets
+http://www.kernel.org/[Linux] distributions. +szlsh+ is nothing but a wrapper
+that calls 'szl_main()'.
+
+Some non-portable parts of +szl+ are contained in the 'szl_posix' built-in
+extension, to make it easier to add support for other platforms in the future.
 
 Objects
 ~~~~~~~
 Each and every +szl+ variable or procedure is represented by a +struct szl_obj+.
+
+Call Stack
+~~~~~~~~~~~
++szl+ always keeps track of two running procedures:
+
+1. The currently running procedure, which changes every time a procedure is
+   called
+2. The _global procedure_: all local objects accessible from any part of the
+   script (procedures and variables set directly in the script body, not inside
+   a procedure body) are represented internally as local variables of this
+   special, non-callable, so-called _global procedure_
 
 Memory Management
 ~~~~~~~~~~~~~~~~~
@@ -516,7 +569,9 @@ Memory Management
 Procedures always return a new reference, which may be the first reference of a
 newly allocated object or an additional reference to an existing one.
 
-When a procedure returns, its local variables are garbage collected.
+When a procedure returns, its local variables are garbage collected. Procedures
+are always registered as global variables, so they get garbage collected only
+upon termination of the interpreter.
 
 Type System
 ~~~~~~~~~~~
@@ -542,17 +597,17 @@ values return the integers '1' and '0'.
 
 Builtin Objects
 ~~~~~~~~~~~~~~~
-Each +szl+ interpreter creates three objects at initialization time:
+Each +szl+ interpreter creates three singletons at initialization time:
 
 1. '""'
 2. '0'
 3. '1'
 
 All procedures that return an empty string return a new reference to the same
-object. Similarily, all procedures that return '0', '1' (for example, boolean
-procedures) use the same objects, instead of creating new, identical objects.
-This reduces memory consumption and improves efficiency, as these values are
-very common.
+object. Similarily, all procedures that return '0', '1' (most notably, boolean
+procedures like 'test') use the same objects, instead of creating new, identical
+objects. This reduces memory consumption and improves efficiency, as these
+return values are very common.
 
 Statement Execution
 ~~~~~~~~~~~~~~~~~~~
@@ -594,17 +649,6 @@ return $last_return_value
 ('SZL_BREAK' and 'SZL_CONT', respectively). 'throw' returns 'SZL_BREAK', but
 also has a return value: the future value of 'ex'.
 
-Call Stack
-~~~~~~~~~~~
-+szl+ always keeps track of two running procedures:
-
-1. The currently running procedure, which changes every time a procedure is
-   called
-2. The _global procedure_: all local objects accessible from any part of the
-   script (procedures and variables set directly in the script body, not inside
-   a procedure body) are represented internally as local variables of this
-   special, non-callable, so-called _global procedure_
-
 Extensions
 ~~~~~~~~~~
 +szl+ extensions are shared objects that export a function of type
@@ -620,3 +664,8 @@ To make +szl+ more elegant, all builtin procedures are part of extensions; the
 variables 'BUILTIN_EXT_NAMES' and 'EXTERNAL_EXT_NAMES' control which extensions
 are built into +szlsh+ and loaded by default and which ones are built as
 external libraries loaded via 'load'.
+
+API Documentation
+~~~~~~~~~~~~~~~~~
+The +szl+ API is documented using http://www.doxygen.org/[Doxygen]. Run 'make
+api_doc' under the 'doc' directory to generate it.

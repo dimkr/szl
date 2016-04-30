@@ -1,0 +1,4 @@
+*.o
+test_szl_split_line
+test_szl_split_lines
+test_szl_trim

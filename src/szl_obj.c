@@ -231,7 +231,7 @@ enum szl_res szl_init_obj(struct szl_interp *interp)
 	                   "eval",
 	                   2,
 	                   2,
-	                   "eval obj",
+	                   "eval exp",
 	                   szl_obj_proc_eval,
 	                   NULL,
 	                   NULL)))
