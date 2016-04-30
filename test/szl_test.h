@@ -3,6 +3,8 @@
 
 #	include <assert.h>
 
+#	include <szl.h>
+
 #	define szl_test_begin() do {} while (0)
 
 void szl_test_set_name(const char *new_name);

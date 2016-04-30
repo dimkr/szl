@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include <szl.h>
+
 static int all_ok = 1;
 static const char *name;
 
@@ -31,4 +33,9 @@ void szl_test_end(void)
 	putchar('\n');
 	if (!all_ok)
 		exit(EXIT_FAILURE);
+}
+
+enum szl_res szl_init_builtin_exts(struct szl_interp *interp)
+{
+	return SZL_OK;
 }

@@ -30,6 +30,7 @@
 #include "szl_test.h"
 
 extern char **szl_split_lines(struct szl_interp *interp,
+                              struct szl_obj **err,
                               char *s,
                               const size_t len,
                               size_t *n);
@@ -44,15 +45,13 @@ int main()
 
 	szl_test_begin();
 
-
 	szl_test_set_name("two lines");
 	interp = szl_interp_new();
 	szl_assert(interp != NULL);
 	if (interp) {
 		strcpy(buf, "while 1 {puts 1}\nwhile 2 {puts 2}");
-		argv = szl_split_lines(interp, buf, 33, &argc);
-		if (out)
-			szl_obj_unref(out);
+		argv = szl_split_lines(interp, &out, buf, 33, &argc);
+		szl_unset(&out);
 		szl_assert(argv != NULL);
 		szl_assert(argc == 2);
 		if (argv) {
@@ -72,9 +71,8 @@ int main()
 		strcpy(buf, "while 1 {puts 1} {\n" \
 		            "\tputs a\n" \
 		            "}");
-		argv = szl_split_lines(interp, buf, 28, &argc);
-		if (out)
-			szl_obj_unref(out);
+		argv = szl_split_lines(interp, &out, buf, 28, &argc);
+		szl_unset(&out);
 		szl_assert(argv != NULL);
 		szl_assert(argc == 1);
 		if (argv) {
@@ -95,9 +93,8 @@ int main()
 		            "\tputs a\n" \
 		            "\tputs b\n" \
 		            "}");
-		argv = szl_split_lines(interp, buf, 36, &argc);
-		if (out)
-			szl_obj_unref(out);
+		argv = szl_split_lines(interp, &out, buf, 36, &argc);
+		szl_unset(&out);
 		szl_assert(argv != NULL);
 		szl_assert(argc == 1);
 		if (argv) {
@@ -118,9 +115,8 @@ int main()
 		strcpy(buf, "puts \"abc\n" \
 		            "def\n" \
 		            "ghi\"");
-		argv = szl_split_lines(interp, buf, 18, &argc);
-		if (out)
-			szl_obj_unref(out);
+		argv = szl_split_lines(interp, &out, buf, 18, &argc);
+		szl_unset(&out);
 		szl_assert(argv != NULL);
 		szl_assert(argc == 1);
 		if (argv) {
@@ -138,9 +134,8 @@ int main()
 	szl_assert(interp != NULL);
 	if (interp) {
 		strcpy(buf, "puts [set a 5]");
-		argv = szl_split_lines(interp, buf, 14, &argc);
-		if (out)
-			szl_obj_unref(out);
+		argv = szl_split_lines(interp, &out, buf, 14, &argc);
+		szl_unset(&out);
 		szl_assert(argv != NULL);
 		szl_assert(argc == 1);
 		if (argv) {
@@ -156,9 +151,8 @@ int main()
 	szl_assert(interp != NULL);
 	if (interp) {
 		strcpy(buf, "puts [ set a 5 ]");
-		argv = szl_split_lines(interp, buf, 16, &argc);
-		if (out)
-			szl_obj_unref(out);
+		argv = szl_split_lines(interp, &out, buf, 16, &argc);
+		szl_unset(&out);
 		szl_assert(argv != NULL);
 		szl_assert(argc == 1);
 		if (argv) {
@@ -174,9 +168,8 @@ int main()
 	szl_assert(interp != NULL);
 	if (interp) {
 		strcpy(buf, "puts [\nset a 5\n]");
-		argv = szl_split_lines(interp, buf, 16, &argc);
-		if (out)
-			szl_obj_unref(out);
+		argv = szl_split_lines(interp, &out, buf, 16, &argc);
+		szl_unset(&out);
 		szl_assert(argv != NULL);
 		szl_assert(argc == 1);
 		if (argv) {

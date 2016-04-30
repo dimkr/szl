@@ -77,7 +77,7 @@ libszl.a: szl.o szl_builtin.o $(BUILTIN_EXT_OBJECTS)
 	$(AR) rcs $@ $^
 
 szlsh: szlsh.o libszl.a
-	$(CC) -o $@ $< $(LDFLAGS) $(LIBS) $(ZLIB_LIBS)
+	$(CC) -o $@ $< $(LDFLAGS) -lszl $(LIBS) $(ZLIB_LIBS)
 
 szl_zlib.o: szl_zlib.c szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS) $(ZLIB_CFLAGS)

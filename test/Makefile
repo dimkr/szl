@@ -22,17 +22,20 @@
 
 include ../Makefile.common
 
-CFLAGS += -I../src -DSZL_TEST
-LDFLAGS += -L../src
+CFLAGS += -I../src
 
 PROGS = test_szl_trim test_szl_split_line test_szl_split_lines
+OBJECTS += szl.o
 
 all: run_all
 
 %.o: %.c
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-test_%: test_%.o szl_test.o
+szl.o: ../src/szl.c
+	$(CC) -c -o $@ $< $(CFLAGS) -DSZL_TEST
+
+test_%: szl.o szl_test.o test_%.o
 	$(CC) -o $@ $^ $(LDFLAGS) $(LIBS) $(ZLIB_LIBS)
 
 run_all: $(PROGS)

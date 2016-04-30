@@ -269,9 +269,9 @@ typedef enum szl_res (*szl_ext_init)(struct szl_interp *);
  * module
  */
 #	ifdef SZL_TEST
-#		define SZL_STATIC static
-#	else
 #		define SZL_STATIC
+#	else
+#		define SZL_STATIC  static
 #	endif
 
 /**
