@@ -51,7 +51,7 @@ static enum szl_res szl_ext_proc_source(struct szl_interp *interp,
 	if (!path || !len)
 		return SZL_ERR;
 
-	return szl_source(interp, path);
+	return szl_source(interp, ret, path);
 }
 
 enum szl_res szl_init_ext(struct szl_interp *interp)

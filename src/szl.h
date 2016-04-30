@@ -263,6 +263,11 @@ typedef enum szl_res (*szl_ext_init)(struct szl_interp *);
  */
 #	define SZL_EXT_INIT __attribute__((__visibility__("default")))
 
+/**
+ * @def SZL_STATIC
+ * A "decorator" for static functions, used to make them visible from a tests
+ * module
+ */
 #	ifdef SZL_TEST
 #		define SZL_STATIC static
 #	else
@@ -777,13 +782,18 @@ enum szl_res szl_run_const(struct szl_interp *interp,
 enum szl_res szl_load(struct szl_interp *interp, const char *name);
 
 /**
- * @fn enum szl_res szl_source(struct szl_interp *interp, const char *path)
+ * @fn enum szl_res szl_source(struct szl_interp *interp,
+ *                             struct szl_obj **out,
+ *                             const char *path)
  * @brief Runs a script in the current scope
  * @param interp [in,out] An interpreter
+ * @param out [out] The script return value
  * @param path [in] The script path
  * @return A member of @ref szl_res
  */
-enum szl_res szl_source(struct szl_interp *interp, const char *path);
+enum szl_res szl_source(struct szl_interp *interp,
+                        struct szl_obj **out,
+                        const char *path);
 
 /**
  * @}
