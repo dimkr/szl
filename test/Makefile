@@ -24,7 +24,7 @@ include ../Makefile.common
 
 CFLAGS += -I../src
 
-PROGS = test_szl_trim test_szl_split_line test_szl_split_lines
+PROGS = test_szl_trim test_szl_split test_szl_split_lines
 OBJECTS += szl.o
 
 all: run_all

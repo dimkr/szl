@@ -75,7 +75,7 @@ static enum szl_res szl_loop_proc_while(struct szl_interp *interp,
 		 * otherwise, in both cases we want to continue to the next iteration:
 		 *   - if res is SZL_CONT, szl_run_lines() stopped the execution of the
 		 *     loop body lines and we jump to the first one
-		 *   - if res is SZL_OK, szl_run_lines() executed the entire loop body,
+		 *   - if res is SZL_OK, szl_run_const() executed the entire loop body,
 		 *     so we continue the loop as usual
 		 */
 	} while (1);

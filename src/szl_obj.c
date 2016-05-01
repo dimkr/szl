@@ -22,6 +22,8 @@
  * THE SOFTWARE.
  */
 
+#include <stdlib.h>
+
 #include "szl.h"
 
 static enum szl_res szl_obj_proc_global(struct szl_interp *interp,
@@ -185,6 +187,63 @@ static enum szl_res szl_obj_proc_eval(struct szl_interp *interp,
 	return szl_run_const(interp, ret, s, len);
 }
 
+static enum szl_res szl_obj_proc_for(struct szl_interp *interp,
+                                     const int objc,
+                                     struct szl_obj **objv,
+                                     struct szl_obj **ret)
+{
+	char **toks;
+	const char *name, *exp;
+	char *s;
+	struct szl_obj *tok;
+	size_t len, elen;
+	int n, i;
+	enum szl_res res;
+
+	*ret = NULL;
+
+	name = szl_obj_str(objv[1], &len);
+	if (!name || !len)
+		return SZL_ERR;
+
+	exp = szl_obj_str(objv[3], &elen);
+	if (!exp || !elen)
+		return SZL_ERR;
+
+	s = szl_obj_strdup(objv[2], &len);
+	if (!s || !len)
+		return SZL_ERR;
+
+	toks = szl_split(interp, s, &n, ret);
+	if (!toks) {
+		free(s);
+		return SZL_ERR;
+	}
+
+	for (i = 0; i < n; ++i) {
+		szl_unset(ret);
+
+		tok = szl_new_str(toks[i], -1);
+		if (!tok) {
+			res = SZL_ERR;
+			break;
+		}
+
+		res = szl_local(interp, interp->caller, name, tok);
+		szl_obj_unref(tok);
+		if (res != SZL_OK)
+			break;
+
+		res = szl_run_const(interp, ret, exp, elen);
+		if (res != SZL_OK)
+			break;
+	}
+
+	free(toks);
+	free(s);
+	return res;
+}
+
 enum szl_res szl_init_obj(struct szl_interp *interp)
 {
 	if ((!szl_new_proc(interp,
@@ -233,6 +292,14 @@ enum szl_res szl_init_obj(struct szl_interp *interp)
 	                   2,
 	                   "eval exp",
 	                   szl_obj_proc_eval,
+	                   NULL,
+	                   NULL)) ||
+	    (!szl_new_proc(interp,
+	                   "for",
+	                   4,
+	                   4,
+	                   "eval name list exp",
+	                   szl_obj_proc_for,
 	                   NULL,
 	                   NULL)))
 		return SZL_ERR;

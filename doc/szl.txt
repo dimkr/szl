@@ -362,6 +362,10 @@ Flow Control
 	Similar to 'while', but checks the condition after the first execution of
 	the loop body.
 
++for+ 'name list exp'::
+	For each token in a list of white-space delimited tokens, runs a block with
+	a local variable that specifies the token value.
+
 +break+::
 	Stops the execution of a block.
 

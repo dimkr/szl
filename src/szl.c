@@ -42,11 +42,6 @@ enum szl_res szl_run_line(struct szl_interp *,
                           char *,
                           size_t,
                           struct szl_obj **);
-SZL_STATIC
-char **szl_split_line(struct szl_interp *interp,
-                      char *s,
-                      int *argc,
-                      struct szl_obj **out);
 
 struct szl_interp *szl_interp_new(void)
 {
@@ -234,6 +229,7 @@ struct szl_obj *szl_new_str(const char *s, int len)
 	struct szl_obj *obj;
 	char *s2;
 	size_t rlen;
+
 
 	if (len < 0)
 		rlen = strlen(s);
@@ -762,7 +758,7 @@ struct szl_obj *szl_expand(struct szl_interp *interp, const char *s, int len)
 	if (!s2)
 		return NULL;
 
-	toks = szl_split_line(interp, s2, &ntoks, &tmp);
+	toks = szl_split(interp, s2, &ntoks, &tmp);
 	if (tmp)
 		szl_obj_unref(tmp);
 	if (!toks) {
@@ -972,11 +968,10 @@ char *szl_get_next_token(struct szl_interp *interp,
 	return NULL;
 }
 
-SZL_STATIC
-char **szl_split_line(struct szl_interp *interp,
-                      char *s,
-                      int *argc,
-                      struct szl_obj **out)
+char **szl_split(struct szl_interp *interp,
+                 char *s,
+                 int *argc,
+                 struct szl_obj **out)
 {
 	char *tok,  *next, **argv = NULL, **margv, *start, *end;
 	int margc = 1;
@@ -1034,7 +1029,7 @@ enum szl_res szl_run_line(struct szl_interp *interp,
 	*out = NULL;
 
 	/* split the command arguments */
-	argv = szl_split_line(interp, s, &argc, out);
+	argv = szl_split(interp, s, &argc, out);
 	if (!argv)
 		return SZL_ERR;
 
@@ -1167,12 +1162,11 @@ char **szl_split_lines(struct szl_interp *interp,
                        const size_t len,
                        size_t *n)
 {
-	char **lines = NULL, **mlines, *line, *next = NULL;
+	char **lines = NULL, **mlines, *line = s, *next = NULL;
 	const char *fmt = NULL;
 	size_t i = 0;
 	int mn, nbraces = 0, nbrackets = 0, nquotes = 0;
 
-	line = s;
 	*n = 0;
 	while (i < len) {
 		if (s[i] == '{')

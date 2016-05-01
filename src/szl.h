@@ -449,6 +449,12 @@ struct szl_obj *szl_new_proc(struct szl_interp *interp,
  * @{
  */
 
+char **szl_split(struct szl_interp *interp,
+                 char *s,
+                 int *argc,
+                 struct szl_obj **out);
+
+
 /**
  * @fn enum szl_res szl_append(struct szl_obj *obj,
  *                             const char *s,
