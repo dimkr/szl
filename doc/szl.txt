@@ -366,6 +366,10 @@ Flow Control
 	For each token in a list of white-space delimited tokens, runs a block with
 	a local variable that specifies the token value.
 
++range+ '?start? end'::
+	Returns a space-delimited string with integers in a given range. The maximum
+	is non-inclusive. If no minimum is specified, the range starts at '0'.
+
 +break+::
 	Stops the execution of a block.
 
@@ -601,17 +605,18 @@ values return the integers '1' and '0'.
 
 Builtin Objects
 ~~~~~~~~~~~~~~~
-Each +szl+ interpreter creates three singletons at initialization time:
+Each +szl+ interpreter creates four singletons at initialization time:
 
 1. '""'
-2. '0'
-3. '1'
+2. '" "'
+3. '0'
+4. '1'
 
 All procedures that return an empty string return a new reference to the same
 object. Similarily, all procedures that return '0', '1' (most notably, boolean
 procedures like 'test') use the same objects, instead of creating new, identical
-objects. This reduces memory consumption and improves efficiency, as these
-return values are very common.
+objects. The space singleton is used by 'range'. This reduces memory consumption
+and improves efficiency, as these return values are very common.
 
 Statement Execution
 ~~~~~~~~~~~~~~~~~~~

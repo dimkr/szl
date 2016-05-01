@@ -228,6 +228,7 @@ struct szl_interp {
 	struct szl_obj *empty; /**< An empty string singleton */
 	struct szl_obj *zero; /**< A 0 integer singleton */
 	struct szl_obj *one; /**< A 1 integer singleton */
+	struct szl_obj *space; /**< A space singleton */
 
 	uLong init; /**< The initial CRC32 checksum */
 	unsigned int seed; /**< A PRNG seed */
@@ -418,6 +419,12 @@ struct szl_obj *szl_new_proc(struct szl_interp *interp,
 #	define szl_empty(interp) szl_obj_ref(interp->empty)
 
 /**
+ * @def szl_space
+ * Returns a new reference to the space singleton
+ */
+#	define szl_space(interp) szl_obj_ref(interp->space)
+
+/**
  * @def szl_zero
  * Returns a new reference to the 0 integer singleton
  */
@@ -468,6 +475,12 @@ char **szl_split(struct szl_interp *interp,
 enum szl_res szl_append(struct szl_obj *obj,
                         const char *s,
                         const size_t len);
+
+enum szl_res szl_join(struct szl_interp *interp,
+                      const int objc,
+                      struct szl_obj *delim,
+                      struct szl_obj **objv,
+                      struct szl_obj **ret);
 
 /**
  * @fn char *szl_obj_str(struct szl_obj *obj, size_t *len)

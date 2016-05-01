@@ -59,9 +59,17 @@ struct szl_interp *szl_interp_new(void)
 		return NULL;
 	}
 
+	interp->space = szl_new_str(" ", 1);
+	if (!interp->space) {
+		szl_obj_unref(interp->empty);
+		free(interp);
+		return NULL;
+	}
+
 	interp->zero = NULL;
 	interp->zero = szl_new_int(0);
 	if (!interp->zero) {
+		szl_obj_unref(interp->space);
 		szl_obj_unref(interp->empty);
 		free(interp);
 		return NULL;
@@ -71,6 +79,7 @@ struct szl_interp *szl_interp_new(void)
 	interp->one = szl_new_int(1);
 	if (!interp->one) {
 		szl_obj_unref(interp->zero);
+		szl_obj_unref(interp->space);
 		szl_obj_unref(interp->empty);
 		free(interp);
 		return NULL;
@@ -87,6 +96,7 @@ struct szl_interp *szl_interp_new(void)
 	if (!interp->global) {
 		szl_obj_unref(interp->one);
 		szl_obj_unref(interp->zero);
+		szl_obj_unref(interp->space);
 		szl_obj_unref(interp->empty);
 		free(interp);
 		return NULL;
@@ -151,6 +161,7 @@ void szl_interp_free(struct szl_interp *interp)
 	szl_obj_unref(interp->global);
 	szl_obj_unref(interp->one);
 	szl_obj_unref(interp->zero);
+	szl_obj_unref(interp->space);
 	szl_obj_unref(interp->empty);
 
 	free(interp);
@@ -352,6 +363,55 @@ enum szl_res szl_append(struct szl_obj *obj,
 	/* mark all additional representations as expired */
 	obj->type = SZL_TYPE_STR;
 
+	return SZL_OK;
+}
+
+enum szl_res szl_join(struct szl_interp *interp,
+                      const int objc,
+                      struct szl_obj *delim,
+                      struct szl_obj **objv,
+                      struct szl_obj **ret)
+{
+	struct szl_obj *obj;
+	const char *delims;
+	const char *s;
+	size_t slen, dlen;
+	enum szl_res res;
+	int i, last = objc - 1;
+
+	*ret = NULL;
+
+	delims = szl_obj_str(delim, &dlen);
+	if (!delims)
+		return SZL_ERR;
+
+	obj = szl_new_str("", 0);
+	if (!obj)
+		return SZL_ERR;
+
+	for (i = 0; i < objc; ++i) {
+		s = szl_obj_str(objv[i], &slen);
+		if (!s) {
+			szl_obj_unref(obj);
+			return SZL_ERR;
+		}
+
+		res = szl_append(obj, s, slen);
+		if (res != SZL_OK) {
+			szl_obj_unref(obj);
+			return res;
+		}
+
+		if (dlen && (i != last)) {
+			res = szl_append(obj, delims, dlen);
+			if (res != SZL_OK) {
+				szl_obj_unref(obj);
+				return res;
+			}
+		}
+	}
+
+	szl_set_result(ret, obj);
 	return SZL_OK;
 }
 

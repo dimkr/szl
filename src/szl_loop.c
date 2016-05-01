@@ -22,6 +22,8 @@
  * THE SOFTWARE.
  */
 
+#include <stdlib.h>
+
 #include "szl.h"
 
 static enum szl_res szl_loop_proc_while(struct szl_interp *interp,
@@ -99,6 +101,106 @@ static enum szl_res szl_loop_proc_continue(struct szl_interp *interp,
 	return SZL_CONT;
 }
 
+static enum szl_res szl_loop_proc_for(struct szl_interp *interp,
+                                      const int objc,
+                                      struct szl_obj **objv,
+                                      struct szl_obj **ret)
+{
+	char **toks;
+	const char *name, *exp;
+	char *s;
+	struct szl_obj *tok;
+	size_t len, elen;
+	int n, i;
+	enum szl_res res;
+
+	*ret = NULL;
+
+	name = szl_obj_str(objv[1], &len);
+	if (!name || !len)
+		return SZL_ERR;
+
+	exp = szl_obj_str(objv[3], &elen);
+	if (!exp || !elen)
+		return SZL_ERR;
+
+	s = szl_obj_strdup(objv[2], &len);
+	if (!s || !len)
+		return SZL_ERR;
+
+	toks = szl_split(interp, s, &n, ret);
+	if (!toks) {
+		free(s);
+		return SZL_ERR;
+	}
+
+	for (i = 0; i < n; ++i) {
+		szl_unset(ret);
+
+		tok = szl_new_str(toks[i], -1);
+		if (!tok) {
+			res = SZL_ERR;
+			break;
+		}
+
+		res = szl_local(interp, interp->caller, name, tok);
+		szl_obj_unref(tok);
+		if (res != SZL_OK)
+			break;
+
+		res = szl_run_const(interp, ret, exp, elen);
+		if (res != SZL_OK)
+			break;
+	}
+
+	free(toks);
+	free(s);
+	return res;
+}
+
+static enum szl_res szl_loop_proc_range(struct szl_interp *interp,
+                                        const int objc,
+                                        struct szl_obj **objv,
+                                        struct szl_obj **ret)
+{
+	struct szl_obj **ints, *space;
+	szl_int start = 0, end, i, j, n;
+	enum szl_res res;
+
+	if ((szl_obj_int(objv[objc - 1], &end) != SZL_OK) ||
+	    ((objc == 3) && (szl_obj_int(objv[1], &start) != SZL_OK)) ||
+	    (start >= end))
+		return SZL_ERR;
+
+	n = end - start;
+	if (n > INT_MAX)
+		return SZL_ERR;
+
+	ints = (struct szl_obj **)malloc(sizeof(struct szl_obj *) * n);
+	if (!ints)
+		return SZL_ERR;
+
+	for (i = 0; i < n; ++i) {
+		ints[i] = szl_new_int(start + i);
+		if (!ints[i]) {
+			for (j = 0; j < i; ++j)
+				szl_obj_unref(ints[j]);
+			free(ints);
+			return SZL_ERR;
+		}
+	}
+
+	space = szl_space(interp);
+	res = szl_join(interp, (int)n, space, ints, ret);
+	szl_obj_unref(space);
+
+	for (i = 0; i < n; ++i)
+		szl_obj_unref(ints[i]);
+	free(ints);
+
+	return res;
+}
+
 enum szl_res szl_init_loop(struct szl_interp *interp)
 {
 	if ((!szl_new_proc(interp,
@@ -123,6 +225,22 @@ enum szl_res szl_init_loop(struct szl_interp *interp)
 	                   1,
 	                   "continue",
 	                   szl_loop_proc_continue,
+	                   NULL,
+	                   NULL)) ||
+	    (!szl_new_proc(interp,
+	                   "for",
+	                   4,
+	                   4,
+	                   "for name list exp",
+	                   szl_loop_proc_for,
+	                   NULL,
+	                   NULL)) ||
+	    (!szl_new_proc(interp,
+	                   "range",
+	                   2,
+	                   3,
+	                   "range ?start? end",
+	                   szl_loop_proc_range,
 	                   NULL,
 	                   NULL)))
 		return SZL_ERR;
