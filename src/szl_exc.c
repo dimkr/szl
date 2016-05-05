@@ -71,33 +71,31 @@ static enum szl_res szl_exc_proc_try(struct szl_interp *interp,
 	}
 
 	res = szl_run_const(interp, ret, try, tlen);
-	if (res == SZL_ERR) {
-		if (except) {
-			szl_obj_ref(interp->caller);
+	if ((res == SZL_ERR) && except) {
+		szl_obj_ref(interp->caller);
 
-			/* set SZL_EXC_OBJ_NAME in the caller */
-			if (*ret)
-				res = szl_local(interp, interp->caller, SZL_EXC_OBJ_NAME, *ret);
-			else {
-				*ret = szl_empty(interp);
-				res = szl_local(interp, interp->caller, SZL_EXC_OBJ_NAME, *ret);
-			}
-
-			szl_obj_unref(*ret);
-			szl_obj_unref(interp->caller);
-			*ret = NULL;
-
-			if (res != SZL_OK)
-				return res;
-
-			res = szl_run_const(interp, ret, except, elen);
+		/* set SZL_EXC_OBJ_NAME in the caller */
+		if (*ret)
+			res = szl_local(interp, interp->caller, SZL_EXC_OBJ_NAME, *ret);
+		else {
+			*ret = szl_empty(interp);
+			res = szl_local(interp, interp->caller, SZL_EXC_OBJ_NAME, *ret);
 		}
-	}
 
-	if (finally) {
-		szl_unset(ret);
-		res = szl_run_const(interp, ret, finally, flen);
+		szl_obj_unref(*ret);
+		szl_obj_unref(interp->caller);
+		*ret = NULL;
+
+		if (res != SZL_OK)
+			return res;
+
+		res = szl_run_const(interp, ret, except, elen);
 	}
+	else
+		szl_unset(ret);
+
+	if (finally)
+		res = szl_run_const(interp, ret, finally, flen);
 
 	return res;
 }

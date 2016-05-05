@@ -310,20 +310,20 @@ I/O
 	Opens a file. 'mode' is 'fputs()'-style (i.e. 'r', 'w', 'r+', etc'): see
 	'man fputs' for the meaning of each mode.
 
-'$file read len'::
++$file+ 'read len'::
 	Reads a given amount of bytes from a file.
 
-'$file write obj'::
++$file+ 'write obj'::
 	Writes an object to a file.
 
 [NOTE]
 	Reading and writing operations on files buffered. To ensure data passed to
 	'write' is flushed to disk immediately, use 'flush'.
 
-'$file flush'::
++$file+ 'flush'::
 	Flushes the output buffer of a file.
 
-'$file close'::
++$file+ 'close'::
 	Closes a file.
 
 [NOTE]
@@ -423,7 +423,7 @@ Sockets behave very much like files (e.g. they provide 'read' and 'write').
 During testing, sockets can be easily swapped with files to simulate incoming
 data.
 
-'$socket accept'::
++$socket+ 'accept'::
 	Waits for a client to connect to a 'stream.server' socket and returns a new
 	socket.
 
@@ -473,6 +473,124 @@ purpose data compression library.
 	default, *small* buffer size of 64K which guarantees lower memory
 	footprint at the cost of speed. It is *highly recommended* to use a bigger
 	size, on systems without a severe memory constraint.
+
+ffi
+^^^
+The 'ffi' extension is a +szl+ wrapper for
+http://sourceware.org/libffi/[libffi] and provides an interface to C data types,
+raw memory operations and C function calls through +szl+ scripts.
+
++ffi.int8+ '?val?'::
++ffi.uint8+ '?val?'::
++ffi.int16+ '?val?'::
++ffi.uint16+ '?val?'::
++ffi.int32+ '?val?'::
++ffi.uint32+ '?val?'::
++ffi.dword+ '?val?'::
++ffi.int64+ '?val?'::
++ffi.uint64+ '?val?'::
++ffi.char+ '?val?'::
++ffi.uchar+ '?val?'::
++ffi.short+ '?val?'::
++ffi.ushort+ '?val?'::
++ffi.int+ '?val?'::
++ffi.uint+ '?val?'::
++ffi.long+ '?val?'::
++ffi.ulong+ '?val?'::
++ffi.pointer+ '?val?'::
+	Creates a new object which represents a C variable of a specific type. If no
+	initial value is specified, the default is '0'.
+
+[NOTE]
+'ffi.char', 'ffi.uchar' and 'ffi.dword' are synonyms for 'ffi.int8',
+'ffi.uint8' and 'ffi.uint32', respectively.
+
+[NOTE]
+To convert a 'ffi.char' to its 1-length string representation, use
+'ffi.string at'.
+
++ffi.void+::
+	Creates a new dummy object, for use with 'ffi.function' against functions
+	which return 'void'.
+
++ffi.string+ 'at addr ?len?'::
+	Reads the string at a given memory address. If no length is specified, data
+	is read up to the first '\0' byte found.
+
++$obj+ 'value'::
+	Returns the decoded value of a C variable.
+
++$obj+ 'raw'::
+	Returns the raw value of a C variable, as a binary buffer.
+
++$obj+ 'address'::
+	Returns the address of a C variable (equivalent to prefixing a variable name
+	with '&', in C). For pointer types, this procedure returns a pointer to a
+	pointer (e.g. a 'char **' for strings).
+
+[NOTE]
+For pointers, 'address' returns a pointer to the pointer ('void **').
+
++$obj+ 'size'::
+	Returns the raw size of a C variable (equivalent to 'sizeof()').
+
+[WARNING]
+'ffi.string at' is memory-unsafe; if there is no '\0' byte at an accessible
+offset after the given address, +szl+ will crash.
+
+[TIP]
+'ffi.string at' can be used as a C to +szl+ 'memcpy()'; read data is guaranteed
+to be '\0'-terminated.
+
++ffi.string+ 'copy obj'::
+	Creates a C string with a given initial value.
+
++ffi.cast+ 'addr type'::
+	Reads a C variable at a given address and returns a new variable object. The
+	type shall be one of 'int8', 'uint8', 'int16', 'uint16', 'int32', 'uint32',
+	'dword', 'int64', 'uint64', 'char', 'uchar', 'short', 'ushort', 'int',
+	'uint', 'long', 'ulong' and 'pointer'.
+
+[TIP]
+Use 'ffi.cast' to dereference pointers.
+
++ffi.dlopen+ 'path'::
+	Loads a shared object.
+
+[NOTE]
+To obtain the executable handle, call 'ffi.dlopen' and pass an empty string as
+the path (equivalent to 'dlopen()' with 'NULL').
+
++$lib+ 'handle'::
+	Returns the handle (i.e. the return value of 'dlopen()') of a shared
+	object.
+
++$lib+ 'dlsym name'::
+	Returns the address of a symbol exported by a shared object.
+
++ffi.function+ 'addr rtype ?type...?'::
+	Wraps a C function with a +szl+ procedure. The return value type may be
+	'void', in addition to the types recognized by 'ffi.cast'.
+
++$func+ 'ret ?arg...?'::
+	Calls a C function. The return value and argument objects must be specified
+	by address (e.g. '$obj address').
+
+[WARNING]
+Objects used for storing the return value or arguments of a C function must not
+be created at the same statement as a C function call. Otherwise, they will be
+garbage collected before the actual function call happens, which may lead to a
+crash.
+--------------------------------------
+# crashes
+$printf [[ffi.int] address] [[ffi.string copy %d] address] [[ffi.int 5] address]
+
+# doesn't crash
+set ret [ffi.int]
+set fmt [ffi.string copy %d]
+set num [ffi.int 5]
+$printf [$ret address] [$fmt address] [$num address]
+--------------------------------------
 
 Best Practices
 ~~~~~~~~~~~~~~

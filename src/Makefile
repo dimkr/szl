@@ -24,16 +24,20 @@ include ../Makefile.common
 
 LDFLAGS += -L.
 
+LIBFFI_CFLAGS = $(shell pkg-config --cflags libffi)
+LIBFFI_LIBS = $(shell pkg-config --libs libffi)
+
 EXT_LIBS = -lszl
 
 STATIC_LIB = libszl.a
+SHARED_LIB = libszl.so
 PROGS = szlsh
 
 BUILTIN_EXT_NAMES = posix obj io math logic loop exc proc ext sugar
 BUILTIN_EXT_SRCS = $(addsuffix .c,$(addprefix szl_,$(BUILTIN_EXT_NAMES)))
 BUILTIN_EXT_OBJECTS = $(BUILTIN_EXT_SRCS:.c=.o)
 
-EXTERNAL_EXT_NAMES = zlib
+EXTERNAL_EXT_NAMES = zlib ffi
 EXTERNAL_EXT_SRCS = $(addsuffix .c,$(addprefix szl_,$(EXTERNAL_EXT_NAMES)))
 EXTERNAL_EXT_OBJECTS = $(EXTERNAL_EXT_SRCS:.c=.o)
 EXTERNAL_EXT_LIBS = $(EXTERNAL_EXT_SRCS:.c=.so)
@@ -76,14 +80,23 @@ szlsh.o: szlsh.c szl.h szl_conf.h
 libszl.a: szl.o szl_builtin.o $(BUILTIN_EXT_OBJECTS)
 	$(AR) rcs $@ $^
 
-szlsh: szlsh.o libszl.a
-	$(CC) -o $@ $< $(LDFLAGS) -lszl $(LIBS) $(ZLIB_LIBS)
+libszl.so: szl.o szl_builtin.o $(BUILTIN_EXT_OBJECTS)
+	$(CC) -shared -o $@ $^ $(LDFLAGS) $(LIBS) $(ZLIB_LIBS)
+
+szlsh: szlsh.o libszl.so
+	$(CC) -o $@ $< $(LDFLAGS) -lszl
 
 szl_zlib.o: szl_zlib.c szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS) $(ZLIB_CFLAGS)
 
-szl_zlib.so: szl_zlib.o libszl.a
-	$(CC) -o $@ $^ $(LDFLAGS) -shared $(EXT_LIBS) $(ZLIB_LIBS)
+szl_zlib.so: szl_zlib.o $(SHARED_LIB)
+	$(CC) -o $@ $< $(LDFLAGS) -shared $(EXT_LIBS) $(ZLIB_LIBS)
+
+szl_ffi.o: szl_ffi.c szl_conf.h
+	$(CC) -c -o $@ $< $(CFLAGS) $(LIBFFI_CFLAGS)
+
+szl_ffi.so: szl_ffi.o $(SHARED_LIB)
+	$(CC) -o $@ $< $(LDFLAGS) -shared $(EXT_LIBS) $(LIBFFI_LIBS)
 
 %.inc: %.szl
 	sed -e s~'^\t*'~~g \
@@ -102,6 +115,7 @@ szl_sugar.o: szl_sugar.c szl_conf.h szl_sugar.inc
 
 install: all
 	$(INSTALL) -D -m 755 szlsh $(DESTDIR)/$(BIN_DIR)/szlsh
+	$(INSTALL) -D -m 644 $(SHARED_LIB) $(DESTDIR)/$(LIB_DIR)/$(SHARED_LIB)
 	$(INSTALL) -D -d -m 755 $(DESTDIR)/$(EXT_DIR)
 	for i in $(EXTERNAL_EXT_LIBS); \
 	do \
@@ -109,4 +123,5 @@ install: all
 	done
 
 clean:
-	rm -rf $(EXTERNAL_EXT_LIBS) $(PROGS) $(STATIC_LIB) $(OBJECTS) $(GENERATED)
+	rm -rf $(EXTERNAL_EXT_LIBS) $(PROGS) $(SHARED_LIB) $(STATIC_LIB) $(OBJECTS) \
+	       $(GENERATED)

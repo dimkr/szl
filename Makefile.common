@@ -26,7 +26,7 @@ CFLAGS ?= -O2 -pipe
 LIBS ?=
 LDFLAGS ?= -Wl,-s
 
-CFLAGS += -std=gnu99 -Wall -pedantic -fvisibility=hidden -D_GNU_SOURCE
+CFLAGS += -std=gnu99 -Wall -pedantic -D_GNU_SOURCE
 LIBS += -lm -ldl
 
 ZLIB_CFLAGS = $(shell pkg-config --cflags zlib)

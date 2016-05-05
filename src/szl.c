@@ -147,13 +147,6 @@ void szl_interp_free(struct szl_interp *interp)
 {
 	unsigned int i;
 
-	if (interp->nexts) {
-		for (i = 0; i < interp->nexts; ++i)
-			szl_unload_ext(&interp->exts[i]);
-
-		free(interp->exts);
-	}
-
 	/* both should be interp->global once all code execution stops */
 	szl_obj_unref(interp->current);
 	szl_obj_unref(interp->caller);
@@ -163,6 +156,13 @@ void szl_interp_free(struct szl_interp *interp)
 	szl_obj_unref(interp->zero);
 	szl_obj_unref(interp->space);
 	szl_obj_unref(interp->empty);
+
+	if (interp->nexts) {
+		for (i = 0; i < interp->nexts; ++i)
+			szl_unload_ext(&interp->exts[i]);
+
+		free(interp->exts);
+	}
 
 	free(interp);
 }
@@ -241,15 +241,16 @@ struct szl_obj *szl_new_str(const char *s, int len)
 	char *s2;
 	size_t rlen;
 
-
 	if (len < 0)
 		rlen = strlen(s);
 	else
 		rlen = (size_t)len;
 
-	s2 = strndup(s, rlen);
+	s2 = malloc(rlen + 1);
 	if (!s2)
 		return NULL;
+	memcpy(s2, s, len);
+	s2[len] = '\0';
 
 	obj = szl_new_str_noalloc(s2, rlen);
 	if (!obj)
@@ -504,6 +505,20 @@ enum szl_res szl_obj_len(struct szl_obj *obj, size_t *len)
 	return SZL_OK;
 }
 
+#if 0
+char **szl_obj_list(struct szl_obj *obj, int *n)
+{
+	char *s;
+	size_t len;
+
+	s = szl_obj_strdup(obj, &len);
+	if (!s)
+		return NULL;
+
+	szl_split(interp, s, n, NULL);
+}
+#endif
+
 szl_bool szl_obj_istrue(struct szl_obj *obj)
 {
 	if (!(obj->type & SZL_TYPE_BOOL)) {
@@ -737,12 +752,17 @@ enum szl_res szl_call(struct szl_interp *interp,
                       struct szl_obj **objv,
                       struct szl_obj **ret)
 {
+	const char *s;
 	enum szl_res res;
 
-	*ret = NULL;
+	szl_unset(ret);
 
 	if (!(objv[0]->type & SZL_TYPE_PROC)) {
-		szl_set_result_str(interp, ret, "not a proc");
+		s = szl_obj_str(objv[0], NULL);
+		if (s)
+			szl_set_result_fmt(interp, ret, "not a proc: %s", s);
+		else
+			szl_set_result_str(interp, ret, "not a proc");
 		return SZL_ERR;
 	}
 
@@ -1106,12 +1126,12 @@ enum szl_res szl_run_line(struct szl_interp *interp,
 	res = szl_get(interp, &objv[0], argv[0]);
 	if (res != SZL_OK) {
 		szl_unset(&objv[0]);
+		szl_set_result_fmt(interp, out, "bad proc: %s", argv[0]);
 		res = szl_eval(interp, &objv[0], argv[0]);
 	}
 	if (res != SZL_OK) {
 		if (objv[0])
-			szl_obj_unref(objv[0]);
-		szl_set_result_fmt(interp, out, "bad proc: %s", argv[0]);
+			szl_set_result(out, objv[0]);
 		free(objv);
 		free(argv);
 		return res;
@@ -1376,6 +1396,11 @@ enum szl_res szl_load(struct szl_interp *interp, const char *name)
 	return SZL_OK;
 }
 
+void szl_unload(void *h)
+{
+	dlclose(h);
+}
+
 enum szl_res szl_source(struct szl_interp *interp,
                         struct szl_obj **out,
                         const char *path)
@@ -1458,4 +1483,3 @@ enum szl_res szl_main(int argc, char *argv[])
 	szl_interp_free(interp);
 	return res;
 }
-

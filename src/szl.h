@@ -32,6 +32,7 @@
 
 #	include <stdint.h>
 #	include <sys/types.h>
+#	include <limits.h>
 
 #	include <zlib.h>
 
@@ -167,7 +168,8 @@ enum szl_type {
 	SZL_TYPE_INT    = 1 << 2, /**< Integer */
 	SZL_TYPE_DOUBLE = 1 << 3, /**< Floating-point number */
 	SZL_TYPE_BOOL   = 1 << 4, /**< Boolean value */
-	SZL_TYPE_PROC   = 1 << 5 /**< Procedure */
+	SZL_TYPE_PROC   = 1 << 5, /**< Procedure */
+	SZL_TYPE_LIST   = 1 << 6 /**< List */
 };
 
 struct szl_obj;
@@ -256,13 +258,6 @@ struct szl_local {
  * The prototype of an extension initialization function
  */
 typedef enum szl_res (*szl_ext_init)(struct szl_interp *);
-
-
-/**
- * @def SZL_EXT_INIT
- * A "decorator" for external extension initialization functions
- */
-#	define SZL_EXT_INIT __attribute__((__visibility__("default")))
 
 /**
  * @def SZL_STATIC
@@ -456,6 +451,18 @@ struct szl_obj *szl_new_proc(struct szl_interp *interp,
  * @{
  */
 
+/**
+ * @fn char **szl_split(struct szl_interp *interp,
+ *                      char *s,
+ *                      int *argc,
+ *                      struct szl_obj **out)
+ * @brief Splits a string to tokens
+ * @param interp [in,out] An interpreter
+ * @param s [in,out] A string
+ * @param argc [out] The number of tokens
+ * @param out [out] An error message, upon failure
+ * @return An array of substrings or NULL
+ */
 char **szl_split(struct szl_interp *interp,
                  char *s,
                  int *argc,
@@ -476,6 +483,20 @@ enum szl_res szl_append(struct szl_obj *obj,
                         const char *s,
                         const size_t len);
 
+/**
+ * @fn enum szl_res szl_join(struct szl_interp *interp,
+ *                           const int objc,
+ *                           struct szl_obj *delim,
+ *                           struct szl_obj **objv,
+ *                           struct szl_obj **ret)
+ * @brief Creates a new string by joining objects
+ * @param interp [in,out] An interpreter
+ * @param objc [in] The number of objects
+ * @param delim [in] A delimiter to put between object values
+ * @param objv [in,out] The objects to join
+ * @param ret [out] The return value
+ * @return SZL_OK or SZL_ERR
+ */
 enum szl_res szl_join(struct szl_interp *interp,
                       const int objc,
                       struct szl_obj *delim,
@@ -799,6 +820,15 @@ enum szl_res szl_run_const(struct szl_interp *interp,
  * @return SZL_OK or SZL_ERR
  */
 enum szl_res szl_load(struct szl_interp *interp, const char *name);
+
+/**
+ * @fn void szl_unload(void *h)
+ * @brief Unloads an extension
+ * @param h [in]: The extension shared object handle
+ * @note Should be used by extensions that load shared objects, as a
+ *       \ref szl_delproc
+ */
+void szl_unload(void *h);
 
 /**
  * @fn enum szl_res szl_source(struct szl_interp *interp,

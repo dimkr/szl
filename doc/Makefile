@@ -35,7 +35,7 @@ all: $(DOCS)
 %.html: %.txt
 	asciidoc -o $@ $^
 
-api_doc: doxygen.conf
+api_doc: doxygen.conf ../src/szl.h
 	doxygen $^
 
 install: all
