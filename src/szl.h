@@ -169,7 +169,6 @@ enum szl_type {
 	SZL_TYPE_DOUBLE = 1 << 3, /**< Floating-point number */
 	SZL_TYPE_BOOL   = 1 << 4, /**< Boolean value */
 	SZL_TYPE_PROC   = 1 << 5, /**< Procedure */
-	SZL_TYPE_LIST   = 1 << 6 /**< List */
 };
 
 struct szl_obj;

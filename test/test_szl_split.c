@@ -207,6 +207,26 @@ int main()
 		szl_interp_free(interp);
 	}
 
+	szl_test_set_name("two statements");
+	interp = szl_interp_new();
+	szl_assert(interp != NULL);
+	if (interp) {
+		strcpy(buf, "puts hello\n\0puts world\n");
+		argv = szl_split(interp, buf, &argc, &out);
+		if (out)
+			szl_obj_unref(out);
+		szl_assert(argv != NULL);
+		szl_assert(argc == 2);
+		if (argv) {
+			if (argc == 2) {
+				szl_assert(strcmp(argv[0], "puts") == 0);
+				szl_assert(strcmp(argv[1], "hello") == 0);
+			}
+			free(argv);
+		}
+		szl_interp_free(interp);
+	}
+
 	szl_test_end();
 
 	return EXIT_SUCCESS;

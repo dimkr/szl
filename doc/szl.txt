@@ -429,15 +429,17 @@ data.
 
 Processes
 ~~~~~~~~~
++getpid+::
+	Returns the process ID of the +szl+ interpreter.
+
 +exec+ 'cmd'::
 	Runs a shell command, waits for it to terminate and returns its output. In
 	addition, the process exit code is put in the special variable '?', in the
-	scope of the calling procedure:
+	scope of the calling procedure.
 
 [TIP]
 'exec' passes 'cmd' to the default shell, so 'cmd' may rely on shell features
-such as redirection (e.g. '2>&1').
-
+such as redirection (e.g. '2>&1'):
 --------------------------------------
 exec {cp --help 2>&1}
 puts $?
@@ -554,6 +556,13 @@ to be '\0'-terminated.
 [TIP]
 Use 'ffi.cast' to dereference pointers.
 
++ffi.struct+ 'raw type...'::
+	Creates a new 'struct', which can be optionally initialized by specifying
+	its raw contents instead of an empty string.
+
++$struct+ 'member index'::
+	Returns the value of a 'struct' member, as a new variable object.
+
 +ffi.dlopen+ 'path'::
 	Loads a shared object.
 
@@ -575,22 +584,6 @@ the path (equivalent to 'dlopen()' with 'NULL').
 +$func+ 'ret ?arg...?'::
 	Calls a C function. The return value and argument objects must be specified
 	by address (e.g. '$obj address').
-
-[WARNING]
-Objects used for storing the return value or arguments of a C function must not
-be created at the same statement as a C function call. Otherwise, they will be
-garbage collected before the actual function call happens, which may lead to a
-crash.
---------------------------------------
-# crashes
-$printf [[ffi.int] address] [[ffi.string copy %d] address] [[ffi.int 5] address]
-
-# doesn't crash
-set ret [ffi.int]
-set fmt [ffi.string copy %d]
-set num [ffi.int 5]
-$printf [$ret address] [$fmt address] [$num address]
---------------------------------------
 
 Best Practices
 ~~~~~~~~~~~~~~

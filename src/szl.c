@@ -505,20 +505,6 @@ enum szl_res szl_obj_len(struct szl_obj *obj, size_t *len)
 	return SZL_OK;
 }
 
-#if 0
-char **szl_obj_list(struct szl_obj *obj, int *n)
-{
-	char *s;
-	size_t len;
-
-	s = szl_obj_strdup(obj, &len);
-	if (!s)
-		return NULL;
-
-	szl_split(interp, s, n, NULL);
-}
-#endif
-
 szl_bool szl_obj_istrue(struct szl_obj *obj)
 {
 	if (!(obj->type & SZL_TYPE_BOOL)) {
@@ -834,6 +820,9 @@ struct szl_obj *szl_expand(struct szl_interp *interp, const char *s, int len)
 	size_t tlen;
 	int ntoks, i;
 
+	if (len == 0)
+		return szl_empty(interp);
+
 	s2 = strndup(s, len);
 	if (!s2)
 		return NULL;
@@ -942,8 +931,12 @@ enum szl_res szl_eval(struct szl_interp *interp,
 	/* if the expression is wrapped with quotes, treat everything between them
 	 * as a string literal */
 	else if ((start[0] == '"') && (*(end - 1) == '"')) {
-		*(end - 1) = '\0';
-		szl_set_result(out, szl_expand(interp, start + 1, end - start));
+		if (start + 1 == end - 1)
+			szl_empty_result(interp, out);
+		else {
+			*(end - 1) = '\0';
+			szl_set_result(out, szl_expand(interp, start + 1, end - start));
+		}
 	}
 
 	/* otherwise, treat it as an unquoted string literal */
@@ -1040,8 +1033,10 @@ char *szl_get_next_token(struct szl_interp *interp,
 		do {
 			if (szl_isspace(pos[0]))
 				return szl_get_next_token(interp, err, pos);
+			if (pos[0] == '\0')
+				break;
 			++pos;
-		} while (pos[0] != '\0');
+		} while (1);
 	}
 
 	/* expression ends with whitespace */
@@ -1055,6 +1050,8 @@ char **szl_split(struct szl_interp *interp,
 {
 	char *tok,  *next, **argv = NULL, **margv, *start, *end;
 	int margc = 1;
+
+	*out = NULL;
 
 	if (s[0] == '\0') {
 		szl_set_result_str(interp, out, "syntax error: empty expression");

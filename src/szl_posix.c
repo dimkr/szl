@@ -176,6 +176,18 @@ static enum szl_res szl_posix_proc_exec(struct szl_interp *interp,
 	return SZL_ERR;
 }
 
+static enum szl_res szl_posix_proc_getpid(struct szl_interp *interp,
+                                          const int objc,
+                                          struct szl_obj **objv,
+                                          struct szl_obj **ret)
+{
+	szl_set_result_int(interp, ret, (szl_int)getpid());
+	if (!*ret)
+		return SZL_ERR;
+
+	return SZL_OK;
+}
+
 enum szl_res szl_init_posix(struct szl_interp *interp)
 {
 	if ((!szl_new_proc(interp,
@@ -192,6 +204,14 @@ enum szl_res szl_init_posix(struct szl_interp *interp)
 	                   2,
 	                   "exec cmd",
 	                   szl_posix_proc_exec,
+	                   NULL,
+	                   NULL)) ||
+	    (!szl_new_proc(interp,
+	                   "getpid",
+	                   1,
+	                   1,
+	                   "getpid",
+	                   szl_posix_proc_getpid,
 	                   NULL,
 	                   NULL)))
 		return SZL_ERR;
