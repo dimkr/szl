@@ -87,7 +87,8 @@ Basically, each statement is a series of space-delimited tokens. The first
 token, which is usually a verb, is the name of a procedure (think, _function_).
 The procedure receives the rest of the tokens as arguments (input), does
 something and returns an object (output). For example, in the following
-statement, 'calc' receives '1' and '2' as arguments and returns '3' as output:
+statement, 'calc' receives '1', '+' and '2' as arguments and returns '3' as
+output:
 
 --------------------------------------
 calc 1 + 2
@@ -124,10 +125,15 @@ local message {hello world}
 
 The difference between the two is that whatever comes between quotes gets
 expanded (for example, '"it is $number"' will be expanded into 'it is 5'), while
-tokens wrapped with braces are passed as-is without any processing. For example,
-the following statement will print '$number' and *not* the value of 'number':
+tokens wrapped with braces are passed as-is without any processing:
 
 --------------------------------------
+local number 5
+
+# expected output: 5
+puts "$number"
+
+# expected output: $number
 puts {$number}
 --------------------------------------
 
@@ -285,6 +291,15 @@ within the procedure will refer to the local variable.
 +length+ 'obj'::
 	Returns the length of an object.
 
++rtrim+ 'obj'::
+	Removes whitespace at the end of a string.
+
++ltrim+ 'obj'::
+	Removes whitespace at the beginning of a string.
+
++trim+ 'obj'::
+	Removes whitespace at both ends of a string.
+
 +append+ 'name obj'::
 	Appends a string to a variable.
 
@@ -317,8 +332,8 @@ I/O
 	Writes an object to a file.
 
 [NOTE]
-	Reading and writing operations on files buffered. To ensure data passed to
-	'write' is flushed to disk immediately, use 'flush'.
+	Reading and writing operations on files are buffered. To ensure data passed
+	to 'write' is flushed to disk immediately, use 'flush'.
 
 +$file+ 'flush'::
 	Flushes the output buffer of a file.
@@ -584,6 +599,14 @@ the path (equivalent to 'dlopen()' with 'NULL').
 +$func+ 'ret ?arg...?'::
 	Calls a C function. The return value and argument objects must be specified
 	by address (e.g. '$obj address').
+
+curl
+^^^^
+The 'curl' extension implements file download via multiple protocols, through
+https://curl.haxx.se/[cURL].
+
++curl.get+ 'url path...'::
+	Downloads multiple files in parallel.
 
 Best Practices
 ~~~~~~~~~~~~~~

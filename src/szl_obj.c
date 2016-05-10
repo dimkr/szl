@@ -73,65 +73,6 @@ static enum szl_res szl_obj_proc_local(struct szl_interp *interp,
 	return res;
 }
 
-static enum szl_res szl_obj_proc_length(struct szl_interp *interp,
-                                        const int objc,
-                                        struct szl_obj **objv,
-                                        struct szl_obj **ret)
-{
-	size_t len;
-	enum szl_res res;
-
-	res = szl_obj_len(objv[1], &len);
-	if ((res != SZL_OK) || (len > INT_MAX))
-		return res;
-
-	szl_set_result_int(interp, ret, (szl_int)len);
-	return SZL_OK;
-}
-
-static enum szl_res szl_obj_proc_append(struct szl_interp *interp,
-                                        const int objc,
-                                        struct szl_obj **objv,
-                                        struct szl_obj **ret)
-{
-	struct szl_obj *obj;
-	const char *name;
-	const char *s;
-	size_t len;
-	enum szl_res res;
-
-	name = szl_obj_str(objv[1], NULL);
-	if (!name)
-		return SZL_ERR;
-
-	if (szl_get(interp, &obj, name) != SZL_OK)
-		return SZL_ERR;
-
-	s = szl_obj_str(objv[2], &len);
-	if (!s) {
-		szl_obj_unref(obj);
-		return SZL_ERR;
-	}
-
-	if (!len) {
-		szl_obj_unref(obj);
-		return SZL_OK;
-	}
-
-	res = szl_append(obj, s, len);
-	szl_obj_unref(obj);
-
-	return res;
-}
-
-static enum szl_res szl_obj_proc_join(struct szl_interp *interp,
-                                      const int objc,
-                                      struct szl_obj **objv,
-                                      struct szl_obj **ret)
-{
-	return szl_join(interp, objc - 2, objv[1], &objv[2], ret);
-}
-
 static enum szl_res szl_obj_proc_eval(struct szl_interp *interp,
                                       const int objc,
                                       struct szl_obj **objv,
@@ -163,30 +104,6 @@ enum szl_res szl_init_obj(struct szl_interp *interp)
 	                   3,
 	                   "local name val",
 	                   szl_obj_proc_local,
-	                   NULL,
-	                   NULL)) ||
-	    (!szl_new_proc(interp,
-	                   "length",
-	                   2,
-	                   2,
-	                   "length obj",
-	                   szl_obj_proc_length,
-	                   NULL,
-	                   NULL)) ||
-	    (!szl_new_proc(interp,
-	                   "append",
-	                   3,
-	                   3,
-	                   "append name obj",
-	                   szl_obj_proc_append,
-	                   NULL,
-	                   NULL)) ||
-	    (!szl_new_proc(interp,
-	                   "join",
-	                   4,
-	                   -1,
-	                   "join delim obj obj ?...?",
-	                   szl_obj_proc_join,
 	                   NULL,
 	                   NULL)) ||
 	    (!szl_new_proc(interp,

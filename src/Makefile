@@ -27,17 +27,20 @@ LDFLAGS += -L.
 LIBFFI_CFLAGS = $(shell pkg-config --cflags libffi)
 LIBFFI_LIBS = $(shell pkg-config --libs libffi)
 
+CURL_CFLAGS = $(shell pkg-config --cflags libcurl)
+CURL_LIBS = $(shell pkg-config --libs libcurl)
+
 EXT_LIBS = -lszl
 
 STATIC_LIB = libszl.a
 SHARED_LIB = libszl.so
 PROGS = szlsh
 
-BUILTIN_EXT_NAMES = posix obj io math logic loop exc proc ext sugar
+BUILTIN_EXT_NAMES = posix obj str io math logic loop exc proc ext sugar
 BUILTIN_EXT_SRCS = $(addsuffix .c,$(addprefix szl_,$(BUILTIN_EXT_NAMES)))
 BUILTIN_EXT_OBJECTS = $(BUILTIN_EXT_SRCS:.c=.o)
 
-EXTERNAL_EXT_NAMES = zlib ffi
+EXTERNAL_EXT_NAMES = zlib ffi curl
 EXTERNAL_EXT_SRCS = $(addsuffix .c,$(addprefix szl_,$(EXTERNAL_EXT_NAMES)))
 EXTERNAL_EXT_OBJECTS = $(EXTERNAL_EXT_SRCS:.c=.o)
 EXTERNAL_EXT_LIBS = $(EXTERNAL_EXT_SRCS:.c=.so)
@@ -97,6 +100,12 @@ szl_ffi.o: szl_ffi.c szl_conf.h
 
 szl_ffi.so: szl_ffi.o $(SHARED_LIB)
 	$(CC) -o $@ $< $(LDFLAGS) -shared $(EXT_LIBS) $(LIBFFI_LIBS)
+
+szl_curl.o: szl_curl.c szl_conf.h
+	$(CC) -c -o $@ $< $(CFLAGS) $(CURL_CFLAGS)
+
+szl_curl.so: szl_curl.o $(SHARED_LIB)
+	$(CC) -o $@ $< $(LDFLAGS) -shared $(EXT_LIBS) $(CURL_LIBS)
 
 %.inc: %.szl
 	sed -e s~'^\t*'~~g \

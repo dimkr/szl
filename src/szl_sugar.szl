@@ -30,3 +30,7 @@ proc do {
 		if [not [eval $3]] break
 	}
 }
+
+proc trim {
+	ltrim [rtrim $1]
+}

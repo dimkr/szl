@@ -99,6 +99,14 @@
 #	define SZL_PREV_RET_OBJ_NAME "_"
 
 /**
+ * @fn int szl_isspace(const char ch)
+ * @brief Checks if a character is considered whitespace
+ * @param ch [in] A character
+ * @return Non-zero if the character is whitespace, otherwise zero
+ */
+int szl_isspace(const char ch);
+
+/**
  * @}
  *
  * @defgroup types Data types

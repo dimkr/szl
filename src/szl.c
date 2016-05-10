@@ -773,7 +773,6 @@ enum szl_res szl_call(struct szl_interp *interp,
 	return res;
 }
 
-SZL_STATIC
 int szl_isspace(const char ch)
 {
 	return ((ch == ' ') || (ch == '\t') || (ch == '\n') || (ch == '\r'));
