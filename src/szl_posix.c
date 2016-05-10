@@ -126,6 +126,7 @@ static enum szl_res szl_posix_proc_exec(struct szl_interp *interp,
 		mbuf = (char *)realloc(buf, mlen);
 		if (!mbuf) {
 			free(buf);
+			buf = NULL;
 			res = SZL_ERR;
 			break;
 		}
@@ -138,23 +139,27 @@ static enum szl_res szl_posix_proc_exec(struct szl_interp *interp,
 	close(fds[0]);
 
 	if (waitpid(pid, &status, 0) != pid) {
-		free(buf);
+		if (buf)
+			free(buf);
 		return SZL_ERR;
 	}
 
 	if (res != SZL_OK) {
-		free(buf);
+		if (buf)
+			free(buf);
 		return res;
 	}
 
 	if (!WIFEXITED(status)) {
-		free(buf);
+		if (buf)
+			free(buf);
 		return SZL_ERR;
 	}
 
 	exit_code = szl_new_int(WEXITSTATUS(status));
 	if (!exit_code) {
-		free(buf);
+		if (buf)
+			free(buf);
 		return SZL_ERR;
 	}
 

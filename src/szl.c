@@ -347,7 +347,7 @@ enum szl_res szl_append(struct szl_obj *obj,
                         const size_t len)
 {
 	char *s;
-	size_t nlen = obj->len + (size_t)len;
+	size_t nlen = obj->len + len;
 
 	if (!szl_obj_str(obj, NULL))
 		return SZL_ERR;
@@ -812,13 +812,15 @@ void szl_trim(char *s, char **start, char **end)
 }
 
 SZL_STATIC
-struct szl_obj *szl_expand(struct szl_interp *interp, const char *s, int len)
+struct szl_obj *szl_expand(struct szl_interp *interp,
+                           const char *s,
+                           const int len)
 {
 	struct szl_obj *tmp = NULL, *obj;
 	char **toks, *s2;
 	const char *tok;
 	size_t tlen;
-	int ntoks, i;
+	int ntoks, i, j, nspaces;
 
 	if (len == 0)
 		return szl_empty(interp);
@@ -835,7 +837,9 @@ struct szl_obj *szl_expand(struct szl_interp *interp, const char *s, int len)
 		return NULL;
 	}
 
-	obj = szl_new_str("", 0);
+	/* initialize the result with all whitespace between the beginning of the
+	 * string and the first token */
+	obj = szl_new_str(s2, toks[0] - s2);
 	if (!obj) {
 		free(toks);
 		free(s2);
@@ -843,6 +847,25 @@ struct szl_obj *szl_expand(struct szl_interp *interp, const char *s, int len)
 	}
 
 	for (i = 0; i < ntoks; ++i) {
+		/* append all whitespace between the previous token and the current
+		 * one */
+		if (i > 0) {
+			j = i - 1;
+			tlen = strlen(toks[j]);
+			nspaces = toks[i] - toks[j] - (int)tlen;
+			if (nspaces > 0) {
+				if (szl_append(obj,
+				               &s[toks[j] - s2 + tlen],
+				               (size_t)nspaces) != SZL_OK) {
+					szl_obj_unref(obj);
+					free(toks);
+					free(s2);
+					return NULL;
+				}
+			}
+		}
+
+		/* evaluate the current token */
 		tmp = NULL;
 		if (szl_eval(interp, &tmp, toks[i]) != SZL_OK) {
 			if (tmp)
@@ -862,6 +885,7 @@ struct szl_obj *szl_expand(struct szl_interp *interp, const char *s, int len)
 			return NULL;
 		}
 
+		/* append it to the result */
 		if (szl_append(obj, tok, tlen) != SZL_OK) {
 			szl_obj_unref(tmp);
 			szl_obj_unref(obj);
@@ -1198,7 +1222,8 @@ enum szl_res szl_run_line(struct szl_interp *interp,
 			*out = szl_empty(interp);
 			res = szl_local(interp,
 			                interp->caller,
-			                SZL_PREV_RET_OBJ_NAME, *out);
+			                SZL_PREV_RET_OBJ_NAME,
+			                *out);
 			szl_obj_unref(*out);
 			*out = NULL;
 		}

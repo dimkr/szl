@@ -112,7 +112,7 @@ static enum szl_res szl_loop_proc_for(struct szl_interp *interp,
 	struct szl_obj *tok;
 	size_t len, elen;
 	int n, i;
-	enum szl_res res;
+	enum szl_res res = SZL_OK;
 
 	*ret = NULL;
 
