@@ -120,9 +120,9 @@ enum szl_res szl_curl_proc_get(struct szl_interp *interp,
 	if (!cm)
 		goto free_arrs;
 
-	for (i = 1; i < objc; i += 2) {
-		j = i / 2;
-
+	i = 1;
+	j = 0;
+	while (i < objc) {
 		urls[j] = szl_obj_str(objv[i], &len);
 		if (!urls[j] || !len)
 			goto cleanup_cm;
@@ -130,6 +130,9 @@ enum szl_res szl_curl_proc_get(struct szl_interp *interp,
 		paths[j] = szl_obj_str(objv[i + 1], &len);
 		if (!paths[j] || !len)
 			goto cleanup_cm;
+
+		i += 2;
+		++j;
 	}
 
 	if ((sigemptyset(&set) == -1) ||
