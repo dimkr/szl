@@ -27,6 +27,8 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <sys/select.h>
@@ -318,6 +320,12 @@ static void szl_stream_close(struct szl_stream *strm)
 	}
 }
 
+static void szl_stream_free(struct szl_stream *strm)
+{
+	szl_stream_close(strm);
+	free(strm);
+}
+
 static struct szl_obj *szl_stream_handle(struct szl_interp *interp,
                                          struct szl_stream *strm)
 {
@@ -361,7 +369,7 @@ static enum szl_res szl_stream_accept(struct szl_interp *interp,
 
 	*ret = szl_register_stream(interp, client, "stream.client");
 	if (!*ret) {
-		szl_stream_close(client);
+		szl_stream_free(client);
 		return SZL_ERR;
 	}
 
@@ -438,14 +446,38 @@ static void szl_stream_del(void *priv)
 	free(priv);
 }
 
+static enum szl_res szl_new_file(struct szl_interp *interp,
+                                 FILE *fp,
+                                 struct szl_obj **ret)
+{
+	struct szl_stream *strm;
+
+	strm = (struct szl_stream *)malloc(sizeof(struct szl_stream));
+	if (!strm)
+		return SZL_ERR;
+
+	strm->priv = fp;
+	strm->ops = &szl_file_ops;
+	strm->closed = 0;
+
+	*ret = szl_register_stream(interp, strm, "file");
+	if (!*ret) {
+		szl_stream_free(strm);
+		return SZL_ERR;
+	}
+
+	return SZL_OK;
+}
+
 static enum szl_res szl_io_proc_open(struct szl_interp *interp,
                                      const int objc,
                                      struct szl_obj **objv,
                                      struct szl_obj **ret)
 {
-	struct szl_stream *strm;
 	const char *path, *mode;
+	FILE *fp;
 	size_t len;
+	enum szl_res res;
 
 	path = szl_obj_str(objv[1], &len);
 	if (!path || !len)
@@ -455,27 +487,17 @@ static enum szl_res szl_io_proc_open(struct szl_interp *interp,
 	if (!mode || !len)
 		return SZL_ERR;
 
-	strm = (struct szl_stream *)malloc(sizeof(struct szl_stream));
-	if (!strm)
+	fp = fopen(path, mode);
+	if (!fp)
 		return SZL_ERR;
 
-	strm->priv = fopen(path, mode);
-	if (!strm->priv) {
-		free(strm);
-		return SZL_ERR;
-	}
-
-	strm->ops = &szl_file_ops;
-	strm->closed = 0;
-
-	*ret = szl_register_stream(interp, strm, "file");
-	if (!*ret) {
-		szl_stream_close(strm);
-		free(strm);
+	res = szl_new_file(interp, fp, ret);
+	if (res != SZL_OK) {
+		fclose(fp);
 		return SZL_ERR;
 	}
 
-	return SZL_OK;
+	return res;
 }
 
 static struct szl_stream *szl_socket_new_client(
@@ -654,8 +676,8 @@ static enum szl_res szl_io_proc_socket(struct szl_interp *interp,
 
 	*ret = szl_register_stream(interp, strm, type);
 	if (!*ret) {
-		szl_stream_close(strm);
-		free(strm);
+		szl_stream_free(strm);
+		return SZL_ERR;
 	}
 
 	return SZL_OK;
@@ -810,6 +832,78 @@ static enum szl_res szl_io_proc_select(struct szl_interp *interp,
 	return SZL_OK;
 }
 
+static enum szl_res szl_io_proc_reopen(struct szl_interp *interp,
+                                       const int objc,
+                                       struct szl_obj **objv,
+                                       struct szl_obj **ret)
+{
+	struct stat stbuf;
+	struct szl_stream *strm;
+	FILE *fp;
+	const char *type, *mode;
+	szl_int fd;
+	socklen_t stype, slen;
+	int fl;
+	enum szl_res res;
+
+	res = szl_obj_int(objv[1], &fd);
+	if ((res != SZL_OK) || (fd < 0) || (fd > INT_MAX))
+		return res;
+
+	if (fstat((int)fd, &stbuf) < 0)
+		return SZL_ERR;
+
+	if (S_ISSOCK(stbuf.st_mode)) {
+		slen = sizeof(stype);
+		if ((getsockopt((int)fd, SOL_SOCKET, SO_TYPE, &stype, &slen) < 0) ||
+		    (slen != sizeof(stype)))
+			return SZL_ERR;
+
+		if (stype == SOCK_STREAM) {
+			strm = szl_socket_new((int)fd, &szl_stream_client_ops);
+			type = "stream.client";
+		}
+		else if (stype == SOCK_DGRAM) {
+			strm = szl_socket_new((int)fd, &szl_dgram_client_ops);
+			type = "dgram.client";
+		}
+		else
+			return SZL_ERR;
+
+		if (!strm)
+			return SZL_ERR;
+
+		*ret = szl_register_stream(interp, strm, type);
+		if (!*ret) {
+			szl_stream_free(strm);
+			return SZL_ERR;
+		}
+	}
+	else {
+		fl = fcntl((int)fd, F_GETFL);
+		if (fl < 0)
+			return SZL_ERR;
+
+		if (fl & O_RDWR)
+			mode = "r+";
+		else if (fl & O_WRONLY)
+			mode = "w";
+		else
+			mode = "r";
+
+		fp = fdopen((int)fd, mode);
+		if (!fp)
+			return SZL_ERR;
+
+		res = szl_new_file(interp, fp, ret);
+		if (res != SZL_OK) {
+			fclose(fp);
+			return res;
+		}
+	}
+
+	return SZL_OK;
+}
 
 enum szl_res szl_init_io(struct szl_interp *interp)
 {
@@ -843,6 +937,14 @@ enum szl_res szl_init_io(struct szl_interp *interp)
 	                   2,
 	                   "select handles",
 	                   szl_io_proc_select,
+	                   NULL,
+	                   NULL)) ||
+	    (!szl_new_proc(interp,
+	                   "reopen",
+	                   2,
+	                   2,
+	                   "reopen handle",
+	                   szl_io_proc_reopen,
 	                   NULL,
 	                   NULL)))
 		return SZL_ERR;
