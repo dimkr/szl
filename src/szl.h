@@ -368,6 +368,13 @@ struct szl_obj *szl_new_str_noalloc(char *s, size_t len);
 struct szl_obj *szl_new_str(const char *s, int len);
 
 /**
+ * @fn struct szl_obj *szl_new_empty(void)
+ * @brief Creates a new empty string object
+ * @return A new reference to the created string object or NULL
+ */
+struct szl_obj *szl_new_empty(void);
+
+/**
  * @fn struct szl_obj *szl_new_int(const szl_int i)
  * @brief Creates a new integer object
  * @param i [in] The integer value
@@ -489,6 +496,15 @@ char **szl_split(struct szl_interp *interp,
 enum szl_res szl_append(struct szl_obj *obj,
                         const char *s,
                         const size_t len);
+
+/**
+ * @fn enum szl_res szl_lappend(struct szl_obj *obj, const char *s)
+ * @brief Appends a string to an existing object, as an additional list item
+ * @param obj [in,out] The object
+ * @param s [in] The string
+ * @return SZL_OK or SZL_ERR
+ */
+enum szl_res szl_lappend(struct szl_obj *obj, const char *s);
 
 /**
  * @fn enum szl_res szl_join(struct szl_interp *interp,

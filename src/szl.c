@@ -53,7 +53,7 @@ struct szl_interp *szl_interp_new(void)
 
 	interp->init = crc32(0, Z_NULL, 0);
 
-	interp->empty = szl_new_str("", 0);
+	interp->empty = szl_new_empty();
 	if (!interp->empty) {
 		free(interp);
 		return NULL;
@@ -249,14 +249,19 @@ struct szl_obj *szl_new_str(const char *s, int len)
 	s2 = malloc(rlen + 1);
 	if (!s2)
 		return NULL;
-	memcpy(s2, s, len);
-	s2[len] = '\0';
+	memcpy(s2, s, rlen);
+	s2[rlen] = '\0';
 
 	obj = szl_new_str_noalloc(s2, rlen);
 	if (!obj)
 		free(s2);
 
 	return obj;
+}
+
+struct szl_obj *szl_new_empty(void)
+{
+	return szl_new_str("", 0);
 }
 
 struct szl_obj *szl_new_int(const szl_int i)
@@ -367,6 +372,46 @@ enum szl_res szl_append(struct szl_obj *obj,
 	return SZL_OK;
 }
 
+enum szl_res szl_lappend(struct szl_obj *obj, const char *s)
+{
+	char *s2;
+	size_t slen, i;
+	int len, wrap = 0;
+	enum szl_res res;
+
+	res = szl_obj_len(obj, &slen);
+	if (res != SZL_OK)
+		return res;
+
+	for (i = 0; i < slen; ++i) {
+		if (szl_isspace(s[i])) {
+			wrap = 1;
+			break;
+		}
+	}
+
+	if (slen) {
+		if (wrap)
+			len = asprintf(&s2, " {%s}", s);
+		else
+			len = asprintf(&s2, " %s", s);
+	}
+	else if (wrap)
+		len = asprintf(&s2, "{%s}", s);
+	else {
+		s2 = (char *)s;
+		len = strlen(s);
+	}
+
+	if (len <= 0)
+		return SZL_ERR;
+
+	res = szl_append(obj, s2, (size_t)len);
+	if (s2 != s)
+		free(s2);
+	return res;
+}
+
 enum szl_res szl_join(struct szl_interp *interp,
                       const int objc,
                       struct szl_obj *delim,
@@ -386,7 +431,7 @@ enum szl_res szl_join(struct szl_interp *interp,
 	if (!delims)
 		return SZL_ERR;
 
-	obj = szl_new_str("", 0);
+	obj = szl_new_empty();
 	if (!obj)
 		return SZL_ERR;
 

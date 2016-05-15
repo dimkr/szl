@@ -291,6 +291,10 @@ within the procedure will refer to the local variable.
 +length+ 'obj'::
 	Returns the length of an object.
 
++llength+ 'obj'::
+	Returns the number of whitespace-delimited tokens in a string. Multi-word
+	tokens may be grouped using braces.
+
 +rtrim+ 'obj'::
 	Removes whitespace at the end of a string.
 
@@ -302,6 +306,11 @@ within the procedure will refer to the local variable.
 
 +append+ 'name obj'::
 	Appends a string to a variable.
+
++lappend+ 'name obj'::
+	Appends a string to a variable. If the variable is an empty string, the
+	string is prefixed with a space. If the string contains spaces, it is
+	wrapped with braces.
 
 +join+ 'delim obj obj ?...?'::
 	Joins multiple objects, with a delimiter (which may be an empty string).
@@ -377,9 +386,13 @@ Flow Control
 	Similar to 'while', but checks the condition after the first execution of
 	the loop body.
 
-+for+ 'name list exp'::
++lmap+ 'name list exp'::
 	For each token in a list of white-space delimited tokens, runs a block with
-	a local variable that specifies the token value.
+	a local variable that specifies the token value and returns a list of the
+	block return values.
+
++for+ 'name list exp'::
+	Same as 'lmap', but discards the block return values.
 
 +range+ '?start? end'::
 	Returns a space-delimited string with integers in a given range. The maximum

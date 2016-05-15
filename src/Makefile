@@ -36,7 +36,7 @@ STATIC_LIB = libszl.a
 SHARED_LIB = libszl.so
 PROGS = szlsh
 
-BUILTIN_EXT_NAMES = posix obj str io math logic loop exc proc ext sugar
+BUILTIN_EXT_NAMES = posix obj str list io math logic loop exc proc ext sugar
 BUILTIN_EXT_SRCS = $(addsuffix .c,$(addprefix szl_,$(BUILTIN_EXT_NAMES)))
 BUILTIN_EXT_OBJECTS = $(BUILTIN_EXT_SRCS:.c=.o)
 
