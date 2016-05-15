@@ -347,6 +347,9 @@ I/O
 +$file+ 'flush'::
 	Flushes the output buffer of a file.
 
++$file+ 'handle'::
+	Returns an opaque value (an integer) that represents an open file.
+
 +$file+ 'close'::
 	Closes a file.
 

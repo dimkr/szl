@@ -42,6 +42,7 @@ struct szl_stream_ops {
 	enum szl_res (*flush)(void *);
 	void (*close)(void *);
 	struct szl_stream *(*accept)(void *);
+	szl_int (*handle)(void *);
 };
 
 struct szl_stream {
@@ -107,12 +108,18 @@ static void szl_file_close(void *priv)
 	fclose((FILE *)priv);
 }
 
+static szl_int szl_file_handle(void *priv)
+{
+	return (szl_int)fileno((FILE *)priv);
+}
+
 static const struct szl_stream_ops szl_file_ops = {
 	szl_file_read,
 	szl_file_write,
 	szl_file_flush,
 	szl_file_close,
-	NULL
+	NULL,
+	szl_file_handle
 };
 
 static ssize_t szl_socket_read(void *priv, unsigned char *buf, const size_t len)
@@ -191,12 +198,18 @@ static struct szl_stream *szl_socket_accept(void *priv)
 	return strm;
 }
 
+static szl_int szl_socket_fileno(void *priv)
+{
+	return (szl_int)(intptr_t)priv;
+}
+
 static const struct szl_stream_ops szl_stream_server_ops = {
 	NULL,
 	NULL,
 	NULL,
 	szl_socket_close,
-	szl_socket_accept
+	szl_socket_accept,
+	szl_socket_fileno
 };
 
 static const struct szl_stream_ops szl_stream_client_ops = {
@@ -204,7 +217,8 @@ static const struct szl_stream_ops szl_stream_client_ops = {
 	szl_socket_write,
 	szl_socket_flush,
 	szl_socket_close,
-	NULL
+	NULL,
+	szl_socket_fileno
 };
 
 static const struct szl_stream_ops szl_dgram_server_ops = {
@@ -212,7 +226,8 @@ static const struct szl_stream_ops szl_dgram_server_ops = {
 	NULL,
 	NULL,
 	szl_socket_close,
-	NULL
+	NULL,
+	szl_socket_fileno
 };
 
 static const struct szl_stream_ops szl_dgram_client_ops = {
@@ -220,7 +235,8 @@ static const struct szl_stream_ops szl_dgram_client_ops = {
 	szl_socket_write,
 	szl_socket_flush,
 	szl_socket_close,
-	NULL
+	NULL,
+	szl_socket_fileno
 };
 
 static enum szl_res szl_stream_read(struct szl_interp *interp,
@@ -301,18 +317,28 @@ static void szl_stream_close(struct szl_stream *strm)
 	}
 }
 
+static struct szl_obj *szl_stream_handle(struct szl_interp *interp,
+                                         struct szl_stream *strm)
+{
+	if (strm->closed)
+		return szl_empty(interp);
+
+	return szl_new_int(strm->ops->handle(strm->priv));
+}
+
 struct szl_obj *szl_register_stream(struct szl_interp *interp,
-                                    struct szl_stream *strm)
+                                    struct szl_stream *strm,
+                                    const char *type)
 {
 	char name[sizeof("socket.stream.FFFFFFFF")];
 	struct szl_obj *proc;
 
-	szl_new_obj_name(interp, "socket.stream", name, sizeof(name));
+	szl_new_obj_name(interp, type, name, sizeof(name));
 	proc = szl_new_proc(interp,
 	                    name,
 	                    1,
 	                    3,
-	                    "strm read|write|flush|close|accept ?len?",
+	                    "strm read|write|flush|handle|close|accept ?len?",
 	                    szl_stream_proc,
 	                    szl_stream_del,
 	                    strm);
@@ -332,7 +358,7 @@ static enum szl_res szl_stream_accept(struct szl_interp *interp,
 	if (!client)
 		return SZL_ERR;
 
-	*ret = szl_register_stream(interp, client);
+	*ret = szl_register_stream(interp, client, "stream.client");
 	if (!*ret) {
 		szl_stream_close(client);
 		return SZL_ERR;
@@ -393,6 +419,12 @@ static enum szl_res szl_stream_proc(struct szl_interp *interp,
 		}
 		else if (strcmp("accept", op) == 0)
 			return szl_stream_accept(interp, ret, strm);
+		else if (strcmp("handle", op) == 0) {
+			szl_set_result(ret, szl_stream_handle(interp, strm));
+			if (!*ret)
+				return SZL_ERR;
+			return SZL_OK;
+		}
 	}
 
 	szl_usage(interp, ret, objv[0]);
@@ -435,7 +467,7 @@ static enum szl_res szl_io_proc_open(struct szl_interp *interp,
 	strm->ops = &szl_file_ops;
 	strm->closed = 0;
 
-	*ret = szl_register_stream(interp, strm);
+	*ret = szl_register_stream(interp, strm, "file");
 	if (!*ret) {
 		szl_stream_close(strm);
 		free(strm);
@@ -619,7 +651,7 @@ static enum szl_res szl_io_proc_socket(struct szl_interp *interp,
 	if (!strm)
 		return SZL_ERR;
 
-	*ret = szl_register_stream(interp, strm);
+	*ret = szl_register_stream(interp, strm, type);
 	if (!*ret) {
 		szl_stream_close(strm);
 		free(strm);
