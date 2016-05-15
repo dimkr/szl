@@ -182,7 +182,7 @@ static enum szl_res szl_loop_map(struct szl_interp *interp,
 				return SZL_ERR;
 			}
 
-			res = szl_lappend(obj, out);
+			res = szl_lappend_str(obj, out);
 			if (res != SZL_OK) {
 				szl_obj_unref(obj);
 				free(toks);

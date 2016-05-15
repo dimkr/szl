@@ -29,6 +29,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <sys/select.h>
 
 #include "szl.h"
 
@@ -677,6 +678,139 @@ static enum szl_res szl_io_proc_puts(struct szl_interp *interp,
 	return SZL_OK;
 }
 
+static enum szl_res szl_io_proc_select(struct szl_interp *interp,
+                                       const int objc,
+                                       struct szl_obj **objv,
+                                       struct szl_obj **ret)
+{
+	fd_set fds[3];
+	struct szl_obj *fdl[3], *obj;
+	char *s, **toks;
+	const char *l;
+	szl_int *fdi;
+	size_t len;
+	int nfds, n, i, j, ready;
+	enum szl_res res;
+
+	s = szl_obj_strdup(objv[1], &len);
+	if (!s || !len)
+		return SZL_ERR;
+
+	toks = szl_split(interp, s, &n, ret);
+	if (!toks) {
+		free(s);
+		return SZL_ERR;
+	}
+
+	for (i = 0; i < 3; ++i) {
+		fdl[i] = szl_new_empty();
+		if (!fdl[i]) {
+			for (j = 0; j < i; ++j)
+				szl_obj_unref(fdl[j]);
+			free(s);
+			return SZL_ERR;
+		}
+	}
+
+	obj = szl_new_empty();
+	if (!obj) {
+		for (j = 0; j < 3; ++j)
+			szl_obj_unref(fdl[j]);
+		free(s);
+		return SZL_ERR;
+	}
+
+	fdi = (szl_int *)malloc(sizeof(szl_int) * n);
+	if (!fdi) {
+		szl_obj_unref(obj);
+		for (j = 0; j < 3; ++j)
+			szl_obj_unref(fdl[j]);
+		free(s);
+		return SZL_ERR;
+	}
+
+	FD_ZERO(&fds[0]);
+	for (i = 0; i < n; ++i) {
+		if ((sscanf(toks[i], SZL_INT_FMT, &fdi[i]) != 1) ||
+		    (fdi[i] < 0) ||
+		    (fdi[i] > INT_MAX)) {
+			szl_obj_unref(obj);
+			for (j = 0; j < 3; ++j)
+				szl_obj_unref(fdl[j]);
+			free(fdi);
+			free(s);
+			return SZL_ERR;
+		}
+
+		FD_SET((int)fdi[i], &fds[0]);
+		if ((i == 0) || ((int)fdi[i] > nfds))
+			nfds = (int)fdi[i];
+	}
+
+	memcpy(&fds[1], &fds[0], sizeof(fd_set));
+	memcpy(&fds[2], &fds[0], sizeof(fd_set));
+
+	ready = select(nfds + 1, &fds[0], &fds[1], &fds[2], NULL);
+	if (ready < 0) {
+		szl_obj_unref(obj);
+		for (j = 0; j < 3; ++j)
+			szl_obj_unref(fdl[j]);
+		free(fdi);
+		free(s);
+		return SZL_ERR;
+	}
+
+	if (ready) {
+		for (i = 0; i < n; ++i) {
+			if (((FD_ISSET((int)fdi[i], &fds[0])) &&
+				 (szl_lappend_int(fdl[0], fdi[i]) != SZL_OK)) ||
+				((FD_ISSET((int)fdi[i], &fds[1])) &&
+				 (szl_lappend_int(fdl[1], fdi[i]) != SZL_OK)) ||
+				((FD_ISSET((int)fdi[i], &fds[2])) &&
+				 (szl_lappend_int(fdl[2], fdi[i]) != SZL_OK))) {
+				szl_obj_unref(obj);
+				for (j = 0; j < 3; ++j)
+					szl_obj_unref(fdl[j]);
+				free(fdi);
+				free(s);
+				return SZL_ERR;
+			}
+		}
+	}
+
+	free(fdi);
+	free(s);
+
+	for (i = 0; i < 3; ++i) {
+		l = szl_obj_str(fdl[i], &len);
+		if (!l) {
+			szl_obj_unref(obj);
+			for (j = 0; j < 3; ++j)
+				szl_obj_unref(fdl[j]);
+			free(fdi);
+			free(s);
+			return SZL_ERR;
+		}
+
+		res = szl_lappend_str(obj, l);
+		if (res != SZL_OK) {
+			szl_obj_unref(obj);
+			for (j = 0; j < 3; ++j)
+				szl_obj_unref(fdl[j]);
+			free(fdi);
+			free(s);
+			return SZL_ERR;
+		}
+	}
+
+	for (j = 0; j < 3; ++j)
+		szl_obj_unref(fdl[j]);
+
+	szl_set_result(ret, obj);
+	return SZL_OK;
+}
+
+
 enum szl_res szl_init_io(struct szl_interp *interp)
 {
 	if ((!szl_new_proc(interp,
@@ -701,6 +835,14 @@ enum szl_res szl_init_io(struct szl_interp *interp)
 	                   4,
 	                   "socket type host service",
 	                   szl_io_proc_socket,
+	                   NULL,
+	                   NULL)) ||
+	    (!szl_new_proc(interp,
+	                   "select",
+	                   2,
+	                   2,
+	                   "select handles",
+	                   szl_io_proc_select,
 	                   NULL,
 	                   NULL)))
 		return SZL_ERR;

@@ -498,13 +498,22 @@ enum szl_res szl_append(struct szl_obj *obj,
                         const size_t len);
 
 /**
- * @fn enum szl_res szl_lappend(struct szl_obj *obj, const char *s)
+ * @fn enum szl_res szl_lappend_str(struct szl_obj *obj, const char *s)
  * @brief Appends a string to an existing object, as an additional list item
  * @param obj [in,out] The object
  * @param s [in] The string
  * @return SZL_OK or SZL_ERR
  */
-enum szl_res szl_lappend(struct szl_obj *obj, const char *s);
+enum szl_res szl_lappend_str(struct szl_obj *obj, const char *s);
+
+/**
+ * @fn enum szl_res szl_lappend_int(struct szl_obj *obj, const szl_int i)
+ * @brief Appends an integer to an existing object, as an additional list item
+ * @param obj [in,out] The object
+ * @param i [in] The integer
+ * @return SZL_OK or SZL_ERR
+ */
+enum szl_res szl_lappend_int(struct szl_obj *obj, const szl_int i);
 
 /**
  * @fn enum szl_res szl_join(struct szl_interp *interp,

@@ -458,6 +458,11 @@ data.
 	Waits for a client to connect to a 'stream.server' socket and returns a new
 	socket.
 
++select+ 'handles'::
+	Waits until one or more sockets are ready for reading or writing or until an
+	error occurs and returns three lists of file handles: those ready for
+	reading, writing or error handling.
+
 Processes
 ~~~~~~~~~
 +getpid+::

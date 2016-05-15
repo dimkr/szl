@@ -372,43 +372,70 @@ enum szl_res szl_append(struct szl_obj *obj,
 	return SZL_OK;
 }
 
-enum szl_res szl_lappend(struct szl_obj *obj, const char *s)
+enum szl_res szl_lappend_str(struct szl_obj *obj, const char *s)
 {
-	char *s2;
-	size_t slen, i;
+	char *toks, *tok;
+	size_t tlen, i, slen;
 	int len, wrap = 0;
 	enum szl_res res;
 
-	res = szl_obj_len(obj, &slen);
-	if (res != SZL_OK)
-		return res;
-
-	for (i = 0; i < slen; ++i) {
-		if (szl_isspace(s[i])) {
-			wrap = 1;
-			break;
-		}
-	}
+	slen = strlen(s);
+	if (slen > INT_MAX)
+		return SZL_ERR;
 
 	if (slen) {
-		if (wrap)
-			len = asprintf(&s2, " {%s}", s);
-		else
-			len = asprintf(&s2, " %s", s);
-	}
-	else if (wrap)
-		len = asprintf(&s2, "{%s}", s);
-	else {
-		s2 = (char *)s;
-		len = strlen(s);
-	}
+		toks = szl_obj_str(obj, &tlen);
+		if (!toks)
+			return SZL_ERR;
 
+		for (i = 0; i < slen; ++i) {
+			if (szl_isspace(s[i])) {
+				wrap = 1;
+				break;
+			}
+		}
+
+		if (tlen) {
+			if (wrap)
+				len = asprintf(&tok, " {%s}", s);
+			else
+				len = asprintf(&tok, " %s", s);
+		}
+		else if (wrap)
+			len = asprintf(&tok, "{%s}", s);
+		else {
+			tok = (char *)s;
+			len = (int)slen;
+		}
+
+		if (len < 0) {
+			if (tok != s)
+				free(tok);
+			return SZL_ERR;
+		}
+
+		res = szl_append(obj, tok, (size_t)len);
+		if (tok != s)
+			free(tok);
+	}
+	else
+		res = szl_append(obj, " {}", 3);
+
+	return res;
+}
+
+enum szl_res szl_lappend_int(struct szl_obj *obj, const szl_int i)
+{
+	char *s;
+	int len;
+	enum szl_res res;
+
+	len = asprintf(&s, SZL_INT_FMT, i);
 	if (len <= 0)
 		return SZL_ERR;
 
-	res = szl_append(obj, s2, (size_t)len);
-	if (s2 != s)
-		free(s2);
+	res = szl_lappend_str(obj, s);
+	free(s);
 	return res;
 }
 
