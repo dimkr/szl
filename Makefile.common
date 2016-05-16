@@ -30,7 +30,6 @@ CFLAGS += -std=gnu99 -Wall -pedantic -D_GNU_SOURCE
 LIBS += -lm -ldl
 
 ZLIB_CFLAGS = $(shell pkg-config --cflags zlib)
-ZLIB_LIBS = $(shell pkg-config --libs zlib)
 
 DESTDIR ?=
 PREFIX ?= /usr

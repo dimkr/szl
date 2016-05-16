@@ -358,18 +358,33 @@ I/O
 'close' is called automatically, once all references to a file object are gone.
 In most cases, an implicit 'close' call is redundant.
 
-+reopen+ 'handle'::
++$stdin+::
++$stdout+::
++$stderr+::
+	Streams in the global scope, representing standard input, output and error
+	output, respectively.
+
++fdopen+ 'handle'::
 	Re-opens an existing stream by its handle.
 
 [WARNING]
-Streams created using 'reopen' do not carry the state (for example, unwritten
-data) of the original streams. Call 'flush' before reusing a file handle.
+Streams created using 'fdopen' do not carry the state (for example, queued
+unwritten data) of the original streams. To avoid corruption of written data,
+call 'flush' before reusing a file handle.
 
 [WARNING]
-Streams created using 'reopen' share the same underlying handle as the original
+Streams created using 'fdopen' share the same underlying handle as the original
 streams: when a stream is closed, all streams that share its handle are
-invalidated. In addition, data written to the same file via multiple streams
-simultaneously may be corrupt.
+invalidated.
+
+[WARNING]
+Writing to a single file via multiple streams simultaneously is likely to result
+in data corruption.
+
++dup+ 'handle'::
+	Creates a new stream with a copy of the underlying handle of an existing
+	stream. Unlike streams created using 'fdopen', the new stream has its own
+	handle and can be closed without affecting the original stream.
 
 Procedures
 ^^^^^^^^^^
@@ -497,6 +512,17 @@ puts $?
 
 Extensions
 ~~~~~~~~~~
+tls
+^^^
+The 'tls' extension implements secure, Transport Layer Security (TLS) wrapped
+TCP sockets, through http://www.openssl.org/[OpenSSL] or a compatible library
+such as http://www.libressl.org/[LibreSSL].
+
++tls.connect+ 'handle'::
++tls.accept+ 'handle cert priv'::
+	Performs TLS handshake via an existing, connected socket and returns a new
+	stream.
+
 zlib
 ^^^^
 The 'zlib' extension is a +szl+ wrapper for http://zlib.net/[zlib], a general
@@ -565,10 +591,6 @@ To convert a 'ffi.char' to its 1-length string representation, use
 	Creates a new dummy object, for use with 'ffi.function' against functions
 	which return 'void'.
 
-+ffi.string+ 'at addr ?len?'::
-	Reads the string at a given memory address. If no length is specified, data
-	is read up to the first '\0' byte found.
-
 +$obj+ 'value'::
 	Returns the decoded value of a C variable.
 
@@ -585,6 +607,10 @@ For pointers, 'address' returns a pointer to the pointer ('void **').
 
 +$obj+ 'size'::
 	Returns the raw size of a C variable (equivalent to 'sizeof()').
+
++ffi.string+ 'at addr ?len?'::
+	Reads the string at a given memory address. If no length is specified, data
+	is read up to the first '\0' byte found.
 
 [WARNING]
 'ffi.string at' is memory-unsafe; if there is no '\0' byte at an accessible
@@ -617,8 +643,8 @@ Use 'ffi.cast' to dereference pointers.
 	Loads a shared object.
 
 [NOTE]
-To obtain the executable handle, call 'ffi.dlopen' and pass an empty string as
-the path (equivalent to 'dlopen()' with 'NULL').
+To obtain the +szl+ executable handle, call 'ffi.dlopen' and pass an empty
+string as the path (equivalent to 'dlopen()' with 'NULL').
 
 +$lib+ 'handle'::
 	Returns the handle (i.e. the return value of 'dlopen()') of a shared
@@ -829,19 +855,26 @@ also has a return value: the future value of 'ex'.
 
 Extensions
 ~~~~~~~~~~
-+szl+ extensions are shared objects that export a function of type
-'szl_ext_init', with a name in the form 'SZL_EXT_INIT_FUNC_NAME_FMT'. This
-function shall register the procedures and objects provided by the extension
-using 'szl_new_proc()'.
+All +szl+ procedures are part of extensions.
+
+Extensions may be either linked statically into the interpreter, or built as
+separate shared objects that export a function of type 'szl_ext_init', with a
+name in the form 'SZL_EXT_INIT_FUNC_NAME_FMT'. This function shall register the
+procedures and objects provided by the extension using 'szl_new_proc()'.
+
+Some trivial procedures (such as 'puts') are implemented in the 'sugar'
+extension ('szl_sugar.szl'), as +szl+ procedures, on top of more low-level
+procedures exposed by C extensions. Some of these low-level procedures are
+considered implementation details and their name is prefixed with an underscore
+(e.g. '_io.fdopen').
 
 Build System
 ~~~~~~~~~~~~
 +szl+ is built using https://www.gnu.org/software/make/[GNU Make].
 
-To make +szl+ more elegant, all builtin procedures are part of extensions; the
-variables 'BUILTIN_EXT_NAMES' and 'EXTERNAL_EXT_NAMES' control which extensions
-are built into +szlsh+ and loaded by default and which ones are built as
-external libraries loaded via 'load'.
+The variables 'BUILTIN_EXT_NAMES' and 'EXTERNAL_EXT_NAMES' control which
+extensions are built into +szlsh+ and loaded by default and which ones are built
+as external libraries loaded via 'load'.
 
 API Documentation
 ~~~~~~~~~~~~~~~~~

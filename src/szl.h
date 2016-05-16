@@ -598,6 +598,64 @@ szl_bool szl_obj_istrue(struct szl_obj *obj);
 /**
  * @}
  *
+ * @defgroup io I/O streams
+ * @ingroup low_level
+ * @{
+ */
+
+struct szl_stream;
+
+/**
+ * @struct szl_stream_ops
+ * The underlying, transport-specific implementation of an I/O stream
+ */
+struct szl_stream_ops {
+	ssize_t (*read)(void *,
+	                unsigned char *,
+	                const size_t); /**< Reads a buffer from the stream */
+	ssize_t (*write)(void *,
+	                 const unsigned char *,
+	                 const size_t); /**< Writes a buffer to the stream */
+	enum szl_res (*flush)(void *); /**< Optional, flushes the output buffer */
+	void (*close)(void *); /**< Closes the stream */
+	struct szl_stream *(*accept)(void *); /**< Optional, accepts a client */
+	szl_int (*handle)(void *); /**< Returns the underlying file descriptor */
+};
+
+/**
+ * @struct szl_stream
+ * An I/O stream
+ */
+struct szl_stream {
+	const struct szl_stream_ops *ops; /**< The underlying implementation */
+	szl_bool closed; /**< A flag set once the stream is closed */
+	void *priv; /**< Private, implementation-specific data */
+};
+
+/**
+ * @fn struct szl_obj *szl_new_stream(struct szl_interp *interp,
+ *                                    struct szl_stream *strm,
+ *                                    const char *type)
+ * @brief Registers a new I/O stream
+ * @param interp [in,out] An interpreter
+ * @param strm [in,out] The new stream
+ * @param type [in] The stream type
+ * @return A new reference to the created object or NULL
+ */
+struct szl_obj *szl_new_stream(struct szl_interp *interp,
+                               struct szl_stream *strm,
+                               const char *type);
+
+/**
+ * @fn void szl_stream_free(struct szl_stream *strm)
+ * @brief Frees all resources associated with an I/O stream
+ * @param strm [in,out] The stream
+ */
+void szl_stream_free(struct szl_stream *strm);
+
+/**
+ * @}
+ *
  * @defgroup retval Procedure return values
  * @ingroup low_level
  * @{

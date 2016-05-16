@@ -1576,3 +1576,207 @@ enum szl_res szl_main(int argc, char *argv[])
 	szl_interp_free(interp);
 	return res;
 }
+
+static enum szl_res szl_stream_read(struct szl_interp *interp,
+                                    struct szl_stream *strm,
+                                    struct szl_obj **ret,
+                                    const size_t len)
+{
+	unsigned char *buf;
+	ssize_t out;
+
+	*ret = NULL;
+
+	if (!strm->ops->read)
+		return SZL_ERR;
+
+	if (strm->closed) {
+		*ret = szl_empty(interp);
+		return SZL_OK;
+	}
+
+	buf = (unsigned char *)malloc(len + 1);
+	if (!buf)
+		return SZL_ERR;
+
+	out = strm->ops->read(strm->priv, buf, len);
+	if (out > 0) {
+		buf[len] = '\0';
+		*ret = szl_new_str_noalloc((char *)buf, (size_t)out);
+		if (!*ret) {
+			free(buf);
+			return SZL_ERR;
+		}
+	}
+	else {
+		free(buf);
+
+		if (out < 0)
+			return SZL_ERR;
+	}
+
+	return SZL_OK;
+}
+
+static enum szl_res szl_stream_write(struct szl_interp *interp,
+                                     struct szl_stream *strm,
+                                     struct szl_obj **ret,
+                                     const unsigned char *buf,
+                                     const size_t len)
+{
+	*ret = NULL;
+
+	if (!strm->ops->write)
+		return SZL_ERR;
+
+	if (strm->closed)
+		return 0;
+
+	if (strm->ops->write(strm->priv, buf, len) == (ssize_t)len)
+		return SZL_OK;
+
+	return SZL_ERR;
+}
+
+static enum szl_res szl_stream_flush(struct szl_interp *interp,
+                                     struct szl_stream *strm)
+{
+	if (!strm->ops->flush)
+		return SZL_OK;
+
+	return strm->ops->flush(strm->priv);
+}
+
+static void szl_stream_close(struct szl_stream *strm)
+{
+	if (!strm->closed) {
+		strm->ops->close(strm->priv);
+		strm->closed = 1;
+	}
+}
+
+void szl_stream_free(struct szl_stream *strm)
+{
+	szl_stream_close(strm);
+	free(strm);
+}
+
+static struct szl_obj *szl_stream_handle(struct szl_interp *interp,
+                                         struct szl_stream *strm)
+{
+	if (strm->closed)
+		return szl_empty(interp);
+
+	return szl_new_int(strm->ops->handle(strm->priv));
+}
+
+static enum szl_res szl_stream_accept(struct szl_interp *interp,
+                                      struct szl_obj **ret,
+                                      struct szl_stream *strm)
+{
+	struct szl_stream *client;
+
+	client = strm->ops->accept(strm->priv);
+	if (!client)
+		return SZL_ERR;
+
+	*ret = szl_new_stream(interp, client, "stream.client");
+	if (!*ret) {
+		szl_stream_free(client);
+		return SZL_ERR;
+	}
+
+	return SZL_OK;
+}
+
+static enum szl_res szl_stream_proc(struct szl_interp *interp,
+                                    const int objc,
+                                    struct szl_obj **objv,
+                                    struct szl_obj **ret)
+{
+	struct szl_stream *strm = (struct szl_stream *)objv[0]->priv;
+	const char *op;
+	const char *buf;
+	szl_int req;
+	size_t len;
+
+	op = szl_obj_str(objv[1], NULL);
+	if (!op)
+		return SZL_ERR;
+
+	if (objc == 3) {
+		if (strcmp("read", op) == 0) {
+			if (szl_obj_int(objv[2], &req) != SZL_OK)
+				return SZL_ERR;
+
+			if (!req)
+				return SZL_OK;
+
+			if (req > SSIZE_MAX)
+				req = SSIZE_MAX;
+
+			return szl_stream_read(interp, strm, ret, (size_t)req);
+		}
+		else if (strcmp("write", op) == 0) {
+			buf = szl_obj_str(objv[2], &len);
+			if (!buf)
+				return SZL_ERR;
+
+			if (!len)
+				return SZL_OK;
+
+			return szl_stream_write(interp,
+			                        strm,
+			                        ret,
+			                        (const unsigned char *)buf,
+			                        len);
+		}
+	}
+	else if (objc == 2) {
+		if (strcmp("flush", op) == 0)
+			return szl_stream_flush(interp, strm);
+		else if (strcmp("close", op) == 0) {
+			szl_stream_close(strm);
+			return SZL_OK;
+		}
+		else if (strcmp("accept", op) == 0)
+			return szl_stream_accept(interp, ret, strm);
+		else if (strcmp("handle", op) == 0) {
+			szl_set_result(ret, szl_stream_handle(interp, strm));
+			if (!*ret)
+				return SZL_ERR;
+			return SZL_OK;
+		}
+	}
+
+	szl_usage(interp, ret, objv[0]);
+	return SZL_ERR;
+}
+
+static void szl_stream_del(void *priv)
+{
+	szl_stream_close((struct szl_stream *)priv);
+	free(priv);
+}
+
+struct szl_obj *szl_new_stream(struct szl_interp *interp,
+                               struct szl_stream *strm,
+                               const char *type)
+{
+	char name[sizeof("socket.stream.FFFFFFFF")];
+	struct szl_obj *proc;
+
+	szl_new_obj_name(interp, type, name, sizeof(name));
+	proc = szl_new_proc(interp,
+	                    name,
+	                    1,
+	                    3,
+	                    "strm read|write|flush|handle|close|accept ?len?",
+	                    szl_stream_proc,
+	                    szl_stream_del,
+	                    strm);
+	if (!proc)
+		return NULL;
+
+	return szl_obj_ref(proc);
+}

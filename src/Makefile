@@ -24,6 +24,11 @@ include ../Makefile.common
 
 LDFLAGS += -L.
 
+ZLIB_LIBS = $(shell pkg-config --libs zlib)
+
+OPENSSL_CFLAGS = $(shell pkg-config --cflags openssl)
+OPENSSL_LIBS = $(shell pkg-config --libs openssl)
+
 LIBFFI_CFLAGS = $(shell pkg-config --cflags libffi)
 LIBFFI_LIBS = $(shell pkg-config --libs libffi)
 
@@ -36,11 +41,12 @@ STATIC_LIB = libszl.a
 SHARED_LIB = libszl.so
 PROGS = szlsh
 
-BUILTIN_EXT_NAMES = posix obj str list io math logic loop exc proc ext sugar
+BUILTIN_EXT_NAMES = posix obj str list io socket math logic loop exc proc ext \
+                    sugar
 BUILTIN_EXT_SRCS = $(addsuffix .c,$(addprefix szl_,$(BUILTIN_EXT_NAMES)))
 BUILTIN_EXT_OBJECTS = $(BUILTIN_EXT_SRCS:.c=.o)
 
-EXTERNAL_EXT_NAMES = zlib ffi curl
+EXTERNAL_EXT_NAMES = tls zlib ffi curl
 EXTERNAL_EXT_SRCS = $(addsuffix .c,$(addprefix szl_,$(EXTERNAL_EXT_NAMES)))
 EXTERNAL_EXT_OBJECTS = $(EXTERNAL_EXT_SRCS:.c=.o)
 EXTERNAL_EXT_LIBS = $(EXTERNAL_EXT_SRCS:.c=.so)
@@ -91,6 +97,12 @@ szlsh: szlsh.o libszl.so
 
 szl_zlib.o: szl_zlib.c szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS) $(ZLIB_CFLAGS)
+
+szl_tls.o: szl_tls.c szl_conf.h
+	$(CC) -c -o $@ $< $(CFLAGS) $(OPENSSL_CFLAGS)
+
+szl_tls.so: szl_tls.o $(SHARED_LIB)
+	$(CC) -o $@ $< $(LDFLAGS) -shared $(EXT_LIBS) $(OPENSSL_LIBS)
 
 szl_zlib.so: szl_zlib.o $(SHARED_LIB)
 	$(CC) -o $@ $< $(LDFLAGS) -shared $(EXT_LIBS) $(ZLIB_LIBS)

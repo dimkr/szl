@@ -153,7 +153,7 @@ static enum szl_res szl_logic_proc_if(struct szl_interp *interp,
 			break;
 
 		case 5:
-			s = szl_obj_str(objv[2], NULL);
+			s = szl_obj_str(objv[3], NULL);
 			if (!s)
 				return SZL_ERR;
 
