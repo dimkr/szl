@@ -22,19 +22,152 @@
  * THE SOFTWARE.
  */
 
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <paths.h>
 #include <stdio.h>
 
 #include "szl.h"
 
-static enum szl_res szl_proc_eval_proc(struct szl_interp *interp,
-                                       const int objc,
-                                       struct szl_obj **objv,
-                                       struct szl_obj **out)
+#define SZL_EXEC_BUFSIZ BUFSIZ
+#define SZL_EXIT_CODE_OBJ_NAME "?"
+
+static
+enum szl_res szl_proc_proc_exec(struct szl_interp *interp,
+                                const int objc,
+                                struct szl_obj **objv)
+{
+	struct szl_obj *obj;
+	char *buf, *mbuf;
+	const char *cmd;
+	struct szl_obj *exit_code;
+	size_t len, mlen, rlen;
+	pid_t pid;
+	int fds[2], out, status, resi;
+	ssize_t clen;
+	enum szl_res res = SZL_OK;
+
+	cmd = szl_obj_str(objv[1], &len);
+	if (!cmd || !len)
+		return SZL_ERR;
+
+	if (pipe(fds) < 0)
+		return SZL_ERR;
+
+	pid = fork();
+	switch (pid) {
+		case -1:
+			close(fds[1]);
+			close(fds[0]);
+			return SZL_ERR;
+
+		case 0:
+			close(fds[0]);
+			out = dup2(fds[1], STDOUT_FILENO);
+			close(fds[1]);
+			if (out == STDOUT_FILENO)
+				execl(_PATH_BSHELL, _PATH_BSHELL, "-c", cmd, (char *)NULL);
+			exit(EXIT_FAILURE);
+	}
+
+	close(fds[1]);
+
+	buf = (char *)malloc(SZL_EXEC_BUFSIZ + 1);
+	if (!buf) {
+		close(fds[0]);
+		return SZL_ERR;
+	}
+
+	len = mlen = SZL_EXEC_BUFSIZ;
+	rlen = 0;
+	do {
+		clen = read(fds[0], buf + rlen, SZL_EXEC_BUFSIZ);
+		if (clen < 0) {
+			res = SZL_ERR;
+			break;
+		}
+		if (clen == 0)
+			break;
+
+		mlen = len + SZL_EXEC_BUFSIZ;
+		mbuf = (char *)realloc(buf, mlen);
+		if (!mbuf) {
+			free(buf);
+			buf = NULL;
+			res = SZL_ERR;
+			break;
+		}
+		buf = mbuf;
+		len = mlen;
+
+		rlen += clen;
+	} while (rlen <= SIZE_MAX);
+
+	close(fds[0]);
+
+	if (waitpid(pid, &status, 0) != pid) {
+		if (buf)
+			free(buf);
+		return SZL_ERR;
+	}
+
+	if (res != SZL_OK) {
+		if (buf)
+			free(buf);
+		return res;
+	}
+
+	if (!WIFEXITED(status)) {
+		if (buf)
+			free(buf);
+		return SZL_ERR;
+	}
+
+	exit_code = szl_new_int(WEXITSTATUS(status));
+	if (!exit_code) {
+		if (buf)
+			free(buf);
+		return SZL_ERR;
+	}
+
+	resi = szl_local(interp,
+	                 interp->caller,
+	                 SZL_EXIT_CODE_OBJ_NAME,
+	                 exit_code);
+	szl_obj_unref(exit_code);
+	if (!resi) {
+		free(buf);
+		return SZL_ERR;
+	}
+
+	buf[rlen] = '\0';
+	obj = szl_new_str_noalloc(buf, rlen);
+	if (obj)
+		return szl_set_result(interp, obj);
+
+	return SZL_ERR;
+}
+
+static
+enum szl_res szl_proc_proc_getpid(struct szl_interp *interp,
+                                  const int objc,
+                                  struct szl_obj **objv)
+{
+	return szl_set_result_int(interp, (szl_int)getpid());
+}
+
+static
+enum szl_res szl_proc_eval_proc(struct szl_interp *interp,
+                                const int objc,
+                                struct szl_obj **objv)
 {
 	char buf[SZL_MAX_OBJC_DIGITS + 1];
 	struct szl_obj *argc_obj;
 	const char *s;
-	size_t len, i;
+	size_t len;
+	int i, resi;
 	enum szl_res res;
 
 	s = szl_obj_str((struct szl_obj *)objv[0]->priv, &len);
@@ -46,20 +179,19 @@ static enum szl_res szl_proc_eval_proc(struct szl_interp *interp,
 	if (!argc_obj)
 		return SZL_ERR;
 
-	res = szl_local(interp, objv[0], SZL_OBJC_OBJECT_NAME, argc_obj);
+	resi = szl_local(interp, interp->current, SZL_OBJC_OBJECT_NAME, argc_obj);
 	szl_obj_unref(argc_obj);
-	if (res != SZL_OK)
-		return res;
+	if (!resi)
+		return SZL_ERR;
 
 	/* create the argument objects ($0, $1, ...) */
 	for (i = 0; i < objc; ++i) {
 		sprintf(buf, "%d", i);
-		res = szl_local(interp, objv[0], buf, objv[i]);
-		if (res != SZL_OK)
-			return res;
+		if (!szl_local(interp, interp->current, buf, objv[i]))
+			return SZL_ERR;
 	}
 
-	res = szl_run_const(interp, out, s, len);
+	res = szl_run_const(interp, s, len);
 
 	/* the return status of return is SZL_BREAK */
 	if (res == SZL_BREAK)
@@ -68,15 +200,16 @@ static enum szl_res szl_proc_eval_proc(struct szl_interp *interp,
 	return res;
 }
 
-static void szl_proc_del(void *priv)
+static
+void szl_proc_del(void *priv)
 {
 	szl_obj_unref((struct szl_obj *)priv);
 }
 
-static enum szl_res szl_proc_proc_proc(struct szl_interp *interp,
-                                       const int objc,
-                                       struct szl_obj **objv,
-                                       struct szl_obj **ret)
+static
+enum szl_res szl_proc_proc_proc(struct szl_interp *interp,
+                                const int objc,
+                                struct szl_obj **objv)
 {
 	const char *name;
 
@@ -99,36 +232,49 @@ static enum szl_res szl_proc_proc_proc(struct szl_interp *interp,
 	return SZL_ERR;
 }
 
-static enum szl_res szl_proc_proc_return(struct szl_interp *interp,
-                                         const int objc,
-                                         struct szl_obj **objv,
-                                         struct szl_obj **ret)
+static
+enum szl_res szl_proc_proc_return(struct szl_interp *interp,
+                                  const int objc,
+                                  struct szl_obj **objv)
 {
 	if (objc == 2)
-		szl_set_result(ret, szl_obj_ref(objv[1]));
+		return szl_set_result(interp, szl_obj_ref(objv[1]));
 
 	return SZL_BREAK;
 }
 
-enum szl_res szl_init_proc(struct szl_interp *interp)
+int szl_init_proc(struct szl_interp *interp)
 {
-	if ((!szl_new_proc(interp,
-	                   "proc",
-	                   3,
-	                   3,
-	                   "proc name exp",
-	                   szl_proc_proc_proc,
-	                   NULL,
-	                   NULL)) ||
-	    (!szl_new_proc(interp,
-	                   "return",
-	                   1,
-	                   2,
-	                   "return ?obj?",
-	                   szl_proc_proc_return,
-	                   NULL,
-	                   NULL)))
-		return SZL_ERR;
-
-	return SZL_OK;
+	return ((szl_new_proc(interp,
+	                      "exec",
+	                      2,
+	                      2,
+	                      "exec cmd",
+	                      szl_proc_proc_exec,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "getpid",
+	                      1,
+	                      1,
+	                      "getpid",
+	                      szl_proc_proc_getpid,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "proc",
+	                      3,
+	                      3,
+	                      "proc name exp",
+	                      szl_proc_proc_proc,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "return",
+	                      1,
+	                      2,
+	                      "return ?obj?",
+	                      szl_proc_proc_return,
+	                      NULL,
+	                      NULL)));
 }

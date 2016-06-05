@@ -22,22 +22,50 @@
  * THE SOFTWARE.
  */
 
+#include <stdlib.h>
+#include <time.h>
+#include <errno.h>
+#include <math.h>
+
 #include "szl.h"
 
-static const char szl_sugar_body[] = {
-#include "szl_sugar.inc"
-};
-
-enum szl_res szl_init_sugar(struct szl_interp *interp)
+static
+enum szl_res szl_time_proc_sleep(struct szl_interp *interp,
+                                 const int objc,
+                                 struct szl_obj **objv)
 {
-	struct szl_obj *tmp = NULL;
-	enum szl_res res;
+	struct timespec req, rem;
+	szl_double d;
 
-	res = szl_run_const(interp,
-	                    &tmp,
-	                    szl_sugar_body,
-	                    sizeof(szl_sugar_body) - 1);
-	if (tmp)
-		szl_obj_unref(tmp);
-	return res;
+	/* we assume sizeof(time_t) == 4 */
+	if (!szl_obj_double(objv[1], &d) || (d < 0) || (d > INT_MAX))
+		return SZL_ERR;
+
+	req.tv_sec = (time_t)floor(d);
+	req.tv_nsec = labs((long)(1000000000 * (d - (szl_double)req.tv_sec)));
+
+	do {
+		if (nanosleep(&req, &rem) == 0)
+			break;
+
+		if (errno != EINTR)
+			return SZL_ERR;
+
+		req.tv_sec = rem.tv_sec;
+		req.tv_nsec = rem.tv_nsec;
+	} while (1);
+
+	return SZL_OK;
+}
+
+int szl_init_time(struct szl_interp *interp)
+{
+	return szl_new_proc(interp,
+	                    "sleep",
+	                    2,
+	                    2,
+	                    "sleep sec",
+	                    szl_time_proc_sleep,
+	                    NULL,
+	                    NULL) ? 1 : 0;
 }

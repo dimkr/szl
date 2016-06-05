@@ -26,14 +26,15 @@
 
 #include "szl.h"
 
-static enum szl_res szl_exc_proc_try(struct szl_interp *interp,
-                                     const int objc,
-                                     struct szl_obj **objv,
-                                     struct szl_obj **ret)
+static
+enum szl_res szl_exc_proc_try(struct szl_interp *interp,
+                              const int objc,
+                              struct szl_obj **objv)
 {
+	struct szl_obj *obj;
 	const char *try = NULL, *except = NULL, *finally = NULL;
 	const char *s;
-	size_t tlen, elen, flen;
+	size_t tlen, elen = 0, flen;
 	enum szl_res res;
 
 	switch (objc) {
@@ -50,13 +51,24 @@ static enum szl_res szl_exc_proc_try(struct szl_interp *interp,
 
 		case 4:
 			s = szl_obj_str(objv[2], NULL);
-			if (!s || (strcmp("except", s) != 0))
+			if (!s)
 				return SZL_ERR;
 
-			except = szl_obj_str(objv[3], &elen);
-			if (!except)
+			if (strcmp("except", s) == 0) {
+				except = szl_obj_str(objv[3], &elen);
+				if (!except)
+					return SZL_ERR;
+
+				/* fall through */
+
+			}
+			else if (strcmp("finally", s) == 0) {
+				finally = szl_obj_str(objv[3], &flen);
+				if (!finally)
+					return SZL_ERR;
+
+			} else
 				return SZL_ERR;
-			/* fall through */
 
 		case 2:
 			try = szl_obj_str(objv[1], &tlen);
@@ -66,69 +78,49 @@ static enum szl_res szl_exc_proc_try(struct szl_interp *interp,
 			break;
 
 		default:
-			szl_usage(interp, ret, objv[0]);
-			return SZL_ERR;
+			return szl_usage(interp, objv[0]);
 	}
 
-	res = szl_run_const(interp, ret, try, tlen);
-	if ((res == SZL_ERR) && except) {
-		szl_obj_ref(interp->caller);
-
-		/* set SZL_EXC_OBJ_NAME in the caller */
-		if (*ret)
-			res = szl_local(interp, interp->caller, SZL_EXC_OBJ_NAME, *ret);
-		else {
-			*ret = szl_empty(interp);
-			res = szl_local(interp, interp->caller, SZL_EXC_OBJ_NAME, *ret);
-		}
-
-		szl_obj_unref(*ret);
-		szl_obj_unref(interp->caller);
-		*ret = NULL;
-
-		if (res != SZL_OK)
-			return res;
-
-		res = szl_run_const(interp, ret, except, elen);
-	}
-	else
-		szl_unset(ret);
+	res = szl_run_const(interp, try, tlen);
+	obj = szl_obj_ref(interp->last);
+	if ((res == SZL_ERR) && elen)
+		szl_run_const(interp, except, elen);
 
 	if (finally)
-		res = szl_run_const(interp, ret, finally, flen);
+		szl_run_const(interp, finally, flen);
 
+	szl_set_result(interp, obj);
+	if (res == SZL_ERR)
+		return SZL_OK;
 	return res;
 }
 
-static enum szl_res szl_exc_proc_throw(struct szl_interp *interp,
-                                       const int objc,
-                                       struct szl_obj **objv,
-                                       struct szl_obj **ret)
+static
+enum szl_res szl_exc_proc_throw(struct szl_interp *interp,
+                                const int objc,
+                                struct szl_obj **objv)
 {
-	szl_set_result(ret, szl_obj_ref(objv[1]));
+	szl_set_result(interp, szl_obj_ref(objv[1]));
 	return SZL_ERR;
 }
 
-enum szl_res szl_init_exc(struct szl_interp *interp)
+int szl_init_exc(struct szl_interp *interp)
 {
-	if ((!szl_new_proc(interp,
-	                   "try",
-	                   2,
-	                   6,
-	                   "try exp ?except exp? ?finally exp?",
-	                   szl_exc_proc_try,
-	                   NULL,
-	                   NULL)) ||
-	    (!szl_new_proc(interp,
-	                  "throw",
-	                  1,
-	                  2,
-	                  "throw ?msg?",
-	                  szl_exc_proc_throw,
-	                  NULL,
-	                  NULL)))
-		return SZL_ERR;
-
-	return SZL_OK;
+	return ((szl_new_proc(interp,
+	                      "try",
+	                      2,
+	                      6,
+	                      "try exp ?except exp? ?finally exp?",
+	                      szl_exc_proc_try,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "throw",
+	                      1,
+	                      2,
+	                      "throw ?msg?",
+	                      szl_exc_proc_throw,
+	                      NULL,
+	                      NULL)));
 }
 

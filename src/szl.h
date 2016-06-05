@@ -31,6 +31,7 @@
 #	define _SZL_H_INCLUDED
 
 #	include <stdint.h>
+#	include <inttypes.h>
 #	include <sys/types.h>
 #	include <limits.h>
 
@@ -79,13 +80,6 @@
 #	define SZL_COMMENT_PREFIX '#'
 
 /**
- * @def SZL_EXC_OBJ_NAME
- * The name of the special object containing the exception object in an except
- * block
- */
-#	define SZL_EXC_OBJ_NAME "ex"
-
-/**
  * @def SZL_OBJC_OBJECT_NAME
  * The name of the special object containing the argument count of a procedure
  */
@@ -121,6 +115,18 @@ int szl_isspace(const char ch);
 typedef intmax_t szl_int;
 
 /**
+ * @def SZL_INT_FMT
+ * The format string for printing @ref szl_int
+ */
+#	define SZL_INT_FMT "%jd"
+
+/**
+ * @def SZL_INT_MIN
+ * The minimum value of an szl_int
+ */
+#	define SZL_INT_MIN INTMAX_MIN
+
+/**
  * @typedef szl_double
  * The type used for representing szl objects as floating-point numbers
  */
@@ -131,12 +137,6 @@ typedef double szl_double;
  * The type used for representing szl objects as boolean values
  */
 typedef unsigned char szl_bool;
-
-/**
- * @def SZL_INT_FMT
- * The format string for printing @ref szl_int
- */
-#	define SZL_INT_FMT "%jd"
 
 /**
  * @def SZL_DOUBLE_FMT
@@ -164,7 +164,8 @@ enum szl_res {
 	SZL_OK, /**< Success */
 	SZL_ERR, /**< Error: the next statement shall not be executed */
 	SZL_BREAK, /**< Success, but the next statement shall not be executed */
-	SZL_CONT /**< Jump back to the first statement in the loop body */
+	SZL_CONT, /**< Jump back to the first statement in the loop body */
+	SZL_EXIT /**< Exit the script */
 };
 
 /**
@@ -176,7 +177,9 @@ enum szl_type {
 	SZL_TYPE_INT    = 1 << 2, /**< Integer */
 	SZL_TYPE_DOUBLE = 1 << 3, /**< Floating-point number */
 	SZL_TYPE_BOOL   = 1 << 4, /**< Boolean value */
-	SZL_TYPE_PROC   = 1 << 5, /**< Procedure */
+	SZL_TYPE_LIST   = 1 << 5, /**< List */
+	SZL_TYPE_PROC   = 1 << 6, /**< Procedure */
+	SZL_TYPE_CALL   = 1 << 7 /**< Procedure call */
 };
 
 struct szl_obj;
@@ -188,8 +191,8 @@ struct szl_interp;
  */
 typedef enum szl_res (*szl_proc)(struct szl_interp *,
                                  const int,
-                                 struct szl_obj **,
                                  struct szl_obj **);
+
 /**
  * @typedef szl_delproc
  * A cleanup function called when a procedure object is freed
@@ -204,10 +207,13 @@ struct szl_obj {
 	unsigned int refc; /**< The object reference count; the object is freed when it drops to zero */
 	enum szl_type type; /**< Available representations of the object */
 	char *s; /**< SZL_TYPE_STR representation */
+	char *s2; /**< A split copy of s */
 	size_t len; /**< The length of s */
 	szl_bool b; /**< SZL_TYPE_BOOL representation */
 	szl_int i; /**< SZL_TYPE_INT representation */
 	szl_double d; /**< SZL_TYPE_DOUBLE representation */
+	char **l; /**< SZL_TYPE_LIST representation */
+	size_t n; /**< The size of l */
 
 	szl_proc proc; /**< C procedure implementation */
 	void *priv; /**< Private data used by proc */
@@ -238,9 +244,10 @@ struct szl_interp {
 	struct szl_obj *zero; /**< A 0 integer singleton */
 	struct szl_obj *one; /**< A 1 integer singleton */
 	struct szl_obj *space; /**< A space singleton */
+	struct szl_obj *null; /**< The null stream singleton */
+	struct szl_obj *last; /**< The last return value */
 
 	uLong init; /**< The initial CRC32 checksum */
-	unsigned int seed; /**< A PRNG seed */
 
 	struct szl_obj *global; /**< The frame of statements executed in the global scope, outside of a procedure */
 
@@ -264,7 +271,7 @@ struct szl_local {
  * @typedef szl_ext_init
  * The prototype of an extension initialization function
  */
-typedef enum szl_res (*szl_ext_init)(struct szl_interp *);
+typedef int (*szl_ext_init)(struct szl_interp *);
 
 /**
  * @def SZL_STATIC
@@ -276,6 +283,21 @@ typedef enum szl_res (*szl_ext_init)(struct szl_interp *);
 #	else
 #		define SZL_STATIC  static
 #	endif
+
+/**
+ * @}
+ *
+ * @defgroup util Utilities
+ * @ingroup high_level
+ * @{
+ */
+
+/**
+ * @def SZL_PASTE
+ * Stringifies a token
+ */
+#	define _SZL_PASTE(x) # x
+#	define SZL_PASTE(x) _SZL_PASTE(x)
 
 /**
  * @}
@@ -334,19 +356,22 @@ void szl_obj_unref(struct szl_obj *obj);
  * @fn void szl_new_obj_name(struct szl_interp *interp,
  *                           const char *pfix,
  *                           char *buf,
- *                           const size_t len)
+ *                           const size_t len,
+ *                           const szl_int id)
  * @brief Creates a random name for a newly created variable
  * @param interp [in,out] An interpreter
  * @param pfix [in] A prefix for the variable name
  * @param buf [out] The output buffer
  * @param len [in] The buffer size
+ * @param id [in] A unique number
  *
- * The returned name is in the format "prefix.number".
+ * The returned name is in the format "prefix:number".
  */
 void szl_new_obj_name(struct szl_interp *interp,
                       const char *pfix,
                       char *buf,
-                      const size_t len);
+                      const size_t len,
+                      const szl_int id);
 
 /**
  * @fn struct szl_obj *szl_new_str_noalloc(char *s, const size_t len)
@@ -458,6 +483,12 @@ struct szl_obj *szl_new_proc(struct szl_interp *interp,
 #	define szl_true szl_one
 
 /**
+ * @def szl_empty
+ * Returns a new reference to the empty string singleton
+ */
+#	define szl_last(interp) szl_obj_ref(interp->last)
+
+/**
  * @}
  *
  * @defgroup obj_ops Object operations
@@ -466,10 +497,7 @@ struct szl_obj *szl_new_proc(struct szl_interp *interp,
  */
 
 /**
- * @fn char **szl_split(struct szl_interp *interp,
- *                      char *s,
- *                      int *argc,
- *                      struct szl_obj **out)
+ * @fn char **szl_split(struct szl_interp *interp, char *s, int *argc)
  * @brief Splits a string to tokens
  * @param interp [in,out] An interpreter
  * @param s [in,out] A string
@@ -477,63 +505,53 @@ struct szl_obj *szl_new_proc(struct szl_interp *interp,
  * @param out [out] An error message, upon failure
  * @return An array of substrings or NULL
  */
-char **szl_split(struct szl_interp *interp,
-                 char *s,
-                 int *argc,
-                 struct szl_obj **out);
+char **szl_split(struct szl_interp *interp, char *s, int *argc);
 
 
 /**
- * @fn enum szl_res szl_append(struct szl_obj *obj,
- *                             const char *s,
- *                             const size_t len)
+ * @fn int szl_append(struct szl_obj *obj, const char *s, const size_t len)
  * @brief Appends a string to an existing object
  * @param obj [in,out] The object
  * @param s [in] The string
  * @param len [in] The string length
- * @return SZL_OK or SZL_ERR
+ * @return 1 or 0
  */
-enum szl_res szl_append(struct szl_obj *obj,
-                        const char *s,
-                        const size_t len);
+int szl_append(struct szl_obj *obj, const char *s, const size_t len);
 
 /**
- * @fn enum szl_res szl_lappend_str(struct szl_obj *obj, const char *s)
+ * @fn int szl_lappend_str(struct szl_obj *obj, const char *s)
  * @brief Appends a string to an existing object, as an additional list item
  * @param obj [in,out] The object
  * @param s [in] The string
- * @return SZL_OK or SZL_ERR
+ * @return 1 or 0
  */
-enum szl_res szl_lappend_str(struct szl_obj *obj, const char *s);
+int szl_lappend_str(struct szl_obj *obj, const char *s);
 
 /**
- * @fn enum szl_res szl_lappend_int(struct szl_obj *obj, const szl_int i)
+ * @fn int szl_lappend_int(struct szl_obj *obj, const szl_int i)
  * @brief Appends an integer to an existing object, as an additional list item
  * @param obj [in,out] The object
  * @param i [in] The integer
- * @return SZL_OK or SZL_ERR
+ * @return 1 or 0
  */
-enum szl_res szl_lappend_int(struct szl_obj *obj, const szl_int i);
+int szl_lappend_int(struct szl_obj *obj, const szl_int i);
 
 /**
- * @fn enum szl_res szl_join(struct szl_interp *interp,
- *                           const int objc,
- *                           struct szl_obj *delim,
- *                           struct szl_obj **objv,
- *                           struct szl_obj **ret)
+ * @fn struct szl_obj *szl_join(struct szl_interp *interp,
+ *                              const int objc,
+ *                              struct szl_obj *delim,
+ *                              struct szl_obj **objv)
  * @brief Creates a new string by joining objects
  * @param interp [in,out] An interpreter
  * @param objc [in] The number of objects
  * @param delim [in] A delimiter to put between object values
  * @param objv [in,out] The objects to join
- * @param ret [out] The return value
- * @return SZL_OK or SZL_ERR
+ * @return The result string or NULL
  */
-enum szl_res szl_join(struct szl_interp *interp,
-                      const int objc,
-                      struct szl_obj *delim,
-                      struct szl_obj **objv,
-                      struct szl_obj **ret);
+struct szl_obj *szl_join(struct szl_interp *interp,
+                         const int objc,
+                         struct szl_obj *delim,
+                         struct szl_obj **objv);
 
 /**
  * @fn char *szl_obj_str(struct szl_obj *obj, size_t *len)
@@ -564,30 +582,44 @@ char *szl_obj_strdup(struct szl_obj *obj, size_t *len);
 enum szl_res szl_obj_len(struct szl_obj *obj, size_t *len);
 
 /**
- * @fn enum szl_res szl_obj_int(struct szl_obj *obj, szl_int *i)
+ * @fn int szl_obj_int(struct szl_obj *obj, szl_int *i)
  * @brief Returns the C integer representation of an object
  * @param obj [in,out] The object
  * @param i [out] The integer representation
- * @return SZL_OK or SZL_ERR
+ * @return 1 or 0
  */
-enum szl_res szl_obj_int(struct szl_obj *obj, szl_int *i);
+int szl_obj_int(struct szl_obj *obj, szl_int *i);
 
 /**
- * @fn enum szl_res szl_obj_double(struct szl_obj *obj, szl_double *d)
+ * @fn int szl_obj_double(struct szl_obj *obj, szl_double *d)
  * @brief Returns the C floating point number representation of an object
  * @param obj [in,out] The object
  * @param d [out] The floating point representation
- * @return SZL_OK or SZL_ERR
+ * @return 1 or 0
  */
-enum szl_res szl_obj_double(struct szl_obj *obj, szl_double *d);
+int szl_obj_double(struct szl_obj *obj, szl_double *d);
 
 /**
- * @fn szl_bool szl_obj_istrue(struct szl_obj *obj)
+ * @fn const char **szl_obj_list(struct szl_interp *interp,
+ *                               struct szl_obj *obj,
+ *                               size_t *n)
+ * @brief Returns the split string representation of an object
+ * @param interp [in,out] An interpreter
+ * @param obj [in,out] The object
+ * @param n [out] The number of tokens
+ * @return An array of C strings or NULL
+ */
+const char **szl_obj_list(struct szl_interp *interp,
+                          struct szl_obj *obj,
+                          size_t *n);
+
+/**
+ * @fn int szl_obj_istrue(struct szl_obj *obj)
  * @brief Returns the truth value of an object
  * @param obj [in,out] The object
  * @return 1 or 0
  */
-szl_bool szl_obj_istrue(struct szl_obj *obj);
+int szl_obj_istrue(struct szl_obj *obj);
 
 /**
  * @def szl_obj_isfalse
@@ -662,114 +694,93 @@ void szl_stream_free(struct szl_stream *strm);
  */
 
 /**
- * @fn void szl_set_result(struct szl_obj **out, struct szl_obj *obj)
+ * @fn enum szl_res szl_set_result(struct szl_interp *interp,
+ *                                 struct szl_obj *obj)
  * @brief Replaces the existing return value object of a procedure
- * @param out [in,out] The procedure return value object
+ * @param interp [in,out] An interpreter
  * @param obj [in,out] The new return value object
+ * @return SZL_OK
  */
-void szl_set_result(struct szl_obj **out, struct szl_obj *obj);
+enum szl_res szl_set_result(struct szl_interp *interp, struct szl_obj *obj);
 
 /**
- * @fn void szl_empty_result(struct szl_interp *interp, struct szl_obj **out)
+ * @fn void szl_empty_result(struct szl_interp *interp)
  * @brief Replaces the existing return value object of a procedure with an empty
  *        string
  * @param interp [in,out] An interpreter
- * @param out [in,out] The procedure return value object
  */
-void szl_empty_result(struct szl_interp *interp, struct szl_obj **out);
+void szl_empty_result(struct szl_interp *interp);
 
 /**
- * @fn void szl_set_result_str(struct szl_interp *interp,
- *                             struct szl_obj **out,
- *                             const char *s)
+ * @fn enum szl_res szl_set_result_str(struct szl_interp *interp,
+ *                                     const char *s,
+ *                                     const int len)
  * @brief Replaces the existing return value object of a procedure with a newly
  *        created string object
  * @param interp [in,out] An interpreter
- * @param out [in,out] The procedure return value object
  * @param s [in] The string
+ * @param len [in] The string length or -1
+ * @return SZL_OK or SZL_ERR
  */
-void szl_set_result_str(struct szl_interp *interp,
-                        struct szl_obj **out,
-                        const char *s);
+enum szl_res szl_set_result_str(struct szl_interp *interp,
+                                const char *s,
+                                const int len);
 
 /**
- * @fn void szl_set_result_fmt(struct szl_interp *interp,
- *                             struct szl_obj **out,
- *                             const char *fmt,
- *                             ...)
+ * @fn enum szl_res szl_set_result_fmt(struct szl_interp *interp,
+ *                                     const char *fmt,
+ *                                     ...)
  * @brief Replaces the existing return value object of a procedure with a newly
  *        created, printf()-style formatted string object
  * @param interp [in,out] An interpreter
  * @param out [in,out] The procedure return value object
  * @param fmt [in] The format string
+ * @return SZL_OK or SZL_ERR
  */
-void szl_set_result_fmt(struct szl_interp *interp,
-                        struct szl_obj **out,
-                        const char *fmt,
-                        ...);
+enum szl_res szl_set_result_fmt(struct szl_interp *interp, const char *fmt, ...);
 
 /**
- * @fn void szl_set_result_int(struct szl_interp *interp,
- *                             struct szl_obj **out,
- *                             const szl_int i)
+ * @fn enum szl_res szl_set_result_int(struct szl_interp *interp, const szl_int i)
  * @brief Replaces the existing return value object of a procedure with a newly
  *        created integer object
  * @param interp [in,out] An interpreter
- * @param out [in,out] The procedure return value object
  * @param i [in] The integer
+ * @return SZL_OK or SZL_ERR
  */
-void szl_set_result_int(struct szl_interp *interp,
-                        struct szl_obj **out,
-                        const szl_int i);
+enum szl_res szl_set_result_int(struct szl_interp *interp, const szl_int i);
 
 /**
- * @fn void szl_set_result_double(struct szl_interp *interp,
- *                                struct szl_obj **out,
- *                                const szl_double d)
+ * @fn enum szl_res szl_set_result_double(struct szl_interp *interp,
+ *                                        const szl_double d)
  * @brief Replaces the existing return value object of a procedure with a newly
  *        created floating point number object
  * @param interp [in,out] An interpreter
- * @param out [in,out] The procedure return value object
  * @param d [in] The floating point number
+ * @return SZL_OK or SZL_ERR
  */
-void szl_set_result_double(struct szl_interp *interp,
-                           struct szl_obj **out,
-                           const szl_double d);
+enum szl_res szl_set_result_double(struct szl_interp *interp,
+                                   const szl_double d);
 
 /**
- * @fn void szl_set_result_bool(struct szl_interp *interp,
- *                              struct szl_obj **out,
- *                              const szl_bool b)
+ * @fn enum szl_res szl_set_result_bool(struct szl_interp *interp,
+ *                                      const szl_bool b)
  * @brief Replaces the existing return value object of a procedure with a
  *        boolean object
  * @param interp [in,out] An interpreter
- * @param out [in,out] The procedure return value object
  * @param b [in] The boolean value
+ * @return SZL_OK
  */
-void szl_set_result_bool(struct szl_interp *interp,
-                         struct szl_obj **out,
-                         const szl_bool b);
+enum szl_res szl_set_result_bool(struct szl_interp *interp, const szl_bool b);
 
 /**
- * @fn void szl_usage(struct szl_interp *interp,
- *                    struct szl_obj **out,
- *                    struct szl_obj *proc)
+ * @fn enum szl_res szl_usage(struct szl_interp *interp, struct szl_obj *proc)
  * @brief Replaces the existing return value object of a procedure with a help
  *        message
  * @param interp [in,out] An interpreter
- * @param out [in,out] The procedure return value object
  * @param proc [in] The calling procedure
+ * @return SZL_ERR
  */
-void szl_usage(struct szl_interp *interp,
-               struct szl_obj **out,
-               struct szl_obj *proc);
-
-/**
- * @fn void szl_unset(struct szl_obj **out)
- * @brief A quick way to discard a previous return value
- * @param out [in,out] The procedure return value object
- */
-void szl_unset(struct szl_obj **out);
+enum szl_res szl_usage(struct szl_interp *interp, struct szl_obj *proc);
 
 /**
  * @}
@@ -780,36 +791,31 @@ void szl_unset(struct szl_obj **out);
  */
 
 /**
- * @fn enum szl_res szl_get(struct szl_interp *interp,
- *                          struct szl_obj **out,
- *                          const char *name)
+ * @fn struct szl_obj *szl_get(struct szl_interp *interp, const char *name)
  * @brief Searches for an object by name and returns a new reference to it
  * @param interp [in,out] An interpreter
- * @param out [out] The object
  * @param name [in] The object name
- * @return SZL_OK or SZL_ERR
+ * @return A new reference to the object or NULL
  */
-enum szl_res szl_get(struct szl_interp *interp,
-                     struct szl_obj **out,
-                     const char *name);
+struct szl_obj *szl_get(struct szl_interp *interp, const char *name);
 
 /**
- * @fn enum szl_res szl_local(struct szl_interp *interp,
- *                            struct szl_obj *proc,
- *                            const char *name,
- *                            struct szl_obj *obj)
+ * @fn int szl_local(struct szl_interp *interp,
+ *                   struct szl_obj *proc,
+ *                   const char *name,
+ *                   struct szl_obj *obj)
  * @brief Registers an existing object with a given name, in the scope of a
  *        procedure
  * @param interp [in,out] An interpreter
  * @param proc [in] The procedure
  * @param name [in] The object name
  * @param obj [in,out] The object
- * @return SZL_OK or SZL_ERR
+ * @return 1 or 0
  */
-enum szl_res szl_local(struct szl_interp *interp,
-                       struct szl_obj *proc,
-                       const char *name,
-                       struct szl_obj *obj);
+int szl_local(struct szl_interp *interp,
+              struct szl_obj *proc,
+              const char *name,
+              struct szl_obj *obj);
 
 /**
  * @}
@@ -838,12 +844,10 @@ enum szl_res szl_eval(struct szl_interp *interp,
 
 /**
  * @fn enum enum szl_res szl_run(struct szl_interp *interp,
- *                               struct szl_obj **out,
  *                               char *s,
  *                               const size_t len)
  * @brief Runs a szl snippet
  * @param interp [in,out] An interpreter
- * @param out [in,out] The snippet return value
  * @param s [in,out] The snippet
  * @param len [in] The snippet length
  * @return A member of @ref szl_res
@@ -851,19 +855,14 @@ enum szl_res szl_eval(struct szl_interp *interp,
  * This function executes multiple statements and returns both the return value
  * and status code of the last statement executed.
  */
-enum szl_res szl_run(struct szl_interp *interp,
-                     struct szl_obj **out,
-                     char *s,
-                     const size_t len);
+enum szl_res szl_run(struct szl_interp *interp, char *s, const size_t len);
 
 /**
  * @fn enum enum szl_res szl_run_const(struct szl_interp *interp,
- *                                     struct szl_obj **out,
  *                                     const char *s,
  *                                     const size_t len)
  * @brief Copies a szl snippet and runs it
  * @param interp [in,out] An interpreter
- * @param out [in,out] The snippet return value
  * @param s [in] The snippet
  * @param len [in] The snippet length
  * @return A member of @ref szl_res
@@ -872,7 +871,6 @@ enum szl_res szl_run(struct szl_interp *interp,
  * string.
  */
 enum szl_res szl_run_const(struct szl_interp *interp,
-                           struct szl_obj **out,
                            const char *s,
                            const size_t len);
 
@@ -903,13 +901,13 @@ enum szl_res szl_run_const(struct szl_interp *interp,
 #	define SZL_EXT_PATH_FMT SZL_EXT_DIR"/szl_%s.so"
 
 /**
- * @fn enum szl_res szl_load(struct szl_interp *interp, const char *name)
+ * @fn int szl_load(struct szl_interp *interp, const char *name)
  * @brief Loads an extension
  * @param interp [in,out] An interpreter
  * @param name [in] The extension name
- * @return SZL_OK or SZL_ERR
+ * @return 1 or 0
  */
-enum szl_res szl_load(struct szl_interp *interp, const char *name);
+int szl_load(struct szl_interp *interp, const char *name);
 
 /**
  * @fn void szl_unload(void *h)
@@ -921,18 +919,13 @@ enum szl_res szl_load(struct szl_interp *interp, const char *name);
 void szl_unload(void *h);
 
 /**
- * @fn enum szl_res szl_source(struct szl_interp *interp,
- *                             struct szl_obj **out,
- *                             const char *path)
+ * @fn enum szl_res szl_source(struct szl_interp *interp, const char *path)
  * @brief Runs a script in the current scope
  * @param interp [in,out] An interpreter
- * @param out [out] The script return value
  * @param path [in] The script path
  * @return A member of @ref szl_res
  */
-enum szl_res szl_source(struct szl_interp *interp,
-                        struct szl_obj **out,
-                        const char *path);
+enum szl_res szl_source(struct szl_interp *interp, const char *path);
 
 /**
  * @}

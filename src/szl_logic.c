@@ -26,10 +26,10 @@
 
 #include "szl.h"
 
-static enum szl_res szl_logic_proc_test(struct szl_interp *interp,
-                                        const int objc,
-                                        struct szl_obj **objv,
-                                        struct szl_obj **ret)
+static
+enum szl_res szl_logic_proc_test(struct szl_interp *interp,
+                                 const int objc,
+                                 struct szl_obj **objv)
 {
 	const char *a, *b;
 	const char *op;
@@ -40,8 +40,6 @@ static enum szl_res szl_logic_proc_test(struct szl_interp *interp,
 	if (!op)
 		return SZL_ERR;
 
-	*ret = NULL;
-
 	if (strcmp("==", op) == 0) {
 		a = szl_obj_str(objv[1], &alen);
 		if (!a)
@@ -51,9 +49,8 @@ static enum szl_res szl_logic_proc_test(struct szl_interp *interp,
 		if (!b)
 			return SZL_ERR;
 
-		szl_set_result_bool(interp,
-		                    ret,
-		                    ((alen == blen) && (strcmp(a, b) == 0)));
+		return szl_set_result_bool(interp,
+		                           ((alen == blen) && (strcmp(a, b) == 0)));
 	}
 	else if (strcmp("!=", op) == 0) {
 		a = szl_obj_str(objv[1], &alen);
@@ -64,86 +61,66 @@ static enum szl_res szl_logic_proc_test(struct szl_interp *interp,
 		if (!b)
 			return SZL_ERR;
 
-		szl_set_result_bool(interp,
-		                    ret,
-		                    ((alen != blen) || (strcmp(a, b) != 0)));
+		return szl_set_result_bool(interp,
+		                           ((alen != blen) || (strcmp(a, b) != 0)));
 	}
 	else if (strcmp(">", op) == 0) {
-		if (szl_obj_double(objv[1], &n) != SZL_OK)
+		if (!szl_obj_double(objv[1], &m) || !szl_obj_double(objv[3], &n))
 			return SZL_ERR;
 
-		if (szl_obj_double(objv[3], &m) != SZL_OK)
-			return SZL_ERR;
-
-		szl_set_result_bool(interp, ret, (n > m));
+		return szl_set_result_bool(interp, (n > m));
 	}
 	else if (strcmp("<", op) == 0) {
-		if (szl_obj_double(objv[1], &n) != SZL_OK)
+		if (!szl_obj_double(objv[1], &m) || !szl_obj_double(objv[3], &n))
 			return SZL_ERR;
 
-		if (szl_obj_double(objv[3], &m) != SZL_OK)
-			return SZL_ERR;
-
-		szl_set_result_bool(interp, ret, (n < m));
+		return szl_set_result_bool(interp, (n < m));
 	}
 	else if (strcmp(">=", op) == 0) {
-		if (szl_obj_double(objv[1], &n) != SZL_OK)
+		if (!szl_obj_double(objv[1], &m) || !szl_obj_double(objv[3], &n))
 			return SZL_ERR;
 
-		if (szl_obj_double(objv[3], &m) != SZL_OK)
-			return SZL_ERR;
-
-		szl_set_result_bool(interp, ret, (n >= m));
+		return szl_set_result_bool(interp, (n >= m));
 	}
 	else if (strcmp("<=", op) == 0) {
-		if (szl_obj_double(objv[1], &n) != SZL_OK)
+		if (!szl_obj_double(objv[1], &m) || !szl_obj_double(objv[3], &n))
 			return SZL_ERR;
 
-		if (szl_obj_double(objv[3], &m) != SZL_OK)
-			return SZL_ERR;
-
-		szl_set_result_bool(interp, ret, (n <= m));
+		return szl_set_result_bool(interp, (n <= m));
 	}
 	else if (strcmp("&&", op) == 0) {
-		szl_set_result_bool(interp,
-		                    ret,
-		                    (szl_obj_istrue(objv[1]) &&
-		                     szl_obj_istrue(objv[2])));
+		return szl_set_result_bool(interp,
+		                           (szl_obj_istrue(objv[1]) &&
+		                            szl_obj_istrue(objv[3])));
 	}
 	else if (strcmp("||", op) == 0) {
-		szl_set_result_bool(interp,
-		                    ret,
-		                    (szl_obj_istrue(objv[1]) ||
-		                     szl_obj_istrue(objv[2])));
+		return szl_set_result_bool(interp,
+		                           (szl_obj_istrue(objv[1]) ||
+		                            szl_obj_istrue(objv[3])));
 	}
 	else if (strcmp("^", op) == 0) {
-		szl_set_result_bool(interp,
-		                    ret,
-		                    (szl_obj_istrue(objv[1]) ^
-		                     szl_obj_istrue(objv[2])));
+		return szl_set_result_bool(interp,
+		                           (szl_obj_istrue(objv[1]) ^
+		                            szl_obj_istrue(objv[3])));
 	}
 	else
-		szl_usage(interp, ret, objv[0]);
-
-	if (!*ret)
-		return SZL_ERR;
+		return szl_usage(interp, objv[0]);
 
 	return SZL_OK;
 }
 
-static enum szl_res szl_logic_proc_not(struct szl_interp *interp,
-                                       const int objc,
-                                       struct szl_obj **objv,
-                                       struct szl_obj **ret)
+static
+enum szl_res szl_logic_proc_not(struct szl_interp *interp,
+                                const int objc,
+                                struct szl_obj **objv)
 {
-	szl_set_result_bool(interp, ret, szl_obj_isfalse(objv[1]));
-	return SZL_OK;
+	return szl_set_result_bool(interp, szl_obj_isfalse(objv[1]));
 }
 
-static enum szl_res szl_logic_proc_if(struct szl_interp *interp,
-                                      const int objc,
-                                      struct szl_obj **objv,
-                                      struct szl_obj **ret)
+static
+enum szl_res szl_logic_proc_if(struct szl_interp *interp,
+                               const int objc,
+                               struct szl_obj **objv)
 {
 	const char *s;
 	size_t len;
@@ -162,8 +139,7 @@ static enum szl_res szl_logic_proc_if(struct szl_interp *interp,
 			/* fall through */
 
 		default:
-			szl_usage(interp, ret, objv[0]);
-			return SZL_ERR;
+			return szl_usage(interp, objv[0]);
 	}
 
 	if (szl_obj_istrue(objv[1])) {
@@ -171,7 +147,7 @@ static enum szl_res szl_logic_proc_if(struct szl_interp *interp,
 		if (!s)
 			return SZL_ERR;
 
-		return szl_run_const(interp, ret, s, len);
+		return szl_run_const(interp, s, len);
 	}
 
 	if (objc == 5) {
@@ -179,39 +155,36 @@ static enum szl_res szl_logic_proc_if(struct szl_interp *interp,
 		if (!s)
 			return SZL_ERR;
 
-		return szl_run_const(interp, ret, s, len);
+		return szl_run_const(interp, s, len);
 	}
 
 	return SZL_OK;
 }
 
-enum szl_res szl_init_logic(struct szl_interp *interp)
+int szl_init_logic(struct szl_interp *interp)
 {
-	if ((!szl_new_proc(interp,
-	                   "test",
-	                   4,
-	                   4,
-	                   "test obj op obj",
-	                   szl_logic_proc_test,
-	                   NULL,
-	                   NULL)) ||
-	    (!szl_new_proc(interp,
-	                   "not",
-	                   2,
-	                   2,
-	                   "not obj",
-	                   szl_logic_proc_not,
-	                   NULL,
-	                   NULL)) ||
-	    (!szl_new_proc(interp,
-	                   "if",
-	                   3,
-	                   5,
-	                   "if cond exp else exp",
-	                   szl_logic_proc_if,
-	                   NULL,
-	                   NULL)))
-		return SZL_ERR;
-
-	return SZL_OK;
+	return ((szl_new_proc(interp,
+	                      "test",
+	                      4,
+	                      4,
+	                      "test obj op obj",
+	                      szl_logic_proc_test,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "not",
+	                      2,
+	                      2,
+	                      "not obj",
+	                      szl_logic_proc_not,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "if",
+	                      3,
+	                      5,
+	                      "if cond exp else exp",
+	                      szl_logic_proc_if,
+	                      NULL,
+	                      NULL)));
 }

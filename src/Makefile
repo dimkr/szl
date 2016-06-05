@@ -24,8 +24,6 @@ include ../Makefile.common
 
 LDFLAGS += -L.
 
-ZLIB_LIBS = $(shell pkg-config --libs zlib)
-
 OPENSSL_CFLAGS = $(shell pkg-config --cflags openssl)
 OPENSSL_LIBS = $(shell pkg-config --libs openssl)
 
@@ -41,8 +39,9 @@ STATIC_LIB = libszl.a
 SHARED_LIB = libszl.so
 PROGS = szlsh
 
-BUILTIN_EXT_NAMES = posix obj str list io socket math logic loop exc proc ext \
-                    sugar
+BUILTIN_EXT_NAMES = obj proc str exc socket null logic io list math loop ext \
+                    time
+
 BUILTIN_EXT_SRCS = $(addsuffix .c,$(addprefix szl_,$(BUILTIN_EXT_NAMES)))
 BUILTIN_EXT_OBJECTS = $(BUILTIN_EXT_SRCS:.c=.o)
 
@@ -61,15 +60,13 @@ szl_builtin.c:
 	echo "#include \"szl.h\"" > $@
 	for i in $(BUILTIN_EXT_NAMES); \
 	do \
-		echo "extern enum szl_res szl_init_$$i(struct szl_interp *interp);"; \
+		echo "extern int szl_init_$$i(struct szl_interp *interp);"; \
 	done >> $@
 	echo "enum szl_res szl_init_builtin_exts(struct szl_interp *interp) \
-{ \
-	enum szl_res res;" >> $@
+{" >> $@
 	for i in $(BUILTIN_EXT_NAMES); \
 	do \
-		echo "	res = szl_init_$$i(interp); \
-	if (res != SZL_OK) return res;"; \
+		echo "	if (!szl_init_$$i(interp)) return SZL_ERR;"; \
 	done >> $@
 	echo "	return SZL_OK; \
 }" >> $@
@@ -77,11 +74,32 @@ szl_builtin.c:
 szl_conf.h: szl_conf.h.in
 	sed s~@EXT_DIR@~$(EXT_DIR)~ $^ > $@
 
+%.inc: %.szl
+	sed -e s~'^\t*'~~g \
+	    -e s~'\\'~'\\\\'~g \
+	    -e s~'"'~'\\"'~g \
+	    -e s~'^'~'"'~g \
+	    -e s~'$$'~'\\n" \\'~g \
+	    $^ | \
+	grep -v \
+	     -e ^\"\# \
+	     -e '^"\\n" \\' > $@; \
+	echo \"\" >> $@
+
 %.o: %.c szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 szl.o: szl.c szl.h
 	$(CC) -c -o $@ $< $(CFLAGS) $(ZLIB_CFLAGS)
+
+szl_str.o: szl_str.c szl_str.inc szl_conf.h
+	$(CC) -c -o $@ $< $(CFLAGS)
+
+szl_io.o: szl_io.c szl_io.inc szl_conf.h
+	$(CC) -c -o $@ $< $(CFLAGS)
+
+szl_loop.o: szl_loop.c szl_loop.inc szl_conf.h
+	$(CC) -c -o $@ $< $(CFLAGS)
 
 szlsh.o: szlsh.c szl.h szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS)
@@ -118,21 +136,6 @@ szl_curl.o: szl_curl.c szl_conf.h
 
 szl_curl.so: szl_curl.o $(SHARED_LIB)
 	$(CC) -o $@ $< $(LDFLAGS) -shared $(EXT_LIBS) $(CURL_LIBS)
-
-%.inc: %.szl
-	sed -e s~'^\t*'~~g \
-	    -e s~'\\'~'\\\\'~g \
-	    -e s~'"'~'\\"'~g \
-	    -e s~'^'~'"'~g \
-	    -e s~'$$'~'\\n" \\'~g \
-	    $^ | \
-	grep -v \
-	     -e ^\"\# \
-	     -e '^"\\n" \\' > $@; \
-	echo \"\" >> $@
-
-szl_sugar.o: szl_sugar.c szl_conf.h szl_sugar.inc
-	$(CC) -c -o $@ $< $(CFLAGS)
 
 install: all
 	$(INSTALL) -D -m 755 szlsh $(DESTDIR)/$(BIN_DIR)/szlsh

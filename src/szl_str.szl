@@ -1,0 +1,18 @@
+proc trim {
+	ltrim [rtrim $1]
+}
+
+proc string.tail {
+	if [test $# == 2] {
+		local end [calc [string.length $1] - 1]
+		string.range $1 $end $end
+	} else {
+		if [test $# == 3] {
+			local length [string.length $1]
+			local end [calc $length - 1]
+			string.range $1 [calc $length - $2] $end
+		} else {
+			throw {bad string.tail usage: string.tail obj ?count?}
+		}
+	}
+}

@@ -22,45 +22,65 @@
  * THE SOFTWARE.
  */
 
-#include <string.h>
+#include <stdlib.h>
 
 #include "szl.h"
 
 static
-enum szl_res szl_math_proc_calc(struct szl_interp *interp,
+ssize_t szl_null_read(void *priv, unsigned char *buf, const size_t len)
+{
+	return 0;
+}
+
+static
+ssize_t szl_null_write(void *priv, const unsigned char *buf, const size_t len)
+{
+	return (ssize_t)len;
+}
+
+static const struct szl_stream_ops szl_null_ops = {
+	szl_null_read,
+	szl_null_write,
+	NULL,
+	NULL,
+	NULL,
+	NULL
+};
+
+static
+enum szl_res szl_null_proc_null(struct szl_interp *interp,
                                 const int objc,
                                 struct szl_obj **objv)
 {
-	const char *op;
-	szl_double n, m;
+	struct szl_stream *strm;
 
-	op = szl_obj_str(objv[2], NULL);
-	if (!op)
-		return SZL_ERR;
+	if (!interp->null) {
+		strm = (struct szl_stream *)malloc(sizeof(struct szl_stream));
+		if (!strm)
+			return SZL_ERR;
 
-	if (!szl_obj_double(objv[1], &m) || !szl_obj_double(objv[3], &n))
-		return SZL_ERR;
+		strm->ops = &szl_null_ops;
+		strm->closed = 0;
+		strm->priv = NULL;
 
-	if (strcmp("+", op) == 0)
-		return szl_set_result_double(interp, m + n);
-	else if (strcmp("-", op) == 0)
-		return szl_set_result_double(interp, m - n);
-	else if (strcmp("*", op) == 0)
-		return szl_set_result_double(interp, m * n);
-	else if (strcmp("/", op) == 0)
-		return szl_set_result_double(interp, m / n);
+		interp->null = szl_new_stream(interp, strm, "null");
+		if (!interp->null) {
+			szl_stream_free(strm);
+			return SZL_ERR;
+		}
+	}
 
-	return szl_usage(interp, objv[0]);
+	return szl_set_result(interp, szl_obj_ref(interp->null));
 }
 
-int szl_init_math(struct szl_interp *interp)
+int szl_init_null(struct szl_interp *interp)
 {
 	return szl_new_proc(interp,
-	                    "calc",
-	                    4,
-	                    4,
-	                    "calc obj op obj",
-	                    szl_math_proc_calc,
+	                    "null",
+	                    1,
+	                    1,
+	                    "null",
+	                    szl_null_proc_null,
 	                    NULL,
 	                    NULL) ? 1 : 0;
 }

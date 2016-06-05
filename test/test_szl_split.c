@@ -44,7 +44,7 @@ int main()
 	szl_assert(interp != NULL);
 	if (interp) {
 		strcpy(buf, "puts hello world");
-		argv = szl_split(interp, buf, &argc, &out);
+		argv = szl_split(interp, buf, &argc);
 		if (out)
 			szl_obj_unref(out);
 		szl_assert(argv != NULL);
@@ -65,7 +65,7 @@ int main()
 	szl_assert(interp != NULL);
 	if (interp) {
 		strcpy(buf, " puts hello world");
-		argv = szl_split(interp, buf, &argc, &out);
+		argv = szl_split(interp, buf, &argc);
 		if (out)
 			szl_obj_unref(out);
 		szl_assert(argv != NULL);
@@ -86,7 +86,7 @@ int main()
 	szl_assert(interp != NULL);
 	if (interp) {
 		strcpy(buf, "puts hello world ");
-		argv = szl_split(interp, buf, &argc, &out);
+		argv = szl_split(interp, buf, &argc);
 		if (out)
 			szl_obj_unref(out);
 		szl_assert(argv != NULL);
@@ -107,7 +107,7 @@ int main()
 	szl_assert(interp != NULL);
 	if (interp) {
 		strcpy(buf, "\tputs hello world");
-		argv = szl_split(interp, buf, &argc, &out);
+		argv = szl_split(interp, buf, &argc);
 		if (out)
 			szl_obj_unref(out);
 		szl_assert(argv != NULL);
@@ -128,7 +128,7 @@ int main()
 	szl_assert(interp != NULL);
 	if (interp) {
 		strcpy(buf, "puts hello world\t");
-		argv = szl_split(interp, buf, &argc, &out);
+		argv = szl_split(interp, buf, &argc);
 		if (out)
 			szl_obj_unref(out);
 		szl_assert(argv != NULL);
@@ -149,7 +149,7 @@ int main()
 	szl_assert(interp != NULL);
 	if (interp) {
 		strcpy(buf, "puts  hello   world");
-		argv = szl_split(interp, buf, &argc, &out);
+		argv = szl_split(interp, buf, &argc);
 		if (out)
 			szl_obj_unref(out);
 		szl_assert(argv != NULL);
@@ -170,7 +170,7 @@ int main()
 	szl_assert(interp != NULL);
 	if (interp) {
 		strcpy(buf, "puts\t\thello\t\t\tworld");
-		argv = szl_split(interp, buf, &argc, &out);
+		argv = szl_split(interp, buf, &argc);
 		if (out)
 			szl_obj_unref(out);
 		szl_assert(argv != NULL);
@@ -191,7 +191,7 @@ int main()
 	szl_assert(interp != NULL);
 	if (interp) {
 		strcpy(buf, "\t puts\t \thello\t \t \tworld \t ");
-		argv = szl_split(interp, buf, &argc, &out);
+		argv = szl_split(interp, buf, &argc);
 		if (out)
 			szl_obj_unref(out);
 		szl_assert(argv != NULL);
@@ -212,7 +212,7 @@ int main()
 	szl_assert(interp != NULL);
 	if (interp) {
 		strcpy(buf, "puts hello\n\0puts world\n");
-		argv = szl_split(interp, buf, &argc, &out);
+		argv = szl_split(interp, buf, &argc);
 		if (out)
 			szl_obj_unref(out);
 		szl_assert(argv != NULL);

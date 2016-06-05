@@ -20,27 +20,49 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-CC ?= cc
-AR ?= ar
-CFLAGS ?= -O2 -pipe
-LIBS ?=
-LDFLAGS ?= -Wl,-s
+proc fdopen {
+	if [test $# != 3] {
+		throw {bad fdopen usage: fdopen handle mode}
+	}
+	if [_socket.issocket $1] {_socket.fdopen $1} else {_io.fdopen $1 $2}
+}
 
-CFLAGS += -std=gnu99 -Wall -pedantic -D_GNU_SOURCE
-LIBS += -lm -ldl
+try {
+	global stdin [fdopen 0 r]
+} except {
+	global stdin [null]
+}
 
-ZLIB_CFLAGS = $(shell pkg-config --cflags zlib)
-ZLIB_LIBS = $(shell pkg-config --libs zlib)
+try {
+	global stdout [fdopen 1 w]
+} except {
+	global stdout [null]
+}
 
-DESTDIR ?=
-PREFIX ?= /usr
-LIB_DIR ?= $(PREFIX)/lib
-BIN_DIR ?= $(PREFIX)/bin
-MAN_DIR ?= $(PREFIX)/share/man
-DOC_DIR ?= $(PREFIX)/share/doc
-EXT_DIR ?= $(LIB_DIR)/szl
+try {
+	global stderr [fdopen 2 w]
+} except {
+	global stderr [null]
+}
 
-INSTALL = install -v
+proc puts {
+	if [test $# != 2] {throw {bad puts usage: puts msg}}
+	if [test [string.tail $1] != \n] {string.append 1 "\n"}
+	$stdout write $1
+}
 
-SRCS = $(wildcard *.c)
-OBJECTS = $(SRCS:.c=.o)
+proc dup {
+	if [test $# != 2] {throw {bad dup usage: dup strm}}
+	fdopen [_io.dup [$1 handle]]
+}
+
+proc with {
+	if [test $# != 4] {throw {bad with usage: with name exp exp}}
+
+	local $1 [eval $2]
+	try {
+		eval $3
+	} except {} finally {
+		eval "$1 close"
+	}
+}

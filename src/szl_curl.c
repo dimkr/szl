@@ -65,8 +65,7 @@ int szl_curl_net_reachable(void)
 static
 enum szl_res szl_curl_proc_get(struct szl_interp *interp,
                                const int objc,
-                               struct szl_obj **objv,
-                               struct szl_obj **ret)
+                               struct szl_obj **objv)
 {
 	sigset_t set, oldset, pend;
 	CURLM *cm;
@@ -79,13 +78,11 @@ enum szl_res szl_curl_proc_get(struct szl_interp *interp,
 	CURLMcode m;
 	enum szl_res res = SZL_ERR;
 
-	if (objc % 2 == 0) {
-		szl_usage(interp, ret, objv[0]);
-		return SZL_ERR;
-	}
+	if (objc % 2 == 0)
+		return szl_usage(interp, objv[0]);
 
 	if (!szl_curl_net_reachable()) {
-		szl_set_result_str(interp, ret, "network is unreachable");
+		szl_set_result_str(interp, "network is unreachable", -1);
 		return SZL_ERR;
 	}
 
@@ -152,7 +149,6 @@ enum szl_res szl_curl_proc_get(struct szl_interp *interp,
 			}
 
 			szl_set_result_fmt(interp,
-			                   ret,
 			                   "failed to open %s: %s",
 			                   paths[i],
 			                   strerror(err));
@@ -199,7 +195,7 @@ enum szl_res szl_curl_proc_get(struct szl_interp *interp,
 
 		m = curl_multi_perform(cm, &act);
 		if (m != CURLM_OK) {
-			szl_set_result_str(interp, ret, curl_multi_strerror(m));
+			szl_set_result_str(interp, curl_multi_strerror(m), -1);
 			break;
 		}
 
@@ -210,15 +206,15 @@ enum szl_res szl_curl_proc_get(struct szl_interp *interp,
 					res = SZL_OK;
 				else
 					szl_set_result_str(interp,
-					                   ret,
-					                   curl_easy_strerror(info->data.result));
+					                   curl_easy_strerror(info->data.result),
+					                   -1);
 			}
 			break;
 		}
 
 		m = curl_multi_wait(cm, NULL, 0, 1000, &nfds);
 		if (m != CURLM_OK) {
-			szl_set_result_str(interp, ret, curl_multi_strerror(m));
+			szl_set_result_str(interp, curl_multi_strerror(m), -1);
 			break;
 		}
 
@@ -257,17 +253,14 @@ free_arrs:
 	return res;
 }
 
-enum szl_res szl_init_curl(struct szl_interp *interp)
+int szl_init_curl(struct szl_interp *interp)
 {
-	if (!szl_new_proc(interp,
-	                  "curl.get",
-	                  3,
-	                  -1,
-	                  "curl.get url path...",
-	                  szl_curl_proc_get,
-	                  NULL,
-	                  NULL))
-		return SZL_ERR;
-
-	return SZL_OK;
+	return szl_new_proc(interp,
+	                    "curl.get",
+	                    3,
+	                    -1,
+	                    "curl.get url path...",
+	                    szl_curl_proc_get,
+	                    NULL,
+	                    NULL) ? 1 : 0;
 }

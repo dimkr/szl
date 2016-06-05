@@ -20,34 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-proc fdopen {
-	if [test $# != 2] {throw {bad fdopen usage: fdopen handle}}
-	if [_socket.issocket $1] {_socket.fdopen $1} else {_io.fdopen $1}
-}
-
-global stdin [fdopen 0]
-global stdout [fdopen 1]
-global stderr [fdopen 2]
-
-proc puts {
-	if [test $# != 2] {throw {bad puts usage: puts msg}}
-	$stdout write $1
-}
-
 proc do {
-	if [test $2 != {while}] {throw {bad do usage: do exp while cond}}
+	if [test $2 != while] {throw {bad do usage: do exp while cond}}
 
 	while {1} {
 		eval $1
 		if [not [eval $3]] break
 	}
-}
-
-proc trim {
-	ltrim [rtrim $1]
-}
-
-proc dup {
-	if [test $# != 2] {throw {bad dup usage: dup strm}}
-	fdopen [_io.dup [$1 handle]]
 }

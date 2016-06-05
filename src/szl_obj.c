@@ -24,59 +24,51 @@
 
 #include "szl.h"
 
-static enum szl_res szl_obj_proc_global(struct szl_interp *interp,
-                                        const int objc,
-                                        struct szl_obj **objv,
-                                        struct szl_obj **ret)
+static
+enum szl_res szl_obj_proc_global(struct szl_interp *interp,
+                                 const int objc,
+                                 struct szl_obj **objv)
 {
-	enum szl_res res;
 	const char *s;
 
 	s = szl_obj_str(objv[1], NULL);
 	if (!s)
 		return SZL_ERR;
 
-	res = szl_local(interp, interp->global, s, objv[2]);
 	/* return the value upon success - useful for one-liners */
-	if (res == SZL_OK) {
-		szl_set_result(ret, szl_obj_ref(objv[2]));
-		if (!*ret)
-			return SZL_ERR;
-	}
+	if (szl_local(interp, interp->global, s, objv[2]))
+		return szl_set_result(interp, szl_obj_ref(objv[2]));
 
-	return res;
+	return SZL_ERR;
 }
 
-static enum szl_res szl_obj_proc_local(struct szl_interp *interp,
-                                       const int objc,
-                                       struct szl_obj **objv,
-                                       struct szl_obj **ret)
+static
+enum szl_res szl_obj_proc_local(struct szl_interp *interp,
+                                const int objc,
+                                struct szl_obj **objv)
 {
-	enum szl_res res;
 	const char *name;
+	int resi;
 
 	name = szl_obj_str(objv[1], NULL);
 	if (!name)
 		return SZL_ERR;
 
 	szl_obj_ref(interp->caller);
-	res = szl_local(interp, interp->caller, name, objv[2]);
+	resi = szl_local(interp, interp->caller, name, objv[2]);
 	szl_obj_unref(interp->caller);
 
 	/* see the comment in szl_obj_proc_set() */
-	if (res == SZL_OK) {
-		szl_set_result(ret, szl_obj_ref(objv[2]));
-		if (!*ret)
-			return SZL_ERR;
-	}
+	if (resi)
+		return szl_set_result(interp, szl_obj_ref(objv[2]));
 
-	return res;
+	return SZL_ERR;
 }
 
-static enum szl_res szl_obj_proc_eval(struct szl_interp *interp,
-                                      const int objc,
-                                      struct szl_obj **objv,
-                                      struct szl_obj **ret)
+static
+enum szl_res szl_obj_proc_eval(struct szl_interp *interp,
+                               const int objc,
+                               struct szl_obj **objv)
 {
 	const char *s;
 	size_t len;
@@ -85,36 +77,33 @@ static enum szl_res szl_obj_proc_eval(struct szl_interp *interp,
 	if (!s || !len)
 		return SZL_ERR;
 
-	return szl_run_const(interp, ret, s, len);
+	return szl_run_const(interp, s, len);
 }
 
-enum szl_res szl_init_obj(struct szl_interp *interp)
+int szl_init_obj(struct szl_interp *interp)
 {
-	if ((!szl_new_proc(interp,
-	                   "global",
-	                   3,
-	                   3,
-	                   "global name val",
-	                   szl_obj_proc_global,
-	                   NULL,
-	                   NULL)) ||
-	    (!szl_new_proc(interp,
-	                   "local",
-	                   3,
-	                   3,
-	                   "local name val",
-	                   szl_obj_proc_local,
-	                   NULL,
-	                   NULL)) ||
-	    (!szl_new_proc(interp,
-	                   "eval",
-	                   2,
-	                   2,
-	                   "eval exp",
-	                   szl_obj_proc_eval,
-	                   NULL,
-	                   NULL)))
-		return SZL_ERR;
-
-	return SZL_OK;
+	return ((szl_new_proc(interp,
+	                      "global",
+	                      3,
+	                      3,
+	                      "global name val",
+	                      szl_obj_proc_global,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "local",
+	                      3,
+	                      3,
+	                      "local name val",
+	                      szl_obj_proc_local,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "eval",
+	                      2,
+	                      2,
+	                      "eval exp",
+	                      szl_obj_proc_eval,
+	                      NULL,
+	                      NULL)));
 }

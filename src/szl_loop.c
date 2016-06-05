@@ -26,10 +26,14 @@
 
 #include "szl.h"
 
-static enum szl_res szl_loop_proc_while(struct szl_interp *interp,
-                                        const int objc,
-                                        struct szl_obj **objv,
-                                        struct szl_obj **ret)
+static const char szl_loop_inc[] = {
+#include "szl_loop.inc"
+};
+
+static
+enum szl_res szl_loop_proc_while(struct szl_interp *interp,
+                                 const int objc,
+                                 struct szl_obj **objv)
 {
 	struct szl_obj *val;
 	const char *cond, *body;
@@ -46,77 +50,74 @@ static enum szl_res szl_loop_proc_while(struct szl_interp *interp,
 		return SZL_ERR;
 
 	do {
-		szl_unset(ret);
 		res = szl_eval(interp, &val, cond);
 		if (res != SZL_OK) {
 			if (val)
-				szl_set_result(ret, val);
-			break;
+				szl_set_result(interp, val);
+			return res;
 		}
 
 		isfalse = szl_obj_isfalse(val);
 		szl_obj_unref(val);
-		if (isfalse) {
-			res = SZL_OK;
-			break;
-		}
-
-		/* we pass the block return value */
-		res = szl_run_const(interp, ret, body, blen);
-
-		/* stop if we encounter an error; pass the body evaluation return value
-		 * because it the error */
-		if (res == SZL_ERR)
-			return SZL_ERR;
-
-		/* if break was called, report success */
-		if (res == SZL_BREAK)
+		if (isfalse)
 			return SZL_OK;
 
-		/*
-		 * otherwise, in both cases we want to continue to the next iteration:
-		 *   - if res is SZL_CONT, szl_run_lines() stopped the execution of the
-		 *     loop body lines and we jump to the first one
-		 *   - if res is SZL_OK, szl_run_const() executed the entire loop body,
-		 *     so we continue the loop as usual
-		 */
+		/* we pass the block return value */
+		res = szl_run_const(interp, body, blen);
+		switch (res) {
+			case SZL_ERR:
+			case SZL_EXIT:
+				return res;
+
+			/* do not propagate SZL_BREAK */
+			case SZL_BREAK:
+				return SZL_OK;
+
+			default:
+				break;
+		}
 	} while (1);
 
-	return res;
+	return SZL_ERR;
 }
 
-static enum szl_res szl_loop_proc_break(struct szl_interp *interp,
-                                        const int objc,
-                                        struct szl_obj **objv,
-                                        struct szl_obj **ret)
+static
+enum szl_res szl_loop_proc_break(struct szl_interp *interp,
+                                 const int objc,
+                                 struct szl_obj **objv)
 {
 	return SZL_BREAK;
 }
 
-static enum szl_res szl_loop_proc_continue(struct szl_interp *interp,
-                                           const int objc,
-                                           struct szl_obj **objv,
-                                           struct szl_obj **ret)
+static
+enum szl_res szl_loop_proc_continue(struct szl_interp *interp,
+                                    const int objc,
+                                    struct szl_obj **objv)
 {
 	return SZL_CONT;
 }
 
-
-static enum szl_res szl_loop_map(struct szl_interp *interp,
-                                 const int objc,
-                                 struct szl_obj **objv,
-                                 struct szl_obj **ret,
-                                 const int keep)
+static
+enum szl_res szl_loop_proc_exit(struct szl_interp *interp,
+                                const int objc,
+                                struct szl_obj **objv)
 {
-	char **toks;
-	const char *name, *exp, *out;
-	char *s;
-	struct szl_obj *tok, *obj = NULL;
-	size_t len, elen;
-	int n, i;
-	enum szl_res res;
+	if (objc == 2)
+		szl_set_result(interp, szl_obj_ref(objv[1]));
 
-	*ret = NULL;
+	return SZL_EXIT;
+}
+
+static
+enum szl_res szl_loop_map(struct szl_interp *interp,
+                           const int objc,
+                           struct szl_obj **objv,
+                           const int keep)
+{
+	const char **toks, *name, *exp, *out;
+	struct szl_obj *tok, *obj = NULL;
+	size_t len, elen, i, n;
+	enum szl_res res, resi;
 
 	name = szl_obj_str(objv[1], &len);
 	if (!name || !len)
@@ -126,107 +127,92 @@ static enum szl_res szl_loop_map(struct szl_interp *interp,
 	if (!exp || !elen)
 		return SZL_ERR;
 
-	s = szl_obj_strdup(objv[2], &len);
-	if (!s || !len)
+	toks = szl_obj_list(interp, objv[2], &n);
+	if (!toks)
 		return SZL_ERR;
-
-	toks = szl_split(interp, s, &n, ret);
-	if (!toks) {
-		free(s);
-		return SZL_ERR;
-	}
 
 	if (keep) {
 		obj = szl_new_empty();
-		if (!obj) {
-			free(toks);
-			free(s);
+		if (!obj)
 			return SZL_ERR;
-		}
 	}
 
 	for (i = 0; i < n; ++i) {
-		szl_unset(ret);
-
 		tok = szl_new_str(toks[i], -1);
 		if (!tok) {
 			szl_obj_unref(obj);
-			free(toks);
-			free(s);
 			return SZL_ERR;
 		}
 
-		res = szl_local(interp, interp->current, name, tok);
+		resi = szl_local(interp, interp->current, name, tok);
 		szl_obj_unref(tok);
-		if (res != SZL_OK) {
+		if (!resi) {
 			szl_obj_unref(obj);
-			free(toks);
-			free(s);
-			return res;
+			return SZL_ERR;
 		}
 
-		res = szl_run_const(interp, ret, exp, elen);
+		res = szl_run_const(interp, exp, elen);
+		if (res == SZL_CONT)
+			continue;
+
+		if (res == SZL_BREAK)
+			break;
+
 		if (res != SZL_OK) {
-			szl_obj_unref(obj);
-			free(toks);
-			free(s);
+			if (keep)
+				szl_obj_unref(obj);
 			return res;
 		}
 
 		if (keep) {
-			out = szl_obj_str(*ret, NULL);
+			out = szl_obj_str(interp->last, NULL);
 			if (!out) {
-				szl_obj_unref(obj);
-				free(toks);
-				free(s);
+				if (keep)
+					szl_obj_unref(obj);
 				return SZL_ERR;
 			}
 
-			res = szl_lappend_str(obj, out);
-			if (res != SZL_OK) {
-				szl_obj_unref(obj);
-				free(toks);
-				free(s);
-				return res;
+			if (!szl_lappend_str(obj, out)) {
+				if (keep)
+					szl_obj_unref(obj);
+				return SZL_ERR;
 			}
 		}
 	}
 
 	if (keep)
-		szl_set_result(ret, obj);
+		szl_set_result(interp, obj);
 
-	free(toks);
-	free(s);
 	return SZL_OK;
 }
 
-static enum szl_res szl_loop_proc_for(struct szl_interp *interp,
-                                      const int objc,
-                                      struct szl_obj **objv,
-                                      struct szl_obj **ret)
+static
+enum szl_res szl_loop_proc_for(struct szl_interp *interp,
+                               const int objc,
+                               struct szl_obj **objv)
 {
-	return szl_loop_map(interp, objc, objv, ret, 0);
+	return szl_loop_map(interp, objc, objv, 0);
 }
 
-static enum szl_res szl_loop_proc_lmap(struct szl_interp *interp,
-                                       const int objc,
-                                       struct szl_obj **objv,
-                                       struct szl_obj **ret)
+static
+enum szl_res szl_loop_proc_lmap(struct szl_interp *interp,
+                                const int objc,
+                                struct szl_obj **objv)
 {
-	return szl_loop_map(interp, objc, objv, ret, 1);
+	return szl_loop_map(interp, objc, objv, 1);
 }
 
-static enum szl_res szl_loop_proc_range(struct szl_interp *interp,
-                                        const int objc,
-                                        struct szl_obj **objv,
-                                        struct szl_obj **ret)
+static
+enum szl_res szl_loop_proc_range(struct szl_interp *interp,
+                                 const int objc,
+                                 struct szl_obj **objv)
 {
-	struct szl_obj **ints, *space;
+	struct szl_obj **ints, *space, *obj;
 	szl_int start = 0, end, i, j, n;
 	enum szl_res res;
 
-	if ((szl_obj_int(objv[objc - 1], &end) != SZL_OK) ||
-	    ((objc == 3) && (szl_obj_int(objv[1], &start) != SZL_OK)) ||
+	if ((!szl_obj_int(objv[objc - 1], &end)) ||
+	    ((objc == 3) && (!szl_obj_int(objv[1], &start))) ||
 	    (start >= end))
 		return SZL_ERR;
 
@@ -249,8 +235,12 @@ static enum szl_res szl_loop_proc_range(struct szl_interp *interp,
 	}
 
 	space = szl_space(interp);
-	res = szl_join(interp, (int)n, space, ints, ret);
+	obj = szl_join(interp, (int)n, space, ints);
 	szl_obj_unref(space);
+	if (!obj)
+		res = SZL_ERR;
+	else
+		szl_set_result(interp, obj);
 
 	for (i = 0; i < n; ++i)
 		szl_obj_unref(ints[i]);
@@ -259,57 +249,65 @@ static enum szl_res szl_loop_proc_range(struct szl_interp *interp,
 	return res;
 }
 
-enum szl_res szl_init_loop(struct szl_interp *interp)
+int szl_init_loop(struct szl_interp *interp)
 {
-	if ((!szl_new_proc(interp,
-	                   "while",
-	                   3,
-	                   3,
-	                   "while cond exp",
-	                   szl_loop_proc_while,
-	                   NULL,
-	                   NULL)) ||
-	    (!szl_new_proc(interp,
-	                   "break",
-	                   1,
-	                   1,
-	                   "break",
-	                   szl_loop_proc_break,
-	                   NULL,
-	                   NULL)) ||
-	    (!szl_new_proc(interp,
-	                   "continue",
-	                   1,
-	                   1,
-	                   "continue",
-	                   szl_loop_proc_continue,
-	                   NULL,
-	                   NULL)) ||
-	    (!szl_new_proc(interp,
-	                   "for",
-	                   4,
-	                   4,
-	                   "for name list exp",
-	                   szl_loop_proc_for,
-	                   NULL,
-	                   NULL)) ||
-	    (!szl_new_proc(interp,
-	                   "lmap",
-	                   4,
-	                   4,
-	                   "lmap name list exp",
-	                   szl_loop_proc_lmap,
-	                   NULL,
-	                   NULL)) ||
-	    (!szl_new_proc(interp,
-	                   "range",
-	                   2,
-	                   3,
-	                   "range ?start? end",
-	                   szl_loop_proc_range,
-	                   NULL,
-	                   NULL)))
-		return SZL_ERR;
-
-	return SZL_OK;
+	return ((szl_new_proc(interp,
+	                      "while",
+	                      3,
+	                      3,
+	                      "while cond exp",
+	                      szl_loop_proc_while,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "break",
+	                      1,
+	                      1,
+	                      "break",
+	                      szl_loop_proc_break,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "continue",
+	                      1,
+	                      1,
+	                      "continue",
+	                      szl_loop_proc_continue,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "exit",
+	                      1,
+	                      1,
+	                      "exit",
+	                      szl_loop_proc_exit,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "for",
+	                      4,
+	                      4,
+	                      "for name list exp",
+	                      szl_loop_proc_for,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "lmap",
+	                      4,
+	                      4,
+	                      "lmap name list exp",
+	                      szl_loop_proc_lmap,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "range",
+	                      2,
+	                      3,
+	                      "range ?start? end",
+	                      szl_loop_proc_range,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_run_const(interp,
+	                       szl_loop_inc,
+	                       sizeof(szl_loop_inc) - 1) == SZL_OK));
 }

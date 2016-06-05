@@ -22,57 +22,90 @@
  * THE SOFTWARE.
  */
 
+#include <stdlib.h>
+
 #include "szl.h"
 
 static
-enum szl_res szl_ext_proc_load(struct szl_interp *interp,
-                               const int objc,
-                               struct szl_obj **objv)
+enum szl_res szl_list_proc_length(struct szl_interp *interp,
+                                  const int objc,
+                                  struct szl_obj **objv)
 {
-	const char *name;
-	size_t len;
+	size_t n;
+
+	if (!szl_obj_list(interp, objv[1], &n))
+		return SZL_ERR;
+
+	return szl_set_result_int(interp, (szl_int)n);
+}
+
+static
+enum szl_res szl_list_proc_append(struct szl_interp *interp,
+                                  const int objc,
+                                  struct szl_obj **objv)
+{
+	struct szl_obj *obj;
+	const char *name, *s;
+	size_t len, slen;
+
+	s = szl_obj_str(objv[2], &slen);
+	if (!s)
+		return SZL_ERR;
 
 	name = szl_obj_str(objv[1], &len);
 	if (!name || !len)
 		return SZL_ERR;
 
-	if (szl_load(interp, name))
-		return SZL_OK;
+	obj = szl_get(interp, name);
+	if (!obj || !szl_lappend_str(obj, s))
+		return SZL_ERR;
 
-	return SZL_ERR;
+	return SZL_OK;
 }
 
 static
-enum szl_res szl_ext_proc_source(struct szl_interp *interp,
+enum szl_res szl_list_proc_index(struct szl_interp *interp,
                                  const int objc,
                                  struct szl_obj **objv)
 {
-	const char *path;
-	size_t len;
+	const char **toks;
+	szl_int i;
+	size_t n;
 
-	path = szl_obj_str(objv[1], &len);
-	if (!path || !len)
+	if ((!szl_obj_int(objv[2], &i)) || (i < 0))
 		return SZL_ERR;
 
-	return szl_source(interp, path);
+	toks = szl_obj_list(interp, objv[1], &n);
+	if (!toks || (i >= n))
+		return SZL_ERR;
+
+	return szl_set_result_str(interp, toks[i], -1);
 }
 
-int szl_init_ext(struct szl_interp *interp)
+int szl_init_list(struct szl_interp *interp)
 {
 	return ((szl_new_proc(interp,
-	                      "load",
+	                      "list.length",
 	                      2,
 	                      2,
-	                      "load name",
-	                      szl_ext_proc_load,
+	                      "list.length obj",
+	                      szl_list_proc_length,
 	                      NULL,
 	                      NULL)) &&
 	        (szl_new_proc(interp,
-	                      "source",
-	                      2,
-	                      2,
-	                      "source path",
-	                      szl_ext_proc_source,
+	                      "list.append",
+	                      3,
+	                      3,
+	                      "list.append name obj",
+	                      szl_list_proc_append,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "list.index",
+	                      3,
+	                      3,
+	                      "list.index obj index",
+	                      szl_list_proc_index,
 	                      NULL,
 	                      NULL)));
 }

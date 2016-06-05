@@ -131,6 +131,11 @@ struct szl_obj *szl_ffi_new_at(struct szl_interp *interp,
 	struct szl_ffi_obj *ffi_obj;
 	struct szl_obj *obj;
 
+	if (!p) {
+		szl_set_result_str(interp, "NULL dereference", -1);
+		return NULL;
+	}
+
 	ffi_obj = (struct szl_ffi_obj *)malloc(sizeof(*ffi_obj));
 	if (!ffi_obj)
 		return NULL;
@@ -138,7 +143,11 @@ struct szl_obj *szl_ffi_new_at(struct szl_interp *interp,
 	filler(ffi_obj, p, size);
 	ffi_obj->to_str = to_str;
 
-	szl_new_obj_name(interp, type, buf, sizeof(buf));
+	szl_new_obj_name(interp,
+	                 type,
+	                 buf,
+	                 sizeof(buf),
+	                 (szl_int)(intptr_t)ffi_obj);
 	obj = szl_new_proc(interp,
 	                   buf,
 	                   2,
@@ -180,39 +189,37 @@ struct szl_obj *szl_ffi_new_address(const szl_int i, struct szl_obj *origin)
 
 static enum szl_res szl_ffi_scalar_proc(struct szl_interp *interp,
                                         const int objc,
-                                        struct szl_obj **objv,
-                                        struct szl_obj **ret)
+                                        struct szl_obj **objv)
 {
+	struct szl_obj *obj;
 	struct szl_ffi_obj *ffi_obj = (struct szl_ffi_obj *)(objv[0]->priv);
 	const char *op;
 	size_t len;
-
-	*ret = NULL;
 
 	op = szl_obj_str(objv[1], &len);
 	if (!op || !len)
 		return SZL_ERR;
 
 	if (strcmp("value", op) == 0)
-		szl_set_result(ret, ffi_obj->to_str(interp, ffi_obj));
-	else if (strcmp("raw", op) == 0)
-		szl_set_result(ret,
-		               szl_new_str((char *)ffi_obj->addr, (int)ffi_obj->size));
-	else if (strcmp("address", op) == 0)
-		szl_set_result(ret,
-		               szl_ffi_new_address((szl_int)(intptr_t)ffi_obj->addr,
-		                                   objv[0]));
-	else if (strcmp("size", op) == 0)
-		szl_set_result_fmt(interp, ret, "%zd", ffi_obj->size);
-	else {
-		szl_usage(interp, ret, objv[0]);
-		return SZL_ERR;
+		return szl_set_result(interp, ffi_obj->to_str(interp, ffi_obj));
+	else if (strcmp("raw", op) == 0) {
+		obj = szl_new_str((char *)ffi_obj->addr, (int)ffi_obj->size);
+		if (!obj)
+			return SZL_ERR;
+
+		return szl_set_result(interp, obj);
 	}
+	else if (strcmp("address", op) == 0) {
+		obj = szl_ffi_new_address((szl_int)(intptr_t)ffi_obj->addr, objv[0]);
+		if (!obj)
+			return SZL_ERR;
 
-	if (!*ret)
-		return SZL_ERR;
+		return szl_set_result(interp, obj);
+	}
+	else if (strcmp("size", op) == 0)
+		return szl_set_result_fmt(interp, "%zd", ffi_obj->size);
 
-	return SZL_OK;
+	return szl_usage(interp, objv[0]);
 }
 
 #define SZL_NEW_TOSTR(szl_name, val_memb, fmt, cast)                           \
@@ -254,11 +261,10 @@ void SZL_FFI_FILLER_NAME(szl_name)(struct szl_ffi_obj *ffi_obj,                \
 
 #define SZL_NEW_AT(szl_name, size)                                             \
 static                                                                         \
-enum szl_res SZL_FFI_NEW_AT_NAME(szl_name)(struct szl_interp *interp,          \
-                                           void *p,                            \
-                                           struct szl_obj **out)               \
+struct szl_obj *SZL_FFI_NEW_AT_NAME(szl_name)(struct szl_interp *interp,       \
+                                              void *p)                         \
 {                                                                              \
-	*out = szl_ffi_new_at(interp,                                              \
+	return szl_ffi_new_at(interp,                                              \
 	                      "ffi."# szl_name,                                    \
 	                      SZL_FFI_FILLER_NAME(szl_name),                       \
 	                      p,                                                   \
@@ -266,10 +272,6 @@ enum szl_res SZL_FFI_NEW_AT_NAME(szl_name)(struct szl_interp *interp,          \
 	                      SZL_FFI_TOSTR_NAME(szl_name),                        \
 	                      szl_ffi_scalar_proc,                                 \
 	                      szl_ffi_obj_del);                                    \
-	if (!*out)                                                                 \
-		return SZL_ERR;                                                        \
-	                                                                           \
-	return SZL_OK;                                                             \
 }                                                                              \
 
 /* scalar types */
@@ -281,19 +283,18 @@ SZL_NEW_AT(szl_name, sizeof(c_type))                                           \
 static                                                                         \
 enum szl_res SZL_FFI_NEW_PROC_NAME(szl_name)(struct szl_interp *interp,        \
                                              const int objc,                   \
-                                             struct szl_obj **objv,            \
-                                             struct szl_obj **ret)             \
+                                             struct szl_obj **objv)            \
 {                                                                              \
+	struct szl_obj *obj;                                                       \
 	szl_int i = 0;                                                             \
 	c_type tmp;                                                                \
 	                                                                           \
 	if (objc == 2) {                                                           \
-		if (szl_obj_int(objv[1], &i) != SZL_OK)                                \
+		if (!szl_obj_int(objv[1], &i))                                         \
 			return SZL_ERR;                                                    \
                                                                                \
 		if ((i < min) || (i > max)) {                                          \
 			szl_set_result_fmt(interp,                                         \
-			                   ret,                                            \
 			                   "bad "#szl_name" value: "SZL_INT_FMT,           \
 			                   i);                                             \
 			return SZL_ERR;                                                    \
@@ -301,7 +302,11 @@ enum szl_res SZL_FFI_NEW_PROC_NAME(szl_name)(struct szl_interp *interp,        \
 	}                                                                          \
 	                                                                           \
 	tmp = (c_type)i;                                                           \
-	return SZL_FFI_NEW_AT_NAME(szl_name)(interp, &tmp, ret);                   \
+	obj = SZL_FFI_NEW_AT_NAME(szl_name)(interp, &tmp);                         \
+	if (!obj)                                                                  \
+		return SZL_ERR;                                                        \
+	                                                                           \
+	return szl_set_result(interp, obj);                                        \
 }
 
 SZL_NEW_TOSTR(int8, i8, SZL_INT_FMT, (szl_int))
@@ -409,21 +414,22 @@ void SZL_FFI_FILLER_NAME(void)(struct szl_ffi_obj *ffi_obj,
 static
 enum szl_res SZL_FFI_NEW_PROC_NAME(void)(struct szl_interp *interp,
                                          const int objc,
-                                         struct szl_obj **objv,
-                                         struct szl_obj **ret)
+                                         struct szl_obj **objv)
 {
-	*ret = szl_ffi_new_at(interp,
-	                      "ffi.void",
-	                      SZL_FFI_FILLER_NAME(void),
-	                      NULL,
-	                      0,
-	                      SZL_FFI_TOSTR_NAME(void),
-	                      szl_ffi_scalar_proc,
-	                      szl_ffi_obj_del);
-	if (!*ret)
+	struct szl_obj *obj;
+
+	obj = szl_ffi_new_at(interp,
+	                     "ffi.void",
+	                     SZL_FFI_FILLER_NAME(void),
+	                     NULL,
+	                     0,
+	                     SZL_FFI_TOSTR_NAME(void),
+	                     szl_ffi_scalar_proc,
+	                     szl_ffi_obj_del);
+	if (!obj)
 		return SZL_ERR;
 
-	return SZL_OK;
+	return szl_set_result(interp, obj);
 }
 
 /* vector types */
@@ -435,20 +441,24 @@ SZL_NEW_AT(pointer, sizeof(void *))
 static
 enum szl_res SZL_FFI_NEW_PROC_NAME(pointer)(struct szl_interp *interp,
                                             const int objc,
-                                            struct szl_obj **objv,
-                                            struct szl_obj **ret)
+                                            struct szl_obj **objv)
 {
+	struct szl_obj *obj;
 	szl_int i = 0;
 	void *tmp = NULL;
 
 	if (objc == 2) {
-		if (szl_obj_int(objv[1], &i) != SZL_OK)
+		if (!szl_obj_int(objv[1], &i))
 			return SZL_ERR;
 
 		tmp = (void *)(intptr_t)i;
 	}
 
-	return SZL_FFI_NEW_AT_NAME(pointer)(interp, &tmp, ret);
+	obj = SZL_FFI_NEW_AT_NAME(pointer)(interp, &tmp);
+	if (!obj)
+		return SZL_ERR;
+
+	return szl_set_result(interp, obj);
 }
 
 static
@@ -478,12 +488,11 @@ void szl_ffi_string_del(void *priv)
 }
 
 static
-enum szl_res szl_ffi_new_string_at(struct szl_interp *interp,
-                                   void **s,
-                                   const size_t len,
-                                   struct szl_obj **out)
+struct szl_obj *szl_ffi_new_string_at(struct szl_interp *interp,
+                                      void **s,
+                                      const size_t len)
 {
-	*out = szl_ffi_new_at(interp,
+	return szl_ffi_new_at(interp,
 	                      "ffi.string",
 	                      SZL_FFI_FILLER_NAME(string),
 	                      s,
@@ -491,23 +500,18 @@ enum szl_res szl_ffi_new_string_at(struct szl_interp *interp,
 	                      SZL_FFI_TOSTR_NAME(string),
 	                      szl_ffi_scalar_proc,
 	                      szl_ffi_string_del);
-	if (!*out)
-		return SZL_ERR;
-
-	return SZL_OK;
 }
 
 static
 enum szl_res SZL_FFI_NEW_PROC_NAME(string)(struct szl_interp *interp,
                                            const int objc,
-                                           struct szl_obj **objv,
-                                           struct szl_obj **ret)
+                                           struct szl_obj **objv)
 {
+	struct szl_obj *obj;
 	const char *op;
 	szl_int addr, len = -1;
 	char *s2;
 	size_t slen;
-	enum szl_res res;
 
 	op = szl_obj_str(objv[1], NULL);
 	if (!op)
@@ -515,13 +519,13 @@ enum szl_res SZL_FFI_NEW_PROC_NAME(string)(struct szl_interp *interp,
 
 	if (strcmp("at", op) == 0) {
 		if ((objc == 4) &&
-		    ((szl_obj_int(objv[3], &len) != SZL_OK) ||
+		    ((!szl_obj_int(objv[3], &len)) ||
 		     (len == 0) ||
 		     (len < -1) ||
 		     (len > INT_MAX)))
 			goto usage;
 
-		if (szl_obj_int(objv[2], &addr) != SZL_OK)
+		if (!szl_obj_int(objv[2], &addr))
 			goto usage;
 
 		if (len == -1) {
@@ -546,232 +550,242 @@ enum szl_res SZL_FFI_NEW_PROC_NAME(string)(struct szl_interp *interp,
 	}
 	else {
 usage:
-		szl_usage(interp, ret, objv[0]);
+		return szl_usage(interp, objv[0]);
+	}
+
+	obj = szl_ffi_new_string_at(interp, (void **)&s2, slen);
+	if (!obj) {
+		free(s2);
 		return SZL_ERR;
 	}
 
-	res = szl_ffi_new_string_at(interp, (void **)&s2, slen, ret);
-	if (res != SZL_OK)
-		free(s2);
-
-	return res;
+	return szl_set_result(interp, obj);
 }
 
 /* casting */
 
 static
-enum szl_res szl_ffi_new_scalar_at(struct szl_interp *interp,
-                                   void *p,
-                                   const char *type,
-                                   struct szl_obj **out)
+struct szl_obj *szl_ffi_new_scalar_at(struct szl_interp *interp,
+                                      void *p,
+                                      const char *type)
 {
 	union szl_ffi_obj_val val;
 
 	if ((strcmp("int8", type) == 0) || (strcmp("char", type) == 0)) {
 		val.i8 = *((int8_t *)p);
-		return SZL_FFI_NEW_AT_NAME(int8)(interp, &val.i8, out);
+		return SZL_FFI_NEW_AT_NAME(int8)(interp, &val.i8);
 	}
 	else if ((strcmp("uint8", type) == 0) || (strcmp("uchar", type) == 0)) {
 		val.ui8 = *((uint8_t *)p);
-		return SZL_FFI_NEW_AT_NAME(uint8)(interp, &val.ui8, out);
+		return SZL_FFI_NEW_AT_NAME(uint8)(interp, &val.ui8);
 	}
 	else if (strcmp("int16", type) == 0) {
 		val.i16 = *((int16_t *)p);
-		return SZL_FFI_NEW_AT_NAME(int16)(interp, &val.i16, out);
+		return SZL_FFI_NEW_AT_NAME(int16)(interp, &val.i16);
 	}
 	else if (strcmp("uint16", type) == 0) {
 		val.ui16 = *((uint16_t *)p);
-		return SZL_FFI_NEW_AT_NAME(uint16)(interp, &val.ui16, out);
+		return SZL_FFI_NEW_AT_NAME(uint16)(interp, &val.ui16);
 	}
 	else if (strcmp("int32", type) == 0) {
 		val.i32 = *((int32_t *)p);
-		return SZL_FFI_NEW_AT_NAME(int32)(interp, &val.i32, out);
+		return SZL_FFI_NEW_AT_NAME(int32)(interp, &val.i32);
 	}
 	else if ((strcmp("uint32", type) == 0) || (strcmp("dword", type) == 0)) {
 		val.ui32 = *((uint32_t *)p);
-		return SZL_FFI_NEW_AT_NAME(uint32)(interp, &val.ui32, out);
+		return SZL_FFI_NEW_AT_NAME(uint32)(interp, &val.ui32);
 	}
 	else if (strcmp("int64", type) == 0) {
 		val.i64 = *((int64_t *)p);
-		return SZL_FFI_NEW_AT_NAME(int64)(interp, &val.i64, out);
+		return SZL_FFI_NEW_AT_NAME(int64)(interp, &val.i64);
 	}
 	else if (strcmp("uint64", type) == 0) {
 		val.ui64 = *((uint64_t *)p);
-		return SZL_FFI_NEW_AT_NAME(uint64)(interp, &val.ui64, out);
+		return SZL_FFI_NEW_AT_NAME(uint64)(interp, &val.ui64);
 	}
 	else if (strcmp("short", type) == 0) {
 		val.s = *((short *)p);
-		return SZL_FFI_NEW_AT_NAME(short)(interp, &val.s, out);
+		return SZL_FFI_NEW_AT_NAME(short)(interp, &val.s);
 	}
 	else if (strcmp("ushort", type) == 0) {
 		val.us = *((unsigned short *)p);
-		return SZL_FFI_NEW_AT_NAME(ushort)(interp, &val.us, out);
+		return SZL_FFI_NEW_AT_NAME(ushort)(interp, &val.us);
 	}
 	else if (strcmp("int", type) == 0) {
 		val.i = *((int *)p);
-		return SZL_FFI_NEW_AT_NAME(int)(interp, &val.i, out);
+		return SZL_FFI_NEW_AT_NAME(int)(interp, &val.i);
 	}
 	else if (strcmp("uint", type) == 0) {
 		val.ui = *((unsigned int *)p);
-		return SZL_FFI_NEW_AT_NAME(uint)(interp, &val.ui, out);
+		return SZL_FFI_NEW_AT_NAME(uint)(interp, &val.ui);
 	}
 	else if (strcmp("long", type) == 0) {
 		val.l = *((long *)p);
-		return SZL_FFI_NEW_AT_NAME(long)(interp, &val.l, out);
+		return SZL_FFI_NEW_AT_NAME(long)(interp, &val.l);
 	}
 	else if (strcmp("ulong", type) == 0) {
 		val.ul = *((unsigned long *)p);
-		return SZL_FFI_NEW_AT_NAME(ulong)(interp, &val.ul, out);
+		return SZL_FFI_NEW_AT_NAME(ulong)(interp, &val.ul);
 	}
 	else if (strcmp("pointer", type) == 0) {
 		val.vp = *((void **)p);
-		return SZL_FFI_NEW_AT_NAME(pointer)(interp, &val.vp, out);
+		return SZL_FFI_NEW_AT_NAME(pointer)(interp, &val.vp);
 	}
 
-	szl_set_result_fmt(interp, out, "bad ffi type: %s", type);
-	return SZL_ERR;
+	szl_set_result_fmt(interp, "bad ffi type: %s", type);
+	return NULL;
 }
 
 static
 enum szl_res szl_ffi_proc_cast(struct szl_interp *interp,
                                const int objc,
-                               struct szl_obj **objv,
-                               struct szl_obj **ret)
+                               struct szl_obj **objv)
 {
+	struct szl_obj *obj;
 	const char *type;
 	szl_int addr;
 	size_t len;
 
-	if (szl_obj_int(objv[1], &addr) != SZL_OK)
+	if (!szl_obj_int(objv[1], &addr))
 		return SZL_ERR;
 
 	type = szl_obj_str(objv[2], &len);
 	if (!type || !len)
 		return SZL_ERR;
 
-	return szl_ffi_new_scalar_at(interp, (void *)(intptr_t)addr, type, ret);
+	obj = szl_ffi_new_scalar_at(interp, (void *)(intptr_t)addr, type);
+	if (!obj)
+		return SZL_ERR;
+
+	return szl_set_result(interp, obj);
 }
 
 /* complex types */
 
 static
-enum szl_res szl_struct_member(struct szl_interp *interp,
-                               const struct szl_ffi_struct *s,
-                               const szl_int i,
-                               struct szl_obj **out)
+struct szl_obj *szl_struct_member(struct szl_interp *interp,
+                                  const struct szl_ffi_struct *s,
+                                  const szl_int i)
 {
 	union szl_ffi_obj_val val;
 
 	if (s->type.elements[i] == &ffi_type_sint8) {
 		val.i8 = *((int8_t *)(s->buf + s->offs[i]));
-		return SZL_FFI_NEW_AT_NAME(int8)(interp, &val.i8, out);
+		return SZL_FFI_NEW_AT_NAME(int8)(interp, &val.i8);
 	}
 	else if (s->type.elements[i] == &ffi_type_uint8) {
 		val.ui8 = *((uint8_t *)(s->buf + s->offs[i]));
-		return SZL_FFI_NEW_AT_NAME(uint8)(interp, &val.ui8, out);
+		return SZL_FFI_NEW_AT_NAME(uint8)(interp, &val.ui8);
 	}
 	else if (s->type.elements[i] == &ffi_type_sint16) {
 		val.i16 = *((int16_t *)(s->buf + s->offs[i]));
-		return SZL_FFI_NEW_AT_NAME(int16)(interp, &val.i16, out);
+		return SZL_FFI_NEW_AT_NAME(int16)(interp, &val.i16);
 	}
 	else if (s->type.elements[i] == &ffi_type_uint16) {
 		val.ui16 = *((uint16_t *)(s->buf + s->offs[i]));
-		return SZL_FFI_NEW_AT_NAME(uint16)(interp, &val.ui16, out);
+		return SZL_FFI_NEW_AT_NAME(uint16)(interp, &val.ui16);
 	}
 	else if (s->type.elements[i] == &ffi_type_sint32) {
 		val.i32 = *((int32_t *)(s->buf + s->offs[i]));
-		return SZL_FFI_NEW_AT_NAME(int32)(interp, &val.i32, out);
+		return SZL_FFI_NEW_AT_NAME(int32)(interp, &val.i32);
 	}
 	else if (s->type.elements[i] == &ffi_type_uint32) {
 		val.ui32 = *((uint32_t *)(s->buf + s->offs[i]));
-		return SZL_FFI_NEW_AT_NAME(uint32)(interp, &val.ui32, out);
+		return SZL_FFI_NEW_AT_NAME(uint32)(interp, &val.ui32);
 	}
 	else if (s->type.elements[i] == &ffi_type_sint64) {
 		val.i64 = *((int64_t *)(s->buf + s->offs[i]));
-		return SZL_FFI_NEW_AT_NAME(int64)(interp, &val.i64, out);
+		return SZL_FFI_NEW_AT_NAME(int64)(interp, &val.i64);
 	}
 	else if (s->type.elements[i] == &ffi_type_uint64) {
 		val.ui64 = *((uint64_t *)(s->buf + s->offs[i]));
-		return SZL_FFI_NEW_AT_NAME(uint64)(interp, &val.ui64, out);
+		return SZL_FFI_NEW_AT_NAME(uint64)(interp, &val.ui64);
 	}
 	else if (s->type.elements[i] == &ffi_type_sshort) {
 		val.s = *((short *)(s->buf + s->offs[i]));
-		return SZL_FFI_NEW_AT_NAME(short)(interp, &val.i64, out);
+		return SZL_FFI_NEW_AT_NAME(short)(interp, &val.i64);
 	}
 	else if (s->type.elements[i] == &ffi_type_ushort) {
 		val.us = *((unsigned short *)(s->buf + s->offs[i]));
-		return SZL_FFI_NEW_AT_NAME(ushort)(interp, &val.ui64, out);
+		return SZL_FFI_NEW_AT_NAME(ushort)(interp, &val.ui64);
 	}
 	else if (s->type.elements[i] == &ffi_type_sint) {
 		val.i = *((int *)(s->buf + s->offs[i]));
-		return SZL_FFI_NEW_AT_NAME(int)(interp, &val.i64, out);
+		return SZL_FFI_NEW_AT_NAME(int)(interp, &val.i64);
 	}
 	else if (s->type.elements[i] == &ffi_type_uint) {
 		val.ui = *((unsigned int *)(s->buf + s->offs[i]));
-		return SZL_FFI_NEW_AT_NAME(uint)(interp, &val.ui64, out);
+		return SZL_FFI_NEW_AT_NAME(uint)(interp, &val.ui64);
 	}
 	else if (s->type.elements[i] == &ffi_type_slong) {
 		val.l = *((long *)(s->buf + s->offs[i]));
-		return SZL_FFI_NEW_AT_NAME(long)(interp, &val.i64, out);
+		return SZL_FFI_NEW_AT_NAME(long)(interp, &val.i64);
 	}
 	else if (s->type.elements[i] == &ffi_type_ulong) {
 		val.ul = *((unsigned long *)(s->buf + s->offs[i]));
-		return SZL_FFI_NEW_AT_NAME(ulong)(interp, &val.ui64, out);
+		return SZL_FFI_NEW_AT_NAME(ulong)(interp, &val.ui64);
 	}
 	else {
 		val.vp = *((void **)(s->buf + s->offs[i]));
-		return SZL_FFI_NEW_AT_NAME(pointer)(interp, &val.vp, out);
+		return SZL_FFI_NEW_AT_NAME(pointer)(interp, &val.vp);
 	}
 }
 
 static
 enum szl_res szl_ffi_struct_proc(struct szl_interp *interp,
                                  const int objc,
-                                 struct szl_obj **objv,
-                                 struct szl_obj **ret)
+                                 struct szl_obj **objv)
 {
+	struct szl_obj *obj;
 	struct szl_ffi_struct *s = (struct szl_ffi_struct *)(objv[0]->priv);
 	const char *op;
 	szl_int i;
 	size_t len;
-
-	*ret = NULL;
 
 	op = szl_obj_str(objv[1], &len);
 	if (!op || !len)
 		return SZL_ERR;
 
 	if (objc == 2) {
-		if ((strcmp("raw", op) == 0) || (strcmp("value", op) == 0))
-			szl_set_result(ret, szl_new_str((char *)s->buf, (int)s->size));
-		else if (strcmp("address", op) == 0)
-			szl_set_result(ret, szl_ffi_new_address((szl_int)(intptr_t)s->buf,
-			                                        objv[0]));
-		else if (strcmp("size", op) == 0)
-			szl_set_result_fmt(interp, ret, "%d", s->size);
-		else
-			goto usage;
+		if ((strcmp("raw", op) == 0) || (strcmp("value", op) == 0)) {
+			obj = szl_new_str((char *)s->buf, (int)s->size);
+			if (!obj)
+				return SZL_ERR;
 
-		if (*ret)
-			return SZL_OK;
+			return szl_set_result(interp, obj);
+		}
+		else if (strcmp("address", op) == 0) {
+			obj = szl_ffi_new_address((szl_int)(intptr_t)s->buf, objv[0]);
+			if (!obj)
+				return SZL_ERR;
+
+			return szl_set_result(interp, obj);
+		}
+		else if (strcmp("size", op) == 0)
+			return szl_set_result_fmt(interp, "%d", s->size);
+
+		goto usage;
 	}
 	else if (strcmp("member", op) == 0) {
-		if (szl_obj_int(objv[2], &i) != SZL_OK)
+		if (!szl_obj_int(objv[2], &i))
 			return SZL_ERR;
 
 		if ((i < 0) || (i >= s->nmemb - 1)) {
 			szl_set_result_fmt(interp,
-			                   ret,
 			                   "bad member index: "SZL_INT_FMT,
 			                   i);
 			return SZL_ERR;
 		}
 
-		return szl_struct_member(interp, s, i, ret);
+		obj = szl_struct_member(interp, s, i);
+		if (!obj)
+			return SZL_ERR;
+
+		return szl_set_result(interp, obj);
 	}
 	else {
 usage:
-		szl_usage(interp, ret, objv[0]);
+		return szl_usage(interp, objv[0]);
 	}
 
 	return SZL_ERR;
@@ -791,8 +805,7 @@ void szl_ffi_struct_del(void *priv)
 static
 enum szl_res szl_ffi_proc_struct(struct szl_interp *interp,
                                  const int objc,
-                                 struct szl_obj **objv,
-                                 struct szl_obj **ret)
+                                 struct szl_obj **objv)
 {
 	char buf[sizeof("ffi.structFFFFFFFF")];
 	struct szl_obj *obj;
@@ -847,7 +860,7 @@ enum szl_res szl_ffi_proc_struct(struct szl_interp *interp,
 			free(s->offs);
 			free(s->type.elements);
 			free(s);
-			szl_set_result_str(interp, ret, "bad struct size");
+			szl_set_result_str(interp, "bad struct size", -1);
 			return SZL_ERR;
 		}
 	}
@@ -865,7 +878,7 @@ enum szl_res szl_ffi_proc_struct(struct szl_interp *interp,
 		free(s->offs);
 		free(s->type.elements);
 		free(s);
-		szl_set_result_str(interp, ret, "bad struct initializer");
+		szl_set_result_str(interp, "bad struct initializer", -1);
 		return SZL_ERR;
 	}
 
@@ -888,7 +901,11 @@ enum szl_res szl_ffi_proc_struct(struct szl_interp *interp,
 	s->type.type = FFI_TYPE_STRUCT;
 	s->type.elements[s->nmemb] = NULL;
 
-	szl_new_obj_name(interp, "ffi.struct", buf, sizeof(buf));
+	szl_new_obj_name(interp,
+	                 "ffi.struct",
+	                 buf,
+	                 sizeof(buf),
+	                 (szl_int)(intptr_t)s);
 	obj = szl_new_proc(interp,
 	                   buf,
 	                   2,
@@ -904,8 +921,7 @@ enum szl_res szl_ffi_proc_struct(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	szl_set_result(ret, szl_obj_ref(obj));
-	return SZL_OK;
+	return szl_set_result(interp, szl_obj_ref(obj));
 }
 
 /* libraries */
@@ -913,9 +929,9 @@ enum szl_res szl_ffi_proc_struct(struct szl_interp *interp,
 static
 enum szl_res szl_ffi_library_proc(struct szl_interp *interp,
                                   const int objc,
-                                  struct szl_obj **objv,
-                                  struct szl_obj **ret)
+                                  struct szl_obj **objv)
 {
+	struct szl_obj *obj;
 	const char *op, *sym;
 	void *p;
 	size_t len;
@@ -939,22 +955,20 @@ enum szl_res szl_ffi_library_proc(struct szl_interp *interp,
 	else
 		goto usage;
 
-	*ret = szl_ffi_new_address((szl_int)(intptr_t)p, objv[0]);
-	if (!*ret)
+	obj = szl_ffi_new_address((szl_int)(intptr_t)p, objv[0]);
+	if (!obj)
 		return SZL_ERR;
 
-	return SZL_OK;
+	return szl_set_result(interp, obj);
 
 usage:
-	szl_usage(interp, ret, objv[0]);
-	return SZL_OK;
+	return szl_usage(interp, objv[0]);
 }
 
 static
 enum szl_res szl_ffi_proc_dlopen(struct szl_interp *interp,
                                  const int objc,
-                                 struct szl_obj **objv,
-                                 struct szl_obj **ret)
+                                 struct szl_obj **objv)
 {
 	char buf[sizeof("ffi.libraryFFFFFFFFF")];
 	void *h;
@@ -972,7 +986,11 @@ enum szl_res szl_ffi_proc_dlopen(struct szl_interp *interp,
 	if (!h)
 		return SZL_ERR;
 
-	szl_new_obj_name(interp, "ffi.library", buf, sizeof(buf));
+	szl_new_obj_name(interp,
+	                 "ffi.library",
+	                 buf,
+	                 sizeof(buf),
+	                 (szl_int)(intptr_t)h);
 	obj = szl_new_proc(interp,
 	                   buf,
 	                   2,
@@ -986,8 +1004,7 @@ enum szl_res szl_ffi_proc_dlopen(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	szl_set_result(ret, szl_obj_ref(obj));
-	return SZL_OK;
+	return szl_set_result(interp, szl_obj_ref(obj));
 }
 
 /* functions */
@@ -995,8 +1012,7 @@ enum szl_res szl_ffi_proc_dlopen(struct szl_interp *interp,
 static
 enum szl_res szl_ffi_function_proc(struct szl_interp *interp,
                                    const int objc,
-                                   struct szl_obj **objv,
-                                   struct szl_obj **ret)
+                                   struct szl_obj **objv)
 {
 	struct szl_ffi_func *f = (struct szl_ffi_func *)(objv[0]->priv);
 	void *out;
@@ -1007,16 +1023,16 @@ enum szl_res szl_ffi_function_proc(struct szl_interp *interp,
 
 	argc = objc - 2;
 	if ((unsigned int)argc != f->argc) {
-		szl_set_result_fmt(interp, ret, "wrong # of arguments: %d", argc);
+		szl_set_result_fmt(interp, "wrong # of arguments: %d", argc);
 		return SZL_ERR;
 	}
 
-	if (szl_obj_int(objv[1], &out_int) != SZL_OK)
+	if (!szl_obj_int(objv[1], &out_int))
 		return SZL_ERR;
 
 	out = (void *)(intptr_t)out_int;
 	if (!out) {
-		szl_set_result_str(interp, ret, "NULL return value address");
+		szl_set_result_str(interp, "NULL return value address", -1);
 		return SZL_ERR;
 	}
 
@@ -1026,7 +1042,7 @@ enum szl_res szl_ffi_function_proc(struct szl_interp *interp,
 
 	if (f->argc) {
 		for (i = 2; i < objc; ++i) {
-			if (szl_obj_int(objv[i], &tmp) != SZL_OK) {
+			if (!szl_obj_int(objv[i], &tmp)) {
 				free(args);
 				return SZL_ERR;
 			}
@@ -1035,7 +1051,7 @@ enum szl_res szl_ffi_function_proc(struct szl_interp *interp,
 			args[j] = (void *)(intptr_t)tmp;
 			if (!args[j]) {
 				free(args);
-				szl_set_result_str(interp, ret, "NULL argument address");
+				szl_set_result_str(interp, "NULL argument address", -1);
 				return SZL_ERR;
 			}
 		}
@@ -1047,8 +1063,7 @@ enum szl_res szl_ffi_function_proc(struct szl_interp *interp,
 	free(args);
 
 	/* use the return value address as the return value, to allow one-liners */
-	szl_set_result_int(interp, ret, out_int);
-	return SZL_OK;
+	return szl_set_result_int(interp, out_int);
 }
 
 static
@@ -1067,21 +1082,21 @@ void szl_ffi_function_del(void *priv)
 static
 enum szl_res szl_ffi_proc_function(struct szl_interp *interp,
                                    const int objc,
-                                   struct szl_obj **objv,
-                                   struct szl_obj **ret)
+                                   struct szl_obj **objv)
 {
 	char buf[sizeof("ffi.functionFFFFFFFFF")];
+	struct szl_obj *obj;
 	struct szl_ffi_func *f;
 	const char *s;
 	szl_int addr;
 	size_t len;
 	int i, j;
 
-	if (szl_obj_int(objv[1], &addr) != SZL_OK)
+	if (!szl_obj_int(objv[1], &addr))
 		return SZL_ERR;
 
 	if (!addr) {
-		szl_set_result_str(interp, ret, "NULL function address");
+		szl_set_result_str(interp, "NULL function address", -1);
 		return SZL_ERR;
 	}
 
@@ -1095,7 +1110,7 @@ enum szl_res szl_ffi_proc_function(struct szl_interp *interp,
 
 	f->rtype = szl_ffi_get_type(s);
 	if (!f->rtype) {
-		szl_set_result_fmt(interp, ret, "bad ret type: %s", s);
+		szl_set_result_fmt(interp, "bad ret type: %s", s);
 		free(f);
 		return SZL_ERR;
 	}
@@ -1119,7 +1134,7 @@ enum szl_res szl_ffi_proc_function(struct szl_interp *interp,
 			j = i - 3;
 			f->atypes[j] = szl_ffi_get_type(s);
 			if (!f->atypes[j] || (f->atypes[j] == &ffi_type_void)) {
-				szl_set_result_fmt(interp, ret, "bad arg type: %s", s);
+				szl_set_result_fmt(interp, "bad arg type: %s", s);
 				free(f->atypes);
 				free(f);
 				return SZL_ERR;
@@ -1139,16 +1154,20 @@ enum szl_res szl_ffi_proc_function(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	szl_new_obj_name(interp, "ffi.function", buf, sizeof(buf));
-	*ret = szl_new_proc(interp,
-	                    buf,
-	                    2 + f->argc, /* procedure, return value and arguments */
-	                    2 + f->argc,
-	                    "$func ret ?arg...?",
-	                    szl_ffi_function_proc,
-	                    szl_ffi_function_del,
-	                    f);
-	if (!*ret) {
+	szl_new_obj_name(interp,
+	                 "ffi.function",
+	                 buf,
+	                 sizeof(buf),
+	                 (szl_int)(intptr_t)f);
+	obj = szl_new_proc(interp,
+	                   buf,
+	                   2 + f->argc, /* procedure, return value and arguments */
+	                   2 + f->argc,
+	                   "$func ret ?arg...?",
+	                   szl_ffi_function_proc,
+	                   szl_ffi_function_del,
+	                   f);
+	if (!obj) {
 		if (f->atypes)
 			free(f->atypes);
 		free(f);
@@ -1157,79 +1176,75 @@ enum szl_res szl_ffi_proc_function(struct szl_interp *interp,
 
 	f->p = (void *)(intptr_t)addr;
 	f->addr = szl_obj_ref(objv[1]);
-	szl_obj_ref(*ret);
-	return SZL_OK;
+	return szl_set_result(interp, szl_obj_ref(obj));
 }
 
-enum szl_res szl_init_ffi(struct szl_interp *interp)
+int szl_init_ffi(struct szl_interp *interp)
 {
-	if ((!SZL_FFI_NEW_OBJ_PROC(int8)) ||
-	    (!SZL_FFI_NEW_OBJ_PROC_ALIAS(int8, char)) ||
-	    (!SZL_FFI_NEW_OBJ_PROC(uint8)) ||
-	    (!SZL_FFI_NEW_OBJ_PROC_ALIAS(uint8, uchar)) ||
-	    (!SZL_FFI_NEW_OBJ_PROC(int16)) ||
-	    (!SZL_FFI_NEW_OBJ_PROC(uint16)) ||
-	    (!SZL_FFI_NEW_OBJ_PROC_ALIAS(uint32, dword)) ||
-	    (!SZL_FFI_NEW_OBJ_PROC(int32)) ||
-	    (!SZL_FFI_NEW_OBJ_PROC(uint32)) ||
-	    (!SZL_FFI_NEW_OBJ_PROC(int64)) ||
-	    (!SZL_FFI_NEW_OBJ_PROC(uint64)) ||
-	    (!SZL_FFI_NEW_OBJ_PROC(short)) ||
-	    (!SZL_FFI_NEW_OBJ_PROC(ushort)) ||
-	    (!SZL_FFI_NEW_OBJ_PROC(int)) ||
-	    (!SZL_FFI_NEW_OBJ_PROC(uint)) ||
-	    (!SZL_FFI_NEW_OBJ_PROC(long)) ||
-	    (!SZL_FFI_NEW_OBJ_PROC(ulong)) ||
-	    (!SZL_FFI_NEW_OBJ_PROC(pointer)) ||
-	    (!szl_new_proc(interp,
-	                   "ffi.void",
-	                   1,
-	                   1,
-	                   "ffi.void",
-	                   SZL_FFI_NEW_PROC_NAME(void),
-	                   NULL,
-	                   NULL)) ||
-	    (!szl_new_proc(interp,
-	                   "ffi.string",
-	                   3,
-	                   4,
-	                   "ffi.string at|copy addr|obj ?len?",
-	                   SZL_FFI_NEW_PROC_NAME(string),
-	                   NULL,
-	                   NULL)) ||
-	    (!szl_new_proc(interp,
-	                   "ffi.cast",
-	                   3,
-	                   3,
-	                   "ffi.cast addr type",
-	                   szl_ffi_proc_cast,
-	                   NULL,
-	                   NULL)) ||
-	    (!szl_new_proc(interp,
-	                   "ffi.struct",
-	                   3,
-	                   -1,
-	                   "ffi.struct raw type...",
-	                   szl_ffi_proc_struct,
-	                   NULL,
-	                   NULL)) ||
-	    (!szl_new_proc(interp,
-	                   "ffi.dlopen",
-	                   2,
-	                   2,
-	                   "ffi.dlopen path",
-	                   szl_ffi_proc_dlopen,
-	                   NULL,
-	                   NULL)) ||
-	    (!szl_new_proc(interp,
-	                   "ffi.function",
-	                   3,
-	                   2 + SZL_FFI_MAX_FUNC_ARGC,
-	                   "ffi.function addr rtype ?type...?",
-	                   szl_ffi_proc_function,
-	                   NULL,
-	                   NULL)))
-		return SZL_ERR;
-
-	return SZL_OK;
+	return ((SZL_FFI_NEW_OBJ_PROC(int8)) &&
+	        (SZL_FFI_NEW_OBJ_PROC_ALIAS(int8, char)) &&
+	        (SZL_FFI_NEW_OBJ_PROC(uint8)) &&
+	        (SZL_FFI_NEW_OBJ_PROC_ALIAS(uint8, uchar)) &&
+	        (SZL_FFI_NEW_OBJ_PROC(int16)) &&
+	        (SZL_FFI_NEW_OBJ_PROC(uint16)) &&
+	        (SZL_FFI_NEW_OBJ_PROC_ALIAS(uint32, dword)) &&
+	        (SZL_FFI_NEW_OBJ_PROC(int32)) &&
+	        (SZL_FFI_NEW_OBJ_PROC(uint32)) &&
+	        (SZL_FFI_NEW_OBJ_PROC(int64)) &&
+	        (SZL_FFI_NEW_OBJ_PROC(uint64)) &&
+	        (SZL_FFI_NEW_OBJ_PROC(short)) &&
+	        (SZL_FFI_NEW_OBJ_PROC(ushort)) &&
+	        (SZL_FFI_NEW_OBJ_PROC(int)) &&
+	        (SZL_FFI_NEW_OBJ_PROC(uint)) &&
+	        (SZL_FFI_NEW_OBJ_PROC(long)) &&
+	        (SZL_FFI_NEW_OBJ_PROC(ulong)) &&
+	        (SZL_FFI_NEW_OBJ_PROC(pointer)) &&
+	        (szl_new_proc(interp,
+	                      "ffi.void",
+	                      1,
+	                      1,
+	                      "ffi.void",
+	                      SZL_FFI_NEW_PROC_NAME(void),
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "ffi.string",
+	                      3,
+	                      4,
+	                      "ffi.string at|copy addr|obj ?len?",
+	                      SZL_FFI_NEW_PROC_NAME(string),
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "ffi.cast",
+	                      3,
+	                      3,
+	                      "ffi.cast addr type",
+	                      szl_ffi_proc_cast,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "ffi.struct",
+	                      3,
+	                      -1,
+	                      "ffi.struct raw type...",
+	                      szl_ffi_proc_struct,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "ffi.dlopen",
+	                      2,
+	                      2,
+	                      "ffi.dlopen path",
+	                      szl_ffi_proc_dlopen,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "ffi.function",
+	                      3,
+	                      2 + SZL_FFI_MAX_FUNC_ARGC,
+	                      "ffi.function addr rtype ?type...?",
+	                      szl_ffi_proc_function,
+	                      NULL,
+	                      NULL)));
 }
