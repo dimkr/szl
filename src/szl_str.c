@@ -34,11 +34,9 @@ enum szl_res szl_str_proc_length(struct szl_interp *interp,
                                  struct szl_obj **objv)
 {
 	size_t len;
-	enum szl_res res;
 
-	res = szl_obj_len(objv[1], &len);
-	if ((res != SZL_OK) || (len > INT_MAX))
-		return res;
+	if (!szl_obj_len(objv[1], &len) || (len > INT_MAX))
+		return SZL_ERR;
 
 	return szl_set_result_int(interp, (szl_int)len);
 }

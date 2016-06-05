@@ -67,6 +67,7 @@ enum szl_res szl_loop_proc_while(struct szl_interp *interp,
 		switch (res) {
 			case SZL_ERR:
 			case SZL_EXIT:
+			case SZL_RET:
 				return res;
 
 			/* do not propagate SZL_BREAK */
@@ -114,22 +115,25 @@ enum szl_res szl_loop_map(struct szl_interp *interp,
                            struct szl_obj **objv,
                            const int keep)
 {
-	const char **toks, *name, *exp, *out;
+	const char **toks, **names, *exp, *out;
 	struct szl_obj *tok, *obj = NULL;
-	size_t len, elen, i, n;
+	size_t elen, i, j, ntoks, nnames;
 	enum szl_res res, resi;
 
-	name = szl_obj_str(objv[1], &len);
-	if (!name || !len)
+	names = szl_obj_list(interp, objv[1], &nnames);
+	if (!names || !nnames)
 		return SZL_ERR;
 
 	exp = szl_obj_str(objv[3], &elen);
 	if (!exp || !elen)
 		return SZL_ERR;
 
-	toks = szl_obj_list(interp, objv[2], &n);
+	toks = szl_obj_list(interp, objv[2], &ntoks);
 	if (!toks)
 		return SZL_ERR;
+
+	if (ntoks % nnames != 0)
+		return szl_usage(interp, objv[0]);
 
 	if (keep) {
 		obj = szl_new_empty();
@@ -137,18 +141,21 @@ enum szl_res szl_loop_map(struct szl_interp *interp,
 			return SZL_ERR;
 	}
 
-	for (i = 0; i < n; ++i) {
-		tok = szl_new_str(toks[i], -1);
-		if (!tok) {
-			szl_obj_unref(obj);
-			return SZL_ERR;
-		}
+	for (i = 0; i <= ntoks - nnames; i += nnames) {
+		for (j = 0; j < nnames; ++j) {
+			tok = szl_new_str(toks[i + j], -1);
+			if (!tok) {
+				szl_obj_unref(obj);
+				return SZL_ERR;
+			}
 
-		resi = szl_local(interp, interp->current, name, tok);
-		szl_obj_unref(tok);
-		if (!resi) {
-			szl_obj_unref(obj);
-			return SZL_ERR;
+			resi = szl_local(interp, interp->current, names[j], tok);
+			szl_obj_unref(tok);
+			if (!resi) {
+				if (keep)
+					szl_obj_unref(obj);
+				return SZL_ERR;
+			}
 		}
 
 		res = szl_run_const(interp, exp, elen);
@@ -157,6 +164,12 @@ enum szl_res szl_loop_map(struct szl_interp *interp,
 
 		if (res == SZL_BREAK)
 			break;
+
+		if (res == SZL_RET) {
+			if (keep)
+				szl_obj_unref(obj);
+			return SZL_RET;
+		}
 
 		if (res != SZL_OK) {
 			if (keep)
@@ -287,7 +300,7 @@ int szl_init_loop(struct szl_interp *interp)
 	                      "for",
 	                      4,
 	                      4,
-	                      "for name list exp",
+	                      "for names list exp",
 	                      szl_loop_proc_for,
 	                      NULL,
 	                      NULL)) &&
@@ -295,7 +308,7 @@ int szl_init_loop(struct szl_interp *interp)
 	                      "lmap",
 	                      4,
 	                      4,
-	                      "lmap name list exp",
+	                      "lmap names list exp",
 	                      szl_loop_proc_lmap,
 	                      NULL,
 	                      NULL)) &&

@@ -227,6 +227,17 @@ Bear in mind that the number of arguments is zero-based (i.e. the argument count
 starts at zero): '$0' is the procedure name. In other words, all procedures
 receive at least one argument, the procedure name.
 
+In addition, a procedure may access the statement that invoked it, via the
+special '@' variable:
+
+--------------------------------------
+proc print_statement {
+	puts "invoked via $@"
+}
+
+print_statement a b {c d} e f {g h}
+--------------------------------------
+
 The return value of a procedure is either:
 
 1. The value set by to 'return', if 'return' was called within the procedure
@@ -462,13 +473,27 @@ Flow Control
 	Similar to 'while', but checks the condition after the first execution of
 	the loop body.
 
-+lmap+ 'name list exp'::
-	For each token in a list of white-space delimited tokens, runs a block with
-	a local variable that specifies the token value and returns a list of the
-	block return values.
++lmap+ 'names list exp'::
+	For each series of tokens in a list of white-space delimited tokens, runs a
+	block with local variables that specify the token values and returns a list
+	of the block return values.
+
+--------------------------------------
+puts [lmap {a b} {1 1 1 2 1 3 1 4} {calc $a + $b}]
+--------------------------------------
+
+[TIP]
+'lmap' is particularly useful for elegant one-liners, at the cost of memory
+usage (since the block return values are collected in a new list).
 
 +for+ 'name list exp'::
 	Same as 'lmap', but discards the block return values.
+
+--------------------------------------
+for {a b} {1 2 3 4 5 6 7 8} {
+	puts "a is $a and b is $b"
+}
+--------------------------------------
 
 +range+ '?start? end'::
 	Returns a space-delimited string with integers in a given range. The maximum
@@ -598,6 +623,21 @@ purpose data compression library.
 	default, *small* buffer size of 64K which guarantees lower memory
 	footprint at the cost of speed. It is *highly recommended* to use a bigger
 	size, on systems without a severe memory constraint.
+
+dict
+^^^^
+The 'dict' extension is a slow, trivial +szl+ implementation of associative
+arrays on top of lists and 'zlib.crc32'.
+
++dict.new+::
+	Creates an empty dictionary.
+
++dict.set+ 'name k v'::
+	Sets the dictionary value associated with a key.
+
++dict.get+ 'obj k'::
+	Returns the dictionary value associated with a key, or throws an exception
+	if the key is missing.
 
 ffi
 ^^^
@@ -887,25 +927,16 @@ The status code determines the direction of the script flow:
   block.
 * 'SZL_CONT': instead of executing the next statement in the loop body, the
   interpreter will continue to the next iteration.
-
-For example, in pseudo-code, the logic of 'while' is similar to this:
---------------------------------------
-for each line in (loop body):
-	free(previous_return_value)
-
-	status_code + return_value = [line]
-
-	if status_code != SZL_CONTINUE and status_code != SZL_OK
-	     break
-
-	previous_return_value = return_value
-
-return $last_return_value
---------------------------------------
+* 'SZL_RET': the interpreter will stop the execution of statements in the
+  current block and propagate the return value until it reaches a +szl+
+  procedure.
+* 'SZL_EXIT': the interpreter will stop the execution of statements and
+  propagate the return value until the script execution stops.
 
 'break' and 'continue' are empty procedures that only return a status code
-('SZL_BREAK' and 'SZL_CONT', respectively). 'throw' returns 'SZL_BREAK', but
-also has a return value.
+('SZL_BREAK' and 'SZL_CONT', respectively). 'throw', 'return' and 'exit' return
+'SZL_BREAK', 'SZL_RET' and 'SZL_EXIT', respectively, but also set the return
+value.
 
 Extensions
 ~~~~~~~~~~

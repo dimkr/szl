@@ -45,7 +45,7 @@ BUILTIN_EXT_NAMES = obj proc str exc socket null logic io list math loop ext \
 BUILTIN_EXT_SRCS = $(addsuffix .c,$(addprefix szl_,$(BUILTIN_EXT_NAMES)))
 BUILTIN_EXT_OBJECTS = $(BUILTIN_EXT_SRCS:.c=.o)
 
-EXTERNAL_EXT_NAMES = tls zlib ffi curl
+EXTERNAL_EXT_NAMES = tls zlib dict ffi curl
 EXTERNAL_EXT_SRCS = $(addsuffix .c,$(addprefix szl_,$(EXTERNAL_EXT_NAMES)))
 EXTERNAL_EXT_OBJECTS = $(EXTERNAL_EXT_SRCS:.c=.o)
 EXTERNAL_EXT_LIBS = $(EXTERNAL_EXT_SRCS:.c=.so)
@@ -116,6 +116,9 @@ szlsh: szlsh.o libszl.so
 szl_zlib.o: szl_zlib.c szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS) $(ZLIB_CFLAGS)
 
+szl_dict.o: szl_dict.c szl_dict.inc szl_conf.h
+	$(CC) -c -o $@ $< $(CFLAGS)
+
 szl_tls.o: szl_tls.c szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS) $(OPENSSL_CFLAGS)
 
@@ -124,6 +127,9 @@ szl_tls.so: szl_tls.o $(SHARED_LIB)
 
 szl_zlib.so: szl_zlib.o $(SHARED_LIB)
 	$(CC) -o $@ $< $(LDFLAGS) -shared $(EXT_LIBS) $(ZLIB_LIBS)
+
+szl_dict.so: szl_dict.o $(SHARED_LIB)
+	$(CC) -o $@ $< $(LDFLAGS) -shared $(EXT_LIBS)
 
 szl_ffi.o: szl_ffi.c szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS) $(LIBFFI_CFLAGS)

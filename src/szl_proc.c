@@ -164,14 +164,19 @@ enum szl_res szl_proc_eval_proc(struct szl_interp *interp,
                                 struct szl_obj **objv)
 {
 	char buf[SZL_MAX_OBJC_DIGITS + 1];
-	struct szl_obj *argc_obj;
-	const char *s;
-	size_t len;
+	struct szl_obj *argv_obj, *argc_obj;
+	const char *s, *exp;
+	size_t len, elen;
 	int i, resi;
 	enum szl_res res;
 
 	s = szl_obj_str((struct szl_obj *)objv[0]->priv, &len);
 	if (!s)
+		return SZL_ERR;
+
+	/* get the currently running expression */
+	exp = szl_obj_strdup(interp->current, &elen);
+	if (!exp || !elen)
 		return SZL_ERR;
 
 	/* create the $# object */
@@ -184,6 +189,16 @@ enum szl_res szl_proc_eval_proc(struct szl_interp *interp,
 	if (!resi)
 		return SZL_ERR;
 
+	/* create the $@ object */
+	argv_obj = szl_new_str(exp, elen);
+	if (!argv_obj)
+		return SZL_ERR;
+
+	resi = szl_local(interp, interp->current, SZL_OBJV_OBJECT_NAME, argv_obj);
+	szl_obj_unref(argv_obj);
+	if (!resi)
+		return SZL_ERR;
+
 	/* create the argument objects ($0, $1, ...) */
 	for (i = 0; i < objc; ++i) {
 		sprintf(buf, "%d", i);
@@ -193,8 +208,7 @@ enum szl_res szl_proc_eval_proc(struct szl_interp *interp,
 
 	res = szl_run_const(interp, s, len);
 
-	/* the return status of return is SZL_BREAK */
-	if (res == SZL_BREAK)
+	if (res == SZL_RET)
 		return SZL_OK;
 
 	return res;
@@ -238,9 +252,9 @@ enum szl_res szl_proc_proc_return(struct szl_interp *interp,
                                   struct szl_obj **objv)
 {
 	if (objc == 2)
-		return szl_set_result(interp, szl_obj_ref(objv[1]));
+		szl_set_result(interp, szl_obj_ref(objv[1]));
 
-	return SZL_BREAK;
+	return SZL_RET;
 }
 
 int szl_init_proc(struct szl_interp *interp)

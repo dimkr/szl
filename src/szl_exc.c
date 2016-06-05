@@ -35,7 +35,7 @@ enum szl_res szl_exc_proc_try(struct szl_interp *interp,
 	const char *try = NULL, *except = NULL, *finally = NULL;
 	const char *s;
 	size_t tlen, elen = 0, flen;
-	enum szl_res res;
+	enum szl_res res, eres = SZL_OK;
 
 	switch (objc) {
 		case 6:
@@ -83,15 +83,25 @@ enum szl_res szl_exc_proc_try(struct szl_interp *interp,
 
 	res = szl_run_const(interp, try, tlen);
 	obj = szl_obj_ref(interp->last);
-	if ((res == SZL_ERR) && elen)
-		szl_run_const(interp, except, elen);
+	if ((res == SZL_ERR) && elen) {
+		eres = szl_run_const(interp, except, elen);
+		if (eres == SZL_ERR) {
+			szl_obj_unref(obj);
+			obj = szl_obj_ref(interp->last);
+		}
+	}
 
 	if (finally)
 		szl_run_const(interp, finally, flen);
 
 	szl_set_result(interp, obj);
-	if (res == SZL_ERR)
+
+	if (res == SZL_ERR) {
+		if (eres == SZL_ERR)
+			return SZL_ERR;
 		return SZL_OK;
+	}
+
 	return res;
 }
 

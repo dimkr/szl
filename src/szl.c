@@ -729,15 +729,15 @@ char *szl_obj_strdup(struct szl_obj *obj, size_t *len)
 	return NULL;
 }
 
-enum szl_res szl_obj_len(struct szl_obj *obj, size_t *len)
+int szl_obj_len(struct szl_obj *obj, size_t *len)
 {
 	const char *s;
 
 	s = szl_obj_str(obj, len);
 	if (!s)
-		return SZL_ERR;
+		return 0;
 
-	return SZL_OK;
+	return 1;
 }
 
 int szl_obj_istrue(struct szl_obj *obj)
@@ -1433,7 +1433,10 @@ enum szl_res szl_run_line(struct szl_interp *interp, char *s, size_t len)
 
 	/* set the special SZL_PREV_RET_OBJ_NAME variable so it points to the
 	 * procedure return value */
-	if (!szl_local(interp, interp->current, SZL_PREV_RET_OBJ_NAME, interp->last))
+	if (!szl_local(interp,
+	               interp->current,
+	               SZL_PREV_RET_OBJ_NAME,
+	               interp->last))
 		return SZL_ERR;
 
 	return res;

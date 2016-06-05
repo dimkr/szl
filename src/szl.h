@@ -80,6 +80,12 @@
 #	define SZL_COMMENT_PREFIX '#'
 
 /**
+ * @def SZL_OBJV_OBJECT_NAME
+ * The name of the special object containing the arguments of a procedure
+ */
+#	define SZL_OBJV_OBJECT_NAME "@"
+
+/**
  * @def SZL_OBJC_OBJECT_NAME
  * The name of the special object containing the argument count of a procedure
  */
@@ -165,6 +171,8 @@ enum szl_res {
 	SZL_ERR, /**< Error: the next statement shall not be executed */
 	SZL_BREAK, /**< Success, but the next statement shall not be executed */
 	SZL_CONT, /**< Jump back to the first statement in the loop body */
+	SZL_RET, /**< Stop execution of statements in the current block and
+	              stop the caller with SZL_BREAK */
 	SZL_EXIT /**< Exit the script */
 };
 
@@ -358,7 +366,7 @@ void szl_obj_unref(struct szl_obj *obj);
  *                           char *buf,
  *                           const size_t len,
  *                           const szl_int id)
- * @brief Creates a random name for a newly created variable
+ * @brief Creates a unique name for a newly created variable
  * @param interp [in,out] An interpreter
  * @param pfix [in] A prefix for the variable name
  * @param buf [out] The output buffer
@@ -376,7 +384,7 @@ void szl_new_obj_name(struct szl_interp *interp,
 /**
  * @fn struct szl_obj *szl_new_str_noalloc(char *s, const size_t len)
  * @brief Creates a new string object
- * @param s [in] The string
+ * @param s [in] The string, allocated using malloc()
  * @param len [in,out] The string length
  * @return A new reference to the created string object or NULL
  * @note s is used to represent the object value; it is freed automatically
@@ -483,8 +491,8 @@ struct szl_obj *szl_new_proc(struct szl_interp *interp,
 #	define szl_true szl_one
 
 /**
- * @def szl_empty
- * Returns a new reference to the empty string singleton
+ * @def szl_last
+ * Returns a new reference to the last return value
  */
 #	define szl_last(interp) szl_obj_ref(interp->last)
 
@@ -502,7 +510,6 @@ struct szl_obj *szl_new_proc(struct szl_interp *interp,
  * @param interp [in,out] An interpreter
  * @param s [in,out] A string
  * @param argc [out] The number of tokens
- * @param out [out] An error message, upon failure
  * @return An array of substrings or NULL
  */
 char **szl_split(struct szl_interp *interp, char *s, int *argc);
@@ -573,13 +580,13 @@ char *szl_obj_str(struct szl_obj *obj, size_t *len);
 char *szl_obj_strdup(struct szl_obj *obj, size_t *len);
 
 /**
- * @fn enum szl_res szl_obj_len(struct szl_obj *obj, size_t *len)
+ * @fn int szl_obj_len(struct szl_obj *obj, size_t *len)
  * @brief Returns the length of the string representation of an object
  * @param obj [in,out] The object
  * @param len [out] The string length
- * @return SZL_OK or SZL_ERR
+ * @return 1 or 0
  */
-enum szl_res szl_obj_len(struct szl_obj *obj, size_t *len);
+int szl_obj_len(struct szl_obj *obj, size_t *len);
 
 /**
  * @fn int szl_obj_int(struct szl_obj *obj, szl_int *i)
@@ -733,7 +740,6 @@ enum szl_res szl_set_result_str(struct szl_interp *interp,
  * @brief Replaces the existing return value object of a procedure with a newly
  *        created, printf()-style formatted string object
  * @param interp [in,out] An interpreter
- * @param out [in,out] The procedure return value object
  * @param fmt [in] The format string
  * @return SZL_OK or SZL_ERR
  */
