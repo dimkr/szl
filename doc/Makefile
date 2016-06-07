@@ -33,7 +33,7 @@ all: $(DOCS)
 	sed -e s~@EXT_DIR@~$(EXT_DIR)~ -e s~@DOC_DIR@~$(DOC_DIR)~ $^ > $@
 
 %.html: %.txt
-	asciidoc -o $@ $^
+	asciidoc -a toc -a toclevels=4 -o $@ $^
 
 api_doc: doxygen.conf ../src/szl.h
 	doxygen $^

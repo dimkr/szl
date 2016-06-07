@@ -208,9 +208,9 @@ enum szl_res szl_loop_proc_for(struct szl_interp *interp,
 }
 
 static
-enum szl_res szl_loop_proc_lmap(struct szl_interp *interp,
-                                const int objc,
-                                struct szl_obj **objv)
+enum szl_res szl_loop_proc_map(struct szl_interp *interp,
+                               const int objc,
+                               struct szl_obj **objv)
 {
 	return szl_loop_map(interp, objc, objv, 1);
 }
@@ -305,11 +305,11 @@ int szl_init_loop(struct szl_interp *interp)
 	                      NULL,
 	                      NULL)) &&
 	        (szl_new_proc(interp,
-	                      "lmap",
+	                      "map",
 	                      4,
 	                      4,
-	                      "lmap names list exp",
-	                      szl_loop_proc_lmap,
+	                      "map names list exp",
+	                      szl_loop_proc_map,
 	                      NULL,
 	                      NULL)) &&
 	        (szl_new_proc(interp,

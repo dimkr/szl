@@ -165,8 +165,8 @@ enum szl_res szl_proc_eval_proc(struct szl_interp *interp,
 {
 	char buf[SZL_MAX_OBJC_DIGITS + 1];
 	struct szl_obj *argv_obj, *argc_obj;
-	const char *s, *exp;
-	size_t len, elen;
+	const char *s, *tok, *exp;
+	size_t len, elen, tlen;
 	int i, resi;
 	enum szl_res res;
 
@@ -190,9 +190,22 @@ enum szl_res szl_proc_eval_proc(struct szl_interp *interp,
 		return SZL_ERR;
 
 	/* create the $@ object */
-	argv_obj = szl_new_str(exp, elen);
+	argv_obj = szl_new_empty();
 	if (!argv_obj)
 		return SZL_ERR;
+
+	for (i = 0; i < objc; ++i) {
+		tok = szl_obj_str(objv[i], &tlen);
+		if (!tok) {
+			szl_obj_unref(argv_obj);
+			return SZL_ERR;
+		}
+
+		if (!szl_lappend_str(argv_obj, tok)) {
+			szl_obj_unref(argv_obj);
+			return SZL_ERR;
+		}
+	}
 
 	resi = szl_local(interp, interp->current, SZL_OBJV_OBJECT_NAME, argv_obj);
 	szl_obj_unref(argv_obj);

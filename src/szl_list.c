@@ -82,6 +82,42 @@ enum szl_res szl_list_proc_index(struct szl_interp *interp,
 	return szl_set_result_str(interp, toks[i], -1);
 }
 
+static
+enum szl_res szl_list_proc_range(struct szl_interp *interp,
+                                 const int objc,
+                                 struct szl_obj **objv)
+{
+	struct szl_obj *obj;
+	const char **toks;
+	szl_int start, end, i;
+	size_t n;
+
+	toks = szl_obj_list(interp, objv[1], &n);
+	if (!toks || (n >= SZL_INT_MAX))
+		return SZL_ERR;
+
+	if (!szl_obj_int(objv[2], &start) ||
+	    (start < 0) ||
+	    (start >= (szl_int)n) ||
+	    !szl_obj_int(objv[3], &end) ||
+	    (end < start) ||
+	    (end >= (szl_int)n))
+		return SZL_ERR;
+
+	obj = szl_new_empty();
+	if (!obj)
+		return SZL_ERR;
+
+	for (i = start; i <= end; ++i) {
+		if (!szl_lappend_str(obj, toks[i])) {
+			szl_obj_unref(obj);
+			return SZL_ERR;
+		}
+	}
+
+	return szl_set_result(interp, obj);
+}
+
 int szl_init_list(struct szl_interp *interp)
 {
 	return ((szl_new_proc(interp,
@@ -106,6 +142,14 @@ int szl_init_list(struct szl_interp *interp)
 	                      3,
 	                      "list.index obj index",
 	                      szl_list_proc_index,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "list.range",
+	                      4,
+	                      4,
+	                      "list.range obj start end",
+	                      szl_list_proc_range,
 	                      NULL,
 	                      NULL)));
 }

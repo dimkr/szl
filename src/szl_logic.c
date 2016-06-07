@@ -118,6 +118,36 @@ enum szl_res szl_logic_proc_not(struct szl_interp *interp,
 }
 
 static
+enum szl_res szl_logic_proc_any(struct szl_interp *interp,
+                                const int objc,
+                                struct szl_obj **objv)
+{
+	int i;
+
+	for (i = 1; i < objc; ++i) {
+		if (szl_obj_istrue(objv[i]))
+			return szl_set_result_bool(interp, 1);
+	}
+
+	return szl_set_result_bool(interp, 0);
+}
+
+static
+enum szl_res szl_logic_proc_all(struct szl_interp *interp,
+                                const int objc,
+                                struct szl_obj **objv)
+{
+	int i;
+
+	for (i = 1; i < objc; ++i) {
+		if (szl_obj_isfalse(objv[i]))
+			return szl_set_result_bool(interp, 0);
+	}
+
+	return szl_set_result_bool(interp, 1);
+}
+
+static
 enum szl_res szl_logic_proc_if(struct szl_interp *interp,
                                const int objc,
                                struct szl_obj **objv)
@@ -177,6 +207,22 @@ int szl_init_logic(struct szl_interp *interp)
 	                      2,
 	                      "not obj",
 	                      szl_logic_proc_not,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "any",
+	                      2,
+	                      -1,
+	                      "any cond...",
+	                      szl_logic_proc_any,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "all",
+	                      2,
+	                      -1,
+	                      "all cond...",
+	                      szl_logic_proc_all,
 	                      NULL,
 	                      NULL)) &&
 	        (szl_new_proc(interp,
