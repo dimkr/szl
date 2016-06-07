@@ -33,6 +33,9 @@ LIBFFI_LIBS = $(shell pkg-config --libs libffi)
 CURL_CFLAGS = $(shell pkg-config --cflags libcurl)
 CURL_LIBS = $(shell pkg-config --libs libcurl)
 
+LIBARCHIVE_CFLAGS = $(shell pkg-config --cflags libarchive)
+LIBARCHIVE_LIBS = $(shell pkg-config --libs libarchive)
+
 EXT_LIBS = -lszl
 
 STATIC_LIB = libszl.a
@@ -45,7 +48,7 @@ BUILTIN_EXT_NAMES = obj proc str exc socket null logic io list math loop ext \
 BUILTIN_EXT_SRCS = $(addsuffix .c,$(addprefix szl_,$(BUILTIN_EXT_NAMES)))
 BUILTIN_EXT_OBJECTS = $(BUILTIN_EXT_SRCS:.c=.o)
 
-EXTERNAL_EXT_NAMES = tls zlib dict ffi curl
+EXTERNAL_EXT_NAMES = tls zlib dict ffi curl archive
 EXTERNAL_EXT_SRCS = $(addsuffix .c,$(addprefix szl_,$(EXTERNAL_EXT_NAMES)))
 EXTERNAL_EXT_OBJECTS = $(EXTERNAL_EXT_SRCS:.c=.o)
 EXTERNAL_EXT_LIBS = $(EXTERNAL_EXT_SRCS:.c=.so)
@@ -142,6 +145,12 @@ szl_curl.o: szl_curl.c szl_conf.h
 
 szl_curl.so: szl_curl.o $(SHARED_LIB)
 	$(CC) -o $@ $< $(LDFLAGS) -shared $(EXT_LIBS) $(CURL_LIBS)
+
+szl_archive.o: szl_archive.c szl_conf.h
+	$(CC) -c -o $@ $< $(CFLAGS) $(LIBARCHIVE_CFLAGS)
+
+szl_archive.so: szl_archive.o $(SHARED_LIB)
+	$(CC) -o $@ $< $(LDFLAGS) -shared $(EXT_LIBS) $(LIBARCHIVE_LIBS)
 
 install: all
 	$(INSTALL) -D -m 755 szlsh $(DESTDIR)/$(BIN_DIR)/szlsh

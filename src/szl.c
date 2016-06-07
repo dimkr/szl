@@ -1342,9 +1342,9 @@ SZL_STATIC
 enum szl_res szl_run_line(struct szl_interp *interp, char *s, size_t len)
 {
 	struct szl_obj *call, **objv, *prev_caller;
-	char **argv;
+	const char **argv;
 	enum szl_res res;
-	int argc, i, j;
+	size_t argc, i, j;
 
 	/* make sure the line is terminated */
 	s[len] = '\0';
@@ -1357,15 +1357,14 @@ enum szl_res szl_run_line(struct szl_interp *interp, char *s, size_t len)
 		return SZL_ERR;
 
 	/* split the command arguments */
-	argv = szl_split(interp, s, &argc);
-	if (!argv) {
+	argv = szl_obj_list(interp, call, &argc);
+	if (!argv || (argc > INT_MAX)) {
 		szl_obj_unref(call);
 		return SZL_ERR;
 	}
 
 	objv = (struct szl_obj **)malloc(sizeof(struct szl_obj *) * argc);
 	if (!objv) {
-		free(argv);
 		szl_obj_unref(call);
 		return SZL_ERR;
 	}
@@ -1384,7 +1383,6 @@ enum szl_res szl_run_line(struct szl_interp *interp, char *s, size_t len)
 			szl_set_result(interp, objv[0]);
 		szl_obj_unref(call);
 		free(objv);
-		free(argv);
 		return res;
 	}
 
@@ -1411,12 +1409,12 @@ enum szl_res szl_run_line(struct szl_interp *interp, char *s, size_t len)
 
 			szl_obj_unref(call);
 			free(objv);
-			free(argv);
 			return SZL_ERR;
 		}
 	}
 
 	/* call objv[0] */
+	szl_empty_result(interp);
 	res = szl_call(interp, argc, objv);
 
 	interp->current = interp->caller;
@@ -1429,7 +1427,6 @@ enum szl_res szl_run_line(struct szl_interp *interp, char *s, size_t len)
 
 	szl_obj_unref(call);
 	free(objv);
-	free(argv);
 
 	/* set the special SZL_PREV_RET_OBJ_NAME variable so it points to the
 	 * procedure return value */
@@ -1759,6 +1756,10 @@ static void szl_stream_close(struct szl_stream *strm)
 	if (!strm->closed) {
 		if (strm->ops->close)
 			strm->ops->close(strm->priv);
+
+		if (strm->buf)
+			free(strm->buf);
+
 		strm->closed = 1;
 	}
 }

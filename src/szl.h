@@ -127,6 +127,12 @@ typedef intmax_t szl_int;
 #	define SZL_INT_FMT "%jd"
 
 /**
+ * @def SZL_INT_MAX
+ * The maximum value of an szl_int
+ */
+#	define SZL_INT_MAX INTMAX_MAX
+
+/**
  * @def SZL_INT_MIN
  * The minimum value of an szl_int
  */
@@ -669,6 +675,7 @@ struct szl_stream {
 	const struct szl_stream_ops *ops; /**< The underlying implementation */
 	szl_bool closed; /**< A flag set once the stream is closed */
 	void *priv; /**< Private, implementation-specific data */
+	void *buf; /**< A chunked I/O buffer */
 };
 
 /**

@@ -8,7 +8,7 @@ Dima Krasner <dima@dimakrasner.com>
 Introduction
 ------------
 +szl+ (pronounced "sizzle") is a scripting language heavily inspired by Tcl and
-shell. It follows three design principles:
+shell. It follows four design principles:
 
 1. Less syntax: there should be only *one, obvious way* to achieve a certain
    effect, to make the language easier to learn
@@ -18,9 +18,13 @@ shell. It follows three design principles:
 - Every statement is a procedure call
 3. Minimal standard library, but comprehensive and useful enough to allow the
    addition of more complex operations
+4. One-liners are first-class citizens and *not* frowned upon
 
 [quote, 'Vincent Van Gogh']
 Great things are ... done by a series of small things brought together.
+
+The +szl+ interpreter is designed as a static library which exposes an
+high-level API and can be embedded in other software projects.
 
 The term "+szl+" refers to *both* the programming language and its official
 interpreter, depending on the context.
@@ -406,6 +410,18 @@ Use 'with' to implement relatively short file operations (like reading and
 parsing) as one-liners, instead of using the longer
 'try {...} finally {$file close}'.
 
++file.size+ 'path'::
+	Returns the size of a file.
+
++file.delete+ 'path'::
+	Deletes a file.
+
++mkdir+ 'path'::
+	Creates a directory.
+
++cd+ 'path'::
+	Changes the working directory.
+
 +$stdin+::
 +$stdout+::
 +$stderr+::
@@ -755,6 +771,20 @@ https://curl.haxx.se/[cURL].
 
 +curl.get+ 'url path...'::
 	Downloads multiple files in parallel.
+
+archive
+^^^^^^^
+The 'archive' extension is a +szl+ wrapper for
+http://www.libarchive.org/[libarchive].
+
++archive.open+ 'data'::
+	Opens an archive.
+
++$archive+ 'list'::
+	Lists files contained in an archive.
+
++$archive+ 'extract'::
+	Extracts files contained in an archive to the working directory.
 
 Best Practices
 ~~~~~~~~~~~~~~

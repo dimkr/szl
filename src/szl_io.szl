@@ -47,8 +47,8 @@ try {
 
 proc puts {
 	if [test $# != 2] {throw {bad puts usage: puts msg}}
-	if [test [string.tail $1] != \n] {string.append 1 "\n"}
 	$stdout write $1
+	if [test [string.tail $1] != \n] {$stdout write "\n"}
 }
 
 proc dup {

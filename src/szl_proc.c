@@ -175,7 +175,7 @@ enum szl_res szl_proc_eval_proc(struct szl_interp *interp,
 		return SZL_ERR;
 
 	/* get the currently running expression */
-	exp = szl_obj_strdup(interp->current, &elen);
+	exp = szl_obj_str(interp->current, &elen);
 	if (!exp || !elen)
 		return SZL_ERR;
 

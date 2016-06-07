@@ -24,6 +24,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
@@ -104,7 +106,26 @@ static const struct szl_stream_ops szl_file_ops = {
 };
 
 static
-int szl_new_file(struct szl_interp *interp, FILE *fp)
+int szl_io_enable_buffering(struct szl_stream *strm, FILE *fp, const char *mode)
+{
+	if (strchr(mode, 'b')) {
+		strm->buf = malloc(SZL_BINARY_FILE_BUFSIZ);
+		if (!strm->buf)
+			return 0;
+
+		if (setvbuf(fp, strm->buf, _IOFBF, SZL_BINARY_FILE_BUFSIZ) != 0) {
+			free(strm->buf);
+			return 0;
+		}
+	}
+	else
+		strm->buf = NULL;
+
+	return 1;
+}
+
+static
+int szl_new_file(struct szl_interp *interp, FILE *fp, const char *mode)
 {
 	struct szl_obj *obj;
 	struct szl_stream *strm;
@@ -123,26 +144,12 @@ int szl_new_file(struct szl_interp *interp, FILE *fp)
 		return 0;
 	}
 
-	szl_set_result(interp, obj);
-	return 1;
-}
-
-static
-int szl_io_enable_buffering(FILE *fp, const char *mode)
-{
-	void *buf;
-
-	if (strchr(mode, 'b')) {
-		buf = malloc(SZL_BINARY_FILE_BUFSIZ);
-		if (!buf)
-			return 0;
-
-		if (setvbuf(fp, buf, _IOFBF, SZL_BINARY_FILE_BUFSIZ) != 0) {
-			free(buf);
-			return 0;
-		}
+	if (!szl_io_enable_buffering(strm, fp, mode)) {
+		szl_stream_free(strm);
+		return 0;
 	}
 
+	szl_set_result(interp, obj);
 	return 1;
 }
 
@@ -167,12 +174,7 @@ enum szl_res szl_io_proc_open(struct szl_interp *interp,
 	if (!fp)
 		return SZL_ERR;
 
-	if (!szl_io_enable_buffering(fp, mode)) {
-		fclose(fp);
-		return SZL_ERR;
-	}
-
-	if (!szl_new_file(interp, fp)) {
+	if (!szl_new_file(interp, fp, mode)) {
 		fclose(fp);
 		return SZL_ERR;
 	}
@@ -201,12 +203,7 @@ enum szl_res szl_io_proc_fdopen(struct szl_interp *interp,
 	if (!fp)
 		return SZL_ERR;
 
-	if (!szl_io_enable_buffering(fp, mode)) {
-		fclose(fp);
-		return SZL_ERR;
-	}
-
-	if (!szl_new_file(interp, fp)) {
+	if (!szl_new_file(interp, fp, mode)) {
 		fclose(fp);
 		return SZL_ERR;
 	}
@@ -229,6 +226,79 @@ enum szl_res szl_io_proc_dup(struct szl_interp *interp,
 		return SZL_ERR;
 
 	return szl_set_result_int(interp, fd);
+}
+
+static
+enum szl_res szl_io_proc_size(struct szl_interp *interp,
+                              const int objc,
+                              struct szl_obj **objv)
+{
+	struct stat stbuf;
+	const char *path;
+	size_t len;
+
+	path = szl_obj_str(objv[1], &len);
+	if (!path || !len)
+		return SZL_ERR;
+
+	if ((stat(path, &stbuf) < 0) || (stbuf.st_size > SZL_INT_MAX))
+		return SZL_ERR;
+
+	return szl_set_result_int(interp, (szl_int)stbuf.st_size);
+}
+
+static
+enum szl_res szl_io_proc_delete(struct szl_interp *interp,
+                                const int objc,
+                                struct szl_obj **objv)
+{
+	const char *path;
+	size_t len;
+
+	path = szl_obj_str(objv[1], &len);
+	if (!path || !len)
+		return SZL_ERR;
+
+	if (unlink(path) < 0)
+		return SZL_ERR;
+
+	return SZL_OK;
+}
+
+static
+enum szl_res szl_io_proc_mkdir(struct szl_interp *interp,
+                               const int objc,
+                               struct szl_obj **objv)
+{
+	const char *path;
+	size_t len;
+
+	path = szl_obj_str(objv[1], &len);
+	if (!path || !len)
+		return SZL_ERR;
+
+	if (mkdir(path, 0755) < 0)
+		return SZL_ERR;
+
+	return SZL_OK;
+}
+
+static
+enum szl_res szl_io_proc_cd(struct szl_interp *interp,
+                            const int objc,
+                            struct szl_obj **objv)
+{
+	const char *path;
+	size_t len;
+
+	path = szl_obj_str(objv[1], &len);
+	if (!path || !len)
+		return SZL_ERR;
+
+	if (chdir(path) < 0)
+		return SZL_ERR;
+
+	return SZL_OK;
 }
 
 int szl_init_io(struct szl_interp *interp)
@@ -255,6 +325,38 @@ int szl_init_io(struct szl_interp *interp)
 	                      2,
 	                      "_io.dup handle",
 	                      szl_io_proc_dup,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "file.size",
+	                      2,
+	                      2,
+	                      "file.size path",
+	                      szl_io_proc_size,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "file.delete",
+	                      2,
+	                      2,
+	                      "file.delete path",
+	                      szl_io_proc_delete,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "mkdir",
+	                      2,
+	                      2,
+	                      "mkdir path",
+	                      szl_io_proc_mkdir,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "cd",
+	                      2,
+	                      2,
+	                      "cd path",
+	                      szl_io_proc_cd,
 	                      NULL,
 	                      NULL)) &&
 	        (szl_run_const(interp,
