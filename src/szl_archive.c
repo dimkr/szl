@@ -168,7 +168,8 @@ enum szl_res szl_archive_proc(struct szl_interp *interp,
 	return SZL_OK;
 }
 
-static void szl_archive_del(void *priv)
+static
+void szl_archive_del(void *priv)
 {
 	struct szl_archive *ar = (struct szl_archive *)priv;
 

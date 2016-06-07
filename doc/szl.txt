@@ -416,6 +416,15 @@ parsing) as one-liners, instead of using the longer
 +file.delete+ 'path'::
 	Deletes a file.
 
++file.lock+ 'path'::
+	Creates a lock file and locks it.
+
++$lock+ 'unlock'::
+	Unlocks a lock file.
+
++file.locked+ 'path'::
+	Checks whether a lock file is locked.
+
 +mkdir+ 'path'::
 	Creates a directory.
 
