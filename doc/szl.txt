@@ -65,12 +65,12 @@ However, quickly enough, as more and more new ideas were translated into code,
 +szl+ evolved into a much different beast.
 
 Tutorial
-~~~~~~~~
+--------
 [quote, 'Friedrich Nietzsche']
 The doer alone learneth.
 
 Getting Started
-^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~
 Each and every +szl+ script is a text file which consists of lines in the
 following form:
 
@@ -92,7 +92,7 @@ $ szlsh script.szl
 --------------------------------------
 
 Working with Variables
-^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~
 Basically, each statement is a series of space-delimited tokens. The first
 token, which is usually a verb, is the name of a procedure (think, _function_).
 The procedure receives the rest of the tokens as arguments (input), does
@@ -126,13 +126,15 @@ puts $number
 'puts' as its argument.
 
 In +szl+, all objects (including numbers and even lists) are represented as
-strings and +szl+ knows how to treat them, depending on the context.
+strings and +szl+ knows how to treat them, depending on the context. For
+example, from the moment the 'calc' procedure receives two objects as arguments,
+they are treated as numbers.
 
 When an object is no longer used, +szl+ will automatically free all resources
 associated with it: that's "garbage collection".
 
 Grouping
-^^^^^^^^
+~~~~~~~~
 To create strings that contain spaces, they should be grouped using quotes or
 braces:
 
@@ -178,7 +180,7 @@ A block can be idented using either spaces, tabs or both. Whitespace at the
 beginning or end of statements is ignored.
 
 Using Return Values
-^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~
 To obtain the return value of a procedure, wrap the statement that calls it with
 brackets. A statement enclosed in brackets is executed and replaced with its
 return value.
@@ -205,7 +207,7 @@ local sum [calc [string.length {hello world}] - 3]
 --------------------------------------
 
 Declaring Procedures
-^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~
 +szl+ can be extended with additional procedures, using 'proc'. The following
 example defines a procedure called 'print_hello' and calls it:
 
@@ -272,7 +274,7 @@ proc bar {
 --------------------------------------
 
 Using Extensions
-^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~
 To obtain access to more procedures, +szl+ provides an extensions mechanism. For
 example, to be able to compress files using the 'zlib.gzip' procedure, the
 'zlib' extension should be loaded:
@@ -282,7 +284,7 @@ load zlib
 --------------------------------------
 
 Using Modules
-^^^^^^^^^^^^^
+~~~~~~~~~~~~~
 In addition, large +szl+ scripts can be split into several files (or "modules"),
 for easier maintenance and the ability to share parts (like helper procedures)
 between projects. For example, utility procedures can be put in 'util.szl'.
@@ -365,14 +367,16 @@ List Operations
 +list.index+ 'obj index'::
 	Returns the list item at the zero-based position 'index'.
 
-Arithmetic Operations
-+++++++++++++++++++++
++range+ '?start? end'::
+	Returns a list of integers in a given range. The maximum is non-inclusive.
+	If no minimum is specified, the range starts at '0'.
+
+Arithmetic and Logical Operations
++++++++++++++++++++++++++++++++++
 +calc+ 'obj op obj'::
 	Performs an arithmetic operation on two objects. The operation may be '+',
 	'-', '*' or '/'.
 
-Logical Operations
-++++++++++++++++++
 +test+ 'obj op obj'::
 	Compares two objects and returns '1' if the specified condition is true,
 	otherwise '0'. The comparison operation may be '==', '!=', '<', '>', '\<=',
@@ -432,10 +436,6 @@ for {a b} {1 2 3 4 5 6 7 8} {
 	puts "a is $a and b is $b"
 }
 --------------------------------------
-
-+range+ '?start? end'::
-	Returns a space-delimited string with integers in a given range. The maximum
-	is non-inclusive. If no minimum is specified, the range starts at '0'.
 
 +break+::
 	Stops the execution of a loop.
@@ -640,7 +640,8 @@ Processes
 'exec' passes 'cmd' to the default shell, so 'cmd' may rely on shell features
 such as redirection (e.g. '2>&1'):
 --------------------------------------
-exec {cp --help 2>&1}
+exec {uname -a 2>&1}
+local os $_
 puts $?
 --------------------------------------
 
@@ -833,9 +834,9 @@ http://www.libarchive.org/[libarchive].
 	Extracts files contained in an archive to the working directory.
 
 Best Practices
-~~~~~~~~~~~~~~
+--------------
 Efficiency
-^^^^^^^^^^
+~~~~~~~~~~
 [quote, 'Socrates']
 Every action has its pleasures and its price.
 
@@ -865,7 +866,7 @@ Every action has its pleasures and its price.
     is split only once.
 
 Error Handling
-^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~
 For error handling, use the shorter and more manageable approach of early
 'throw' and late 'except' -
 --------------------------------------
