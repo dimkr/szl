@@ -91,6 +91,7 @@ struct szl_stream *szl_socket_new(const int fd,
 	strm->priv = (void *)(intptr_t)fd;
 	strm->ops = ops;
 	strm->closed = 0;
+	strm->buf = NULL;
 
 	return strm;
 }

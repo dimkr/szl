@@ -62,6 +62,7 @@ enum szl_res szl_null_proc_null(struct szl_interp *interp,
 		strm->ops = &szl_null_ops;
 		strm->closed = 0;
 		strm->priv = NULL;
+		strm->buf = NULL;
 
 		interp->null = szl_new_stream(interp, strm, "null");
 		if (!interp->null) {

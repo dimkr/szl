@@ -23,18 +23,18 @@
 load zlib
 
 proc dict.new {
-	if [test $# != 1] {throw {bad dict.new usage: dict.new}}
+	if [test $# != 0] {throw {bad dict.new usage: dict.new}}
 	return {}
 }
 
 proc dict.set {
-	if [test $# != 4] {throw {bad dict.set usage: dict.set name k v}}
+	if [test $# != 3] {throw {bad dict.set usage: dict.set name k v}}
 	list.append $1 [zlib.crc32 $2]
 	list.append $1 $3
 }
 
 proc dict.get {
-	if [test $# != 3] {throw {bad dict.get usage: dict.get obj k}}
+	if [test $# != 2] {throw {bad dict.get usage: dict.get obj k}}
 	local hash [zlib.crc32 $2]
 	for {key value} $1 {if [test $key == $hash] {return $value}}
 	throw "missing key: $2"

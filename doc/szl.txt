@@ -64,11 +64,13 @@ of http://jim.tcl.tk/[jimtcl], for self-education purposes.
 However, quickly enough, as more and more new ideas were translated into code,
 +szl+ evolved into a much different beast.
 
-Getting Started
-~~~~~~~~~~~~~~~
+Tutorial
+~~~~~~~~
 [quote, 'Friedrich Nietzsche']
 The doer alone learneth.
 
+Getting Started
+^^^^^^^^^^^^^^^
 Each and every +szl+ script is a text file which consists of lines in the
 following form:
 
@@ -89,6 +91,8 @@ To run a script, run +szlsh+ (the +szl+ interpreter) in a console:
 $ szlsh script.szl
 --------------------------------------
 
+Working with Variables
+^^^^^^^^^^^^^^^^^^^^^^
 Basically, each statement is a series of space-delimited tokens. The first
 token, which is usually a verb, is the name of a procedure (think, _function_).
 The procedure receives the rest of the tokens as arguments (input), does
@@ -103,16 +107,16 @@ calc 1 + 2
 [NOTE]
 Some procedures do not receive any arguments.
 
-Objects (sometimes referred to as 'variables') are identified by name and can be
-used to store values (strings or numbers). To create a new object or change the
+Objects (sometimes referred to as 'variables') are identified by name and carry
+values (such as text strings or numbers). To create a new object or change the
 value of an existing one, use 'local':
 
 --------------------------------------
 local number 5
 --------------------------------------
 
-'local' receives the object name and its value. To query the value of an object,
-prefix its name with '$', like this:
+'local' receives the object name and its value. To query the value of an
+existing object, prefix its name with '$', like this:
 
 --------------------------------------
 puts $number
@@ -121,8 +125,16 @@ puts $number
 '$number' will be expanded: the value of 'number' will be fetched and passed to
 'puts' as its argument.
 
-To call a procedure with arguments that contain spaces, they can be grouped
-using quotes or braces:
+In +szl+, all objects (including numbers and even lists) are represented as
+strings and +szl+ knows how to treat them, depending on the context.
+
+When an object is no longer used, +szl+ will automatically free all resources
+associated with it: that's "garbage collection".
+
+Grouping
+^^^^^^^^
+To create strings that contain spaces, they should be grouped using quotes or
+braces:
 
 --------------------------------------
 local message "hello world"
@@ -165,25 +177,17 @@ if 1 {
 A block can be idented using either spaces, tabs or both. Whitespace at the
 beginning or end of statements is ignored.
 
+Using Return Values
+^^^^^^^^^^^^^^^^^^^
 To obtain the return value of a procedure, wrap the statement that calls it with
-brackets. Tokens which consist of a statement enclosed in brackets are
-executed and evaluated as their return value. For example, the following example
-executes 'calc 1 + 2.5' and stores the return value of this procedure in a
-variable:
+brackets. A statement enclosed in brackets is executed and replaced with its
+return value.
+
+For example, the following example executes 'calc 1 + 2.5' and stores the return
+value of this procedure in a variable, 'sum':
 
 --------------------------------------
 local sum [calc 1 + 2.5]
---------------------------------------
-
-Both braces and brackets may be nested, to form more complex logic using less
-code:
-
---------------------------------------
-local number 1
-while {[test [calc $number + 1] != 10]} {
-	puts $number
-	local number [calc $number + 1]
-}
 --------------------------------------
 
 [NOTE]
@@ -194,6 +198,14 @@ value, it returns an empty string.
 The return value of the previously called procedure is stored in the special
 variable '_', in the calling scope.
 
+Both braces and brackets may be nested, to form more complex logic:
+
+--------------------------------------
+local sum [calc [string.length {hello world}] - 3]
+--------------------------------------
+
+Declaring Procedures
+^^^^^^^^^^^^^^^^^^^^
 +szl+ can be extended with additional procedures, using 'proc'. The following
 example defines a procedure called 'print_hello' and calls it:
 
@@ -206,8 +218,7 @@ print_hello
 --------------------------------------
 
 Procedure arguments are accessible using variables named '1', '2' and so on. The
-following snippet (which prints 'hello') improves upon the previous example and
-demonstrates this:
+following procedure prints its first argument ('hello'):
 
 --------------------------------------
 proc print_something {
@@ -228,17 +239,12 @@ proc print_argument_count {
 print_argument_count a b c
 --------------------------------------
 
-[NOTE]
-Bear in mind that the number of arguments is zero-based (i.e. the argument count
-starts at zero): '$0' is the procedure name. In other words, all procedures
-receive at least one argument, the procedure name.
-
-In addition, a procedure may access the statement that invoked it, via the
-special '@' variable:
+In addition, a procedure may access its list of arguments, via the special '@'
+variable:
 
 --------------------------------------
 proc print_statement {
-	puts "invoked via $@"
+	puts "invoked with arguments: $@"
 }
 
 print_statement a b {c d} e f {g h}
@@ -265,6 +271,8 @@ proc bar {
 }
 --------------------------------------
 
+Using Extensions
+^^^^^^^^^^^^^^^^
 To obtain access to more procedures, +szl+ provides an extensions mechanism. For
 example, to be able to compress files using the 'zlib.gzip' procedure, the
 'zlib' extension should be loaded:
@@ -273,10 +281,12 @@ example, to be able to compress files using the 'zlib.gzip' procedure, the
 load zlib
 --------------------------------------
 
-In addition, large +szl+ scripts can be split into several files, for easier
-maintenance and the ability to share parts (like helper procedures) between
-projects. For example, utility procedures can be put in 'util.szl'. Then,
-'source' can be used to execute this file through the script body:
+Using Modules
+^^^^^^^^^^^^^
+In addition, large +szl+ scripts can be split into several files (or "modules"),
+for easier maintenance and the ability to share parts (like helper procedures)
+between projects. For example, utility procedures can be put in 'util.szl'.
+Then, 'source' can be used to execute this file through the script body:
 
 --------------------------------------
 source util.szl
@@ -286,8 +296,10 @@ Standard Library
 ----------------
 Builtin Procedures
 ~~~~~~~~~~~~~~~~~~
+Objects
+^^^^^^^
 Variables
-^^^^^^^^^
++++++++++
 +local+ 'name val'::
 	Creates a new variable in local scope.
 
@@ -306,7 +318,7 @@ a previously defined global variable, attempts to obtain the variable value from
 within the procedure will refer to the local variable.
 
 String Operations
-^^^^^^^^^^^^^^^^^
++++++++++++++++++
 +string.length+ 'obj'::
 	Returns the length of a string.
 
@@ -337,7 +349,7 @@ String Operations
 	Removes whitespace at both ends of a string.
 
 List Operations
-^^^^^^^^^^^^^^^
++++++++++++++++
 +list.length+ 'obj'::
 	Returns the number of whitespace-delimited tokens in a string. Multi-word
 	tokens may be grouped using braces.
@@ -354,10 +366,26 @@ List Operations
 	Returns the list item at the zero-based position 'index'.
 
 Arithmetic Operations
-^^^^^^^^^^^^^^^^^^^^^
++++++++++++++++++++++
 +calc+ 'obj op obj'::
 	Performs an arithmetic operation on two objects. The operation may be '+',
 	'-', '*' or '/'.
+
+Logical Operations
+++++++++++++++++++
++test+ 'obj op obj'::
+	Compares two objects and returns '1' if the specified condition is true,
+	otherwise '0'. The comparison operation may be '==', '!=', '<', '>', '\<=',
+	'>=', '&&', '||' or '^'.
+
++not+ 'cond'::
+	Returns '0' if a condition is true, otherwise '1'.
+
++any+ 'cond...'::
+	Returns '1' if at least one condition is true, otherwise '0'.
+
++all+ 'cond...'::
+	Returns '0' if at least one condition is false, otherwise '1'.
 
 Procedures
 ^^^^^^^^^^
@@ -373,23 +401,6 @@ Procedures
 
 Flow Control
 ^^^^^^^^^^^^
-+exit+ '?obj?'::
-	Stops the execution of the script and optionally, changes its return value.
-
-+test+ 'obj op obj'::
-	Compares two objects and returns '1' if the specified condition is true,
-	otherwise '0'. The comparison operation may be '==', '!=', '<', '>', '\<=',
-	'>=', '&&', '||' or '^'.
-
-+not+ 'cond'::
-	Returns '0' if a condition is true, otherwise '1'.
-
-+any+ 'cond...'::
-	Returns '1' if at least one condition is true, otherwise '0'.
-
-+all+ 'cond...'::
-	Returns '0' if at least one condition is false, otherwise '1'.
-
 +if+ 'cond exp ?else exp?'::
 	Conditionally runs a block.
 
@@ -427,15 +438,26 @@ for {a b} {1 2 3 4 5 6 7 8} {
 	is non-inclusive. If no minimum is specified, the range starts at '0'.
 
 +break+::
-	Stops the execution of a block.
+	Stops the execution of a loop.
 
 +continue+::
 	Stops the execution of a loop body and continues to the next iteration.
+
++exit+ '?obj?'::
+	Stops the execution of the script and optionally, changes its return value.
 
 +sleep+ 'sec'::
 	Suspends the script execution for a given time, specified in seconds. The
 	interval may be a floating-point number (e.g. '4.5').
 
++eval+ 'exp'::
+	Evaluates a +szl+ expression in the current scope.
+
++source+ 'path'::
+	Execute a 'szl' script in the global scope.
+
+Exceptions
+++++++++++
 +try+ 'exp ?except exp? ?finally exp?'::
 	Runs an block. Optionally, if a statement failed, jumps to a second, error
 	handling block. Unconditionally, a third (usually, cleanup code) block is
@@ -460,12 +482,6 @@ Any set of statements can be wrapped with a 'try' block without a matching
 	Triggers an error condition and optionally specifies an explanation. The
 	error condition may be caught by a 'try' call.
 
-+eval+ 'exp'::
-	Evaluates a +szl+ expression in the current scope.
-
-+source+ 'path'::
-	Execute a 'szl' script in the global scope.
-
 I/O
 ^^^
 +puts+ 'msg'::
@@ -479,10 +495,16 @@ I/O
 	Deletes a file.
 
 +file.lock+ 'path'::
-	Creates a lock file and locks it.
+	Creates a lock file, locks it and returns a lock file object.
+
+[NOTE]
+If another process locks the file, 'file.lock' will block until it is released.
 
 +$lock+ 'unlock'::
 	Unlocks a lock file.
+
+[NOTE]
+Leftover lock files are unlocked automatically, during garbage collection.
 
 +file.locked+ 'path'::
 	Checks whether a lock file is locked.
@@ -538,8 +560,8 @@ Reading and writing operations on files are buffered. To ensure data passed to
 	Closes a file.
 
 [NOTE]
-'close' is called automatically, once all references to a file object are gone.
-In many cases, an implicit 'close' call is redundant.
+'close' is called automatically during garbage collection. In many cases, an
+implicit 'close' call is redundant.
 
 +with+ 'name exp exp'::
 	Evaluates an expression, stores the result in a local variable (say, 'obj')

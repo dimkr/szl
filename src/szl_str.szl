@@ -3,13 +3,13 @@ proc trim {
 }
 
 proc string.tail {
-	if [test $# == 2] {
+	if [test $# == 1] {
 		local length [string.length $1]
 		if [test $length == 0] {return {}}
 		local end [calc $length - 1]
 		string.range $1 $end $end
 	} else {
-		if [test $# == 3] {
+		if [test $# == 2] {
 			local end [calc $length - 1]
 			string.range $1 [calc $length - $2] $end
 		} else {

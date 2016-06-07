@@ -21,7 +21,7 @@
 # THE SOFTWARE.
 
 proc fdopen {
-	if [test $# != 3] {
+	if [test $# != 2] {
 		throw {bad fdopen usage: fdopen handle mode}
 	}
 	if [_socket.issocket $1] {_socket.fdopen $1} else {_io.fdopen $1 $2}
@@ -46,18 +46,18 @@ try {
 }
 
 proc puts {
-	if [test $# != 2] {throw {bad puts usage: puts msg}}
+	if [test $# != 1] {throw {bad puts usage: puts msg}}
 	$stdout write $1
 	if [test [string.tail $1] != \n] {$stdout write "\n"}
 }
 
 proc dup {
-	if [test $# != 2] {throw {bad dup usage: dup strm}}
+	if [test $# != 1] {throw {bad dup usage: dup strm}}
 	fdopen [_io.dup [$1 handle]]
 }
 
 proc with {
-	if [test $# != 4] {throw {bad with usage: with name exp exp}}
+	if [test $# != 3] {throw {bad with usage: with name exp exp}}
 
 	local $1 [eval $2]
 	try {

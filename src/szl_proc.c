@@ -180,7 +180,7 @@ enum szl_res szl_proc_eval_proc(struct szl_interp *interp,
 		return SZL_ERR;
 
 	/* create the $# object */
-	argc_obj = szl_new_int(objc);
+	argc_obj = szl_new_int(objc - 1);
 	if (!argc_obj)
 		return SZL_ERR;
 
@@ -194,7 +194,7 @@ enum szl_res szl_proc_eval_proc(struct szl_interp *interp,
 	if (!argv_obj)
 		return SZL_ERR;
 
-	for (i = 0; i < objc; ++i) {
+	for (i = 1; i < objc; ++i) {
 		tok = szl_obj_str(objv[i], &tlen);
 		if (!tok) {
 			szl_obj_unref(argv_obj);
