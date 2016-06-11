@@ -43,17 +43,23 @@ Use Cases
 ~~~~~~~~~
 +szl+ is especially useful when:
 
-1. One desires to write a script that automates a task, but shell scripting
-   isn't powerful enough (because shell language lacks programming language
-   features such as exceptions), while other scripting languages are too
-   powerful and require too much work to execute processes and read their output
+1. One needs a swiss knife, "shell on steroids" for automation or DevOps
+   scripts, but shell scripting isn't powerful enough (because shell language
+   lacks programming language features such as exceptions), while other
+   languages are too powerful and require too much work to execute processes and
+   read their output
 2. One needs a balanced, not too low-level and not too high-level programming
-   language for quick prototyping
-3. One needs an embedded interpreter in a big software project, used as a logic
+   language for system development rapid prototyping
+3. One needs a quick n' dirty way to call C functions, without having to do
+   native development: 'szl' allows interfacing with C code and data types via
+   scripts!
+4. One needs an embedded interpreter in a big software project, used as a logic
    layer, high-level glue between components written in different languages or
    as a scripting engine for advanced users (for example, in a console window of
    an action game)
-4. One wants to introduce non-technical people to programming, using an easy to
+5. A complex task is very hard or impossible to accomplish using nothing but
+   traditional *nix tools (such as +sh+, +nc+, +tar+ and +cut+)
+6. One wants to introduce non-technical people to programming, using an easy to
    learn scripting language with a simple syntax
 
 History
@@ -107,7 +113,7 @@ calc 1 + 2
 [NOTE]
 Some procedures do not receive any arguments.
 
-Objects (sometimes referred to as 'variables') are identified by name and carry
+Objects (sometimes referred to as variables) are identified by name and carry
 values (such as text strings or numbers). To create a new object or change the
 value of an existing one, use 'local':
 
@@ -127,8 +133,8 @@ puts $number
 
 In +szl+, all objects (including numbers and even lists) are represented as
 strings and +szl+ knows how to treat them, depending on the context. For
-example, from the moment the 'calc' procedure receives two objects as arguments,
-they are treated as numbers.
+example, from the two objects are passed to the 'calc' procedure receives as
+arguments, they are treated as numbers.
 
 When an object is no longer used, +szl+ will automatically free all resources
 associated with it: that's "garbage collection".
@@ -528,9 +534,9 @@ Leftover lock files are unlocked automatically, during garbage collection.
 File Operations
 +++++++++++++++
 +open+ 'path mode'::
-	Opens a file. 'mode' is 'fputs()'-style (i.e. 'r', 'w', 'r+', etc'): see
-	'man fputs' for the meaning of each mode. In addition, if 'mode' contains
-	'b' (e.g. 'rb'), the file is treated as a binary file.
+	Opens a file. 'mode' is 'fputs()'-style: 'r', 'w', 'a', 'r+', 'w+' or 'a+'
+	(see 'man fputs' for the meaning of each mode). In addition, when 'mode' is
+	suffixed with 'b' (e.g. 'w+b'), the file is treated as a binary file.
 
 [NOTE]
 By default, file operations (reading, writing) are line-buffered.
