@@ -14,9 +14,13 @@ standard library that includes bindings for popular libraries.
   __________________________________________________
  /                                                  \
  | szl 0.1 6f1e278e58cc9742c31bef959ab3afe9b8aa7c65 |
+ | >>> global msg "Hello, world!"                   |
+ | Hello, world!                                    |
  | >>> load zlib                                    |
- | >>> zlib.crc32 "Hello, world!"                   |
+ | >>> zlib.crc32 $msg                              |
  | 3957769958                                       |
+ | >>> rtrim [exec "uname -s"]                      |
+ | Linux                                            |
  | >>>                                              |
  \__________________________________________________/
 
