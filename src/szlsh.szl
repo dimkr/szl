@@ -32,17 +32,19 @@ try {
 try {
 	while 1 {
 		local exp [linenoise.read {>>> }]
-		try {
-			eval $exp
-		} except {
-			$stdout write {[error] }
-		}
+		if $exp {
+			try {
+				eval $exp
+			} except {
+				$stdout write {[error] }
+			}
 
-		local out $_
-		if [test [string.length $out] > 0] {puts $out} else {puts {}}
+			local out $_
+			if [test [string.length $out] > 0] {puts $out} else {puts {}}
 
-		try {
-			linenoise.add $exp
+			try {
+				linenoise.add $exp
+			}
 		}
 	}
 } finally {
