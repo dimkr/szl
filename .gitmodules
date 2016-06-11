@@ -1,3 +1,6 @@
 [submodule "src/linenoise"]
 	path = src/linenoise
 	url = https://github.com/antirez/linenoise
+[submodule "src/ed25519"]
+	path = src/ed25519
+	url = https://github.com/orlp/ed25519

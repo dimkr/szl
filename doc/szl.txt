@@ -865,7 +865,6 @@ http://www.libarchive.org/[libarchive].
 
 linenoise
 ^^^^^^^^^
-
 The 'linenoise' extension provides command-line editing and history through
 https://github.com/antirez/linenoise[linenoise].
 
@@ -880,6 +879,20 @@ https://github.com/antirez/linenoise[linenoise].
 
 +linenoise.load+ 'path'::
 	Loads a previously saved history file.
+
+ed25519
+^^^^^^^
+The 'ed25519' extension implements a public key security system, using
+https://github.com/orlp/ed25519[Ed25519].
+
++ed25519.keypair+::
+	Generates a key pair.
+
++ed25519.sign+ 'data keypair'::
+	Digitally-signs a buffer.
+
++ed25519.verify+ 'data sig keypair'::
+	Verifies the digital signature of a buffer.
 
 Best Practices
 --------------

@@ -41,7 +41,7 @@ LIBARCHIVE_LIBS = $(shell pkg-config --libs libarchive)
 
 EXT_LIBS = -lszl
 
-STATIC_LIB = libszl.a
+STATIC_LIBS = libszl.a ed25519.a
 SHARED_LIB = libszl.so
 PROGS = szlsh
 
@@ -51,7 +51,7 @@ BUILTIN_EXT_NAMES = obj proc str exc socket null logic io list math loop ext \
 BUILTIN_EXT_SRCS = $(addsuffix .c,$(addprefix szl_,$(BUILTIN_EXT_NAMES)))
 BUILTIN_EXT_OBJECTS = $(BUILTIN_EXT_SRCS:.c=.o)
 
-EXTERNAL_EXT_NAMES = tls zlib dict ffi curl archive linenoise
+EXTERNAL_EXT_NAMES = tls zlib dict ffi curl archive linenoise ed25519
 EXTERNAL_EXT_SRCS = $(addsuffix .c,$(addprefix szl_,$(EXTERNAL_EXT_NAMES)))
 EXTERNAL_EXT_OBJECTS = $(EXTERNAL_EXT_SRCS:.c=.o)
 EXTERNAL_EXT_LIBS = $(EXTERNAL_EXT_SRCS:.c=.so)
@@ -164,6 +164,21 @@ szl_linenoise.so: szl_linenoise.o linenoise/linenoise.o $(SHARED_LIB)
 	      $(LDFLAGS) -shared \
 	      $(EXT_LIBS)
 
+libed25519.a: ed25519/src/add_scalar.o \
+              ed25519/src/fe.o \
+              ed25519/src/ge.o \
+              ed25519/src/key_exchange.o \
+              ed25519/src/keypair.o \
+              ed25519/src/sc.o \
+              ed25519/src/seed.o \
+              ed25519/src/sha512.o \
+              ed25519/src/sign.o \
+              ed25519/src/verify.o
+	$(AR) rcs $@ $^
+
+szl_ed25519.so: szl_ed25519.o libed25519.a $(SHARED_LIB)
+	$(CC) -o $@ $< $(LDFLAGS) -shared $(EXT_LIBS) -led25519
+
 install: all
 	$(INSTALL) -D -m 755 szlsh $(DESTDIR)/$(BIN_DIR)/szlsh
 	$(INSTALL) -D -m 644 $(SHARED_LIB) $(DESTDIR)/$(LIB_DIR)/$(SHARED_LIB)
@@ -174,5 +189,5 @@ install: all
 	done
 
 clean:
-	rm -rf $(EXTERNAL_EXT_LIBS) $(PROGS) $(SHARED_LIB) $(STATIC_LIB) $(OBJECTS) \
-	       $(GENERATED)
+	rm -rf $(EXTERNAL_EXT_LIBS) $(PROGS) $(SHARED_LIB) $(STATIC_LIBS) \
+	       $(OBJECTS) $(GENERATED)
