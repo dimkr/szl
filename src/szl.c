@@ -1679,44 +1679,6 @@ enum szl_res szl_source(struct szl_interp *interp, const char *path)
 	return res;
 }
 
-enum szl_res szl_main(int argc, char *argv[])
-{
-	struct szl_interp *interp;
-	const char *s;
-	size_t len;
-	enum szl_res res;
-
-	interp = szl_interp_new();
-	if (!interp)
-		return SZL_ERR;
-
-	switch (argc) {
-		case 2:
-			res = szl_source(interp, argv[1]);
-			break;
-
-		case 3:
-			if (strcmp(argv[1], "-c") == 0) {
-				res = szl_run(interp, argv[2], strlen(argv[2]));
-				break;
-			}
-			/* fall through */
-
-		default:
-			res = SZL_ERR;
-			break;
-	}
-
-	if (res != SZL_OK) {
-		s = szl_obj_str(interp->last, &len);
-		if (s && len)
-			fwrite(s, 1, len, stderr);
-	}
-
-	szl_interp_free(interp);
-	return res;
-}
-
 static enum szl_res szl_stream_read(struct szl_interp *interp,
                                     struct szl_stream *strm,
                                     const size_t len)

@@ -291,8 +291,8 @@ int szl_init_loop(struct szl_interp *interp)
 	        (szl_new_proc(interp,
 	                      "exit",
 	                      1,
-	                      1,
-	                      "exit",
+	                      2,
+	                      "exit ?obj?",
 	                      szl_loop_proc_exit,
 	                      NULL,
 	                      NULL)) &&

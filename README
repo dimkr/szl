@@ -28,6 +28,21 @@ Building
   $ make
   $ make install
 
+Running
+=======
+
+To run an interactive interpreter:
+
+  $ szlsh
+
+Or, to run a script:
+
+  $ szlsh $path
+
+Or, to run a one-liner:
+
+  $ szlsh -c $snippet
+
 Documentation
 =============
 
