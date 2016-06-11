@@ -40,18 +40,105 @@ LIBARCHIVE_CFLAGS = $(shell pkg-config --cflags libarchive)
 LIBARCHIVE_LIBS = $(shell pkg-config --libs libarchive)
 
 EXT_LIBS = -lszl
+LIBSZL_CFLAGS =
+LIBSZL_LIBS = $(ZLIB_LIBS)
+LIBSZL_DEPS =
+SZLSH_LIBS =
 
-STATIC_LIBS = libszl.a ed25519.a
+STATIC_LIB = libszl.a
+STATIC_LIBS = $(STATIC_LIB) liblinenoise.a ed25519.a
 SHARED_LIB = libszl.so
 PROGS = szlsh
 
 BUILTIN_EXT_NAMES = obj proc str exc socket null logic io list math loop ext \
                     time env path
+EXTERNAL_EXT_NAMES =
+
+# SZL_LIB is the library szlsh and extensions are linked against
+ifeq ($(STATIC_ALL), 1)
+	SZL_LIB = $(STATIC_LIB)
+	STATIC_TLS = 1
+	STATIC_ZLIB = 1
+	STATIC_DICT = 1
+	STATIC_FFI = 1
+	STATIC_CURL = 1
+	STATIC_ARCHIVE = 1
+	STATIC_LINENOISE = 1
+	STATIC_ED25519 = 1
+else
+	SZL_LIB = $(SHARED_LIB)
+endif
+
+ifeq ($(STATIC_TLS), 1)
+	BUILTIN_EXT_NAMES += tls
+	LIBSZL_CFLAGS += $(OPENSSL_CFLAGS)
+	LIBSZL_LIBS += $(OPENSSL_LIBS)
+else
+	EXTERNAL_EXT_NAMES += tls
+endif
+
+ifeq ($(STATIC_ZLIB), 1)
+	BUILTIN_EXT_NAMES += zlib
+	LIBSZL_CFLAGS += $(ZLIB_CFLAGS)
+	LIBSZL_LIBS += $(ZLIB_LIBS)
+else
+	EXTERNAL_EXT_NAMES += zlib
+endif
+
+# depends on zlib
+ifeq ($(STATIC_DICT), 1)
+	BUILTIN_EXT_NAMES += dict
+else
+	EXTERNAL_EXT_NAMES += dict
+endif
+
+ifeq ($(STATIC_FFI), 1)
+	BUILTIN_EXT_NAMES += ffi
+	LIBSZL_CFLAGS += $(LIBFFI_CFLAGS)
+	LIBSZL_LIBS += $(LIBFFI_LIBS)
+else
+	EXTERNAL_EXT_NAMES += ffi
+endif
+
+ifeq ($(STATIC_CURL), 1)
+	BUILTIN_EXT_NAMES += curl
+	LIBSZL_CFLAGS += $(CURL_CFLAGS)
+	LIBSZL_LIBS += $(CURL_LIBS)
+else
+	EXTERNAL_EXT_NAMES += curl
+endif
+
+ifeq ($(STATIC_ARCHIVE), 1)
+	BUILTIN_EXT_NAMES += archive
+	LIBSZL_CFLAGS += $(LIBARCHIVE_CFLAGS)
+	LIBSZL_LIBS += $(LIBARCHIVE_LIBS)
+else
+	EXTERNAL_EXT_NAMES += archive
+endif
+
+ifeq ($(STATIC_LINENOISE), 1)
+	BUILTIN_EXT_NAMES += linenoise
+	LIBSZL_DEPS += liblinenoise.a
+	LIBSZL_LIBS += -llinenoise
+else
+	EXTERNAL_EXT_NAMES += linenoise
+endif
+
+ifeq ($(STATIC_ED25519), 1)
+	BUILTIN_EXT_NAMES += ed25519
+	LIBSZL_DEPS += libed25519.a
+	LIBSZL_LIBS += -led25519
+else
+	EXTERNAL_EXT_NAMES += ed25519
+endif
+
+ifeq ($(STATIC_ALL), 1)
+	SZLSH_LIBS = $(LIBSZL_LIBS)
+endif
 
 BUILTIN_EXT_SRCS = $(addsuffix .c,$(addprefix szl_,$(BUILTIN_EXT_NAMES)))
 BUILTIN_EXT_OBJECTS = $(BUILTIN_EXT_SRCS:.c=.o)
 
-EXTERNAL_EXT_NAMES = tls zlib dict ffi curl archive linenoise ed25519
 EXTERNAL_EXT_SRCS = $(addsuffix .c,$(addprefix szl_,$(EXTERNAL_EXT_NAMES)))
 EXTERNAL_EXT_OBJECTS = $(EXTERNAL_EXT_SRCS:.c=.o)
 EXTERNAL_EXT_LIBS = $(EXTERNAL_EXT_SRCS:.c=.so)
@@ -64,6 +151,13 @@ all: $(PROGS) $(EXTERNAL_EXT_LIBS)
 
 szl_builtin.c:
 	echo "#include \"szl.h\"" > $@
+	echo "char *szl_builtin_exts[] = {" >> $@
+	for i in $(BUILTIN_EXT_NAMES); \
+	do \
+		echo -n "\"$$i\", "; \
+	done >> $@
+	echo " \
+NULL};" >> $@
 	for i in $(BUILTIN_EXT_NAMES); \
 	do \
 		echo "extern int szl_init_$$i(struct szl_interp *interp);"; \
@@ -95,7 +189,7 @@ szl_conf.h: szl_conf.h.in
 %.o: %.c szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-szl.o: szl.c szl.h
+szl.o: szl.c szl.h szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS) $(ZLIB_CFLAGS)
 
 szl_str.o: szl_str.c szl_str.inc szl_conf.h
@@ -110,16 +204,16 @@ szl_loop.o: szl_loop.c szl_loop.inc szl_conf.h
 szlsh.o: szlsh.c szlsh.inc szl.h szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-libszl.a: szl.o szl_builtin.o $(BUILTIN_EXT_OBJECTS)
+$(STATIC_LIB): szl.o szl_builtin.o $(BUILTIN_EXT_OBJECTS) $(LIBSZL_DEPS)
 	$(AR) rcs $@ $^
 
-libszl.so: szl.o szl_builtin.o $(BUILTIN_EXT_OBJECTS)
-	$(CC) -shared -o $@ $^ $(LDFLAGS) $(LIBS) $(ZLIB_LIBS)
+$(SHARED_LIB): szl.o szl_builtin.o $(BUILTIN_EXT_OBJECTS) $(LIBSZL_DEPS)
+	$(CC) -shared -o $@ $^ $(LDFLAGS) $(LIBS) $(LIBSZL_LIBS)
 
-szlsh: szlsh.o libszl.so
-	$(CC) -o $@ $< $(LDFLAGS) -lszl
+szlsh: szlsh.o $(SZL_LIB)
+	$(CC) -o $@ $< $(LDFLAGS) -lszl $(LIBS) $(SZLSH_LIBS)
 
-%.so: %.o $(SHARED_LIB)
+%.so: %.o $(SZL_LIB)
 	$(CC) -o $@ $< $(LDFLAGS) -shared $(EXT_LIBS) $(OPENSSL_LIBS)
 
 szl_zlib.o: szl_zlib.c szl_conf.h
@@ -131,38 +225,38 @@ szl_dict.o: szl_dict.c szl_dict.inc szl_conf.h
 szl_tls.o: szl_tls.c szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS) $(OPENSSL_CFLAGS)
 
-szl_tls.so: szl_tls.o $(SHARED_LIB)
+szl_tls.so: szl_tls.o $(SZL_LIB)
 	$(CC) -o $@ $< $(LDFLAGS) -shared $(EXT_LIBS) $(OPENSSL_LIBS)
 
-szl_zlib.so: szl_zlib.o $(SHARED_LIB)
+szl_zlib.so: szl_zlib.o $(SZL_LIB)
 	$(CC) -o $@ $< $(LDFLAGS) -shared $(EXT_LIBS) $(ZLIB_LIBS)
 
-szl_dict.so: szl_dict.o $(SHARED_LIB)
+szl_dict.so: szl_dict.o $(SZL_LIB)
 	$(CC) -o $@ $< $(LDFLAGS) -shared $(EXT_LIBS)
 
 szl_ffi.o: szl_ffi.c szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS) $(LIBFFI_CFLAGS)
 
-szl_ffi.so: szl_ffi.o $(SHARED_LIB)
+szl_ffi.so: szl_ffi.o $(SZL_LIB)
 	$(CC) -o $@ $< $(LDFLAGS) -shared $(EXT_LIBS) $(LIBFFI_LIBS)
 
 szl_curl.o: szl_curl.c szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS) $(CURL_CFLAGS)
 
-szl_curl.so: szl_curl.o $(SHARED_LIB)
+szl_curl.so: szl_curl.o $(SZL_LIB)
 	$(CC) -o $@ $< $(LDFLAGS) -shared $(EXT_LIBS) $(CURL_LIBS)
 
 szl_archive.o: szl_archive.c szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS) $(LIBARCHIVE_CFLAGS)
 
-szl_archive.so: szl_archive.o $(SHARED_LIB)
+szl_archive.so: szl_archive.o $(SZL_LIB)
 	$(CC) -o $@ $< $(LDFLAGS) -shared $(EXT_LIBS) $(LIBARCHIVE_LIBS)
 
-szl_linenoise.so: szl_linenoise.o linenoise/linenoise.o $(SHARED_LIB)
-	$(CC) -o $@ \
-	      szl_linenoise.o linenoise/linenoise.o \
-	      $(LDFLAGS) -shared \
-	      $(EXT_LIBS)
+liblinenoise.a: linenoise/linenoise.o
+	$(AR) rcs $@ $^
+
+szl_linenoise.so: szl_linenoise.o liblinenoise.a $(SZL_LIB)
+	$(CC) -o $@ $< $(LDFLAGS) -shared $(EXT_LIBS) -llinenoise
 
 libed25519.a: ed25519/src/add_scalar.o \
               ed25519/src/fe.o \
@@ -176,12 +270,17 @@ libed25519.a: ed25519/src/add_scalar.o \
               ed25519/src/verify.o
 	$(AR) rcs $@ $^
 
-szl_ed25519.so: szl_ed25519.o libed25519.a $(SHARED_LIB)
+szl_ed25519.so: szl_ed25519.o libed25519.a $(SZL_LIB)
 	$(CC) -o $@ $< $(LDFLAGS) -shared $(EXT_LIBS) -led25519
 
 install: all
 	$(INSTALL) -D -m 755 szlsh $(DESTDIR)/$(BIN_DIR)/szlsh
-	$(INSTALL) -D -m 644 $(SHARED_LIB) $(DESTDIR)/$(LIB_DIR)/$(SHARED_LIB)
+	[ -f $(STATIC_LIB) ] && $(INSTALL) -D -m 644 \
+	                        $(STATIC_LIB) \
+	                        $(DESTDIR)/$(LIB_DIR)/$(STATIC_LIB) || :
+	[ -f $(SHARED_LIB) ] && $(INSTALL) -D -m 644 \
+	                        $(SHARED_LIB) \
+	                        $(DESTDIR)/$(LIB_DIR)/$(SHARED_LIB) || :
 	$(INSTALL) -D -d -m 755 $(DESTDIR)/$(EXT_DIR)
 	for i in $(EXTERNAL_EXT_LIBS); \
 	do \
@@ -189,5 +288,5 @@ install: all
 	done
 
 clean:
-	rm -rf $(EXTERNAL_EXT_LIBS) $(PROGS) $(SHARED_LIB) $(STATIC_LIBS) \
+	rm -rf $(EXTERNAL_EXT_LIBS) $(PROGS) $(SZL_LIB) $(STATIC_LIBS) \
 	       $(OBJECTS) $(GENERATED)

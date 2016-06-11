@@ -10,19 +10,20 @@ Overview
 
 szl is a tiny, embeddable scripting engine inspired by Tcl and shell. It
 combines the simplicity of shell scripting with the power of Tcl and a rich
-standard library that includes bindings for popular libraries.
-  __________________________________________________
- /                                                  \
- | szl 0.1 6f1e278e58cc9742c31bef959ab3afe9b8aa7c65 |
- | >>> global msg "Hello, world!"                   |
- | Hello, world!                                    |
- | >>> load zlib                                    |
- | >>> zlib.crc32 $msg                              |
- | 3957769958                                       |
- | >>> rtrim [exec "uname -s"]                      |
- | Linux                                            |
- | >>>                                              |
- \__________________________________________________/
+standard library that includes bindings for popular, permissively-licensed
+libraries.
+   __________________________________________________
+  /                                                  \
+  | szl 0.1 6f1e278e58cc9742c31bef959ab3afe9b8aa7c65 |
+  | >>> global msg "Hello, world!"                   |
+  | Hello, world!                                    |
+  | >>> load zlib                                    |
+  | >>> zlib.crc32 $msg                              |
+  | 3957769958                                       |
+  | >>> rtrim [exec "uname -s"]                      |
+  | Linux                                            |
+  | >>>                                              |
+  \__________________________________________________/
 
 For more information, see the user manual at http://www.dimakrasner.com/szl.
 
@@ -31,6 +32,22 @@ Building
 
   $ make
   $ make install
+
+By default, szl is built with core functionality built-in to the interpreter,
+while a big part of the standard library resides in dynamically-loaded shared
+objects. This way, the memory consumption of szl scripts that don't use the
+entire standard library is lower.
+
+However, in some use cases (for example, when szl is embedded into another
+project), this is undesirable.
+
+To build szl with all extensions linked statically into the interpreter:
+
+  $ ALL_STATIC=1 make
+
+In addition, built-in extensions can be chosen individually, e.g:
+
+  $ STATIC_CURL=1 STATIC_FFI=1 make
 
 Running
 =======

@@ -35,6 +35,7 @@
 
 #include "szl.h"
 
+extern char *szl_builtin_exts[];
 extern enum szl_res szl_init_builtin_exts(struct szl_interp *interp);
 
 SZL_STATIC
@@ -1595,10 +1596,16 @@ int szl_load(struct szl_interp *interp, const char *name)
 {
 	char path[PATH_MAX];
 	char init_name[SZL_MAX_EXT_INIT_FUNC_NAME_LEN + 1];
+	const char **builtin;
 	struct szl_ext *exts;
 	void *handle;
 	szl_ext_init init;
 	unsigned int nexts = interp->nexts + 1;
+
+	for (builtin = szl_builtin_exts; *builtin; ++builtin) {
+		if (strcmp(*builtin, name) == 0)
+			return 1;
+	}
 
 	snprintf(path, sizeof(path), SZL_EXT_PATH_FMT, name);
 	handle = dlopen(path, RTLD_LAZY);
