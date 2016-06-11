@@ -959,23 +959,6 @@ enum szl_res szl_source(struct szl_interp *interp, const char *path);
 
 /**
  * @}
- *
- * @defgroup front Frontend
- * @ingroup high_level
- * @{
- */
-
-/**
- * @fn enum szl_res szl_main(int argc, char *argv[])
- * @brief Runs the main szlsh logic
- * @param argc [in,out] The number of elements in argv
- * @param argv [in,out] The interpreter arguments
- * @return A member of @ref szl_res
- */
-enum szl_res szl_main(int argc, char *argv[]);
-
-/**
- * @}
  */
 
 #endif
