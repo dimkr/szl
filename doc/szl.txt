@@ -51,7 +51,7 @@ Use Cases
 2. One needs a balanced, not too low-level and not too high-level programming
    language for system development rapid prototyping
 3. One needs a quick n' dirty way to call C functions, without having to do
-   native development: 'szl' allows interfacing with C code and data types via
+   native development: +szl+ allows interfacing with C code and data types via
    scripts!
 4. One needs an embedded interpreter in a big software project, used as a logic
    layer, high-level glue between components written in different languages or
@@ -59,7 +59,9 @@ Use Cases
    an action game)
 5. A complex task is very hard or impossible to accomplish using nothing but
    traditional *nix tools (such as +sh+, +nc+, +tar+ and +cut+)
-6. One wants to introduce non-technical people to programming, using an easy to
+6. One needs an extremely lightweight scripting language, for quick development
+   of programs that run on underpowered hardware, such as cheap Wi-Fi routers
+7. One wants to introduce non-technical people to programming, using an easy to
    learn scripting language with a simple syntax
 
 History
@@ -133,7 +135,7 @@ puts $number
 
 In +szl+, all objects (including numbers and even lists) are represented as
 strings and +szl+ knows how to treat them, depending on the context. For
-example, from the two objects are passed to the 'calc' procedure receives as
+example, once two objects are passed to the 'calc' procedure receives as
 arguments, they are treated as numbers.
 
 When an object is no longer used, +szl+ will automatically free all resources
