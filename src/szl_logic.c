@@ -68,25 +68,25 @@ enum szl_res szl_logic_proc_test(struct szl_interp *interp,
 		if (!szl_obj_double(objv[1], &m) || !szl_obj_double(objv[3], &n))
 			return SZL_ERR;
 
-		return szl_set_result_bool(interp, (n > m));
+		return szl_set_result_bool(interp, (m > n));
 	}
 	else if (strcmp("<", op) == 0) {
 		if (!szl_obj_double(objv[1], &m) || !szl_obj_double(objv[3], &n))
 			return SZL_ERR;
 
-		return szl_set_result_bool(interp, (n < m));
+		return szl_set_result_bool(interp, (m > n));
 	}
 	else if (strcmp(">=", op) == 0) {
 		if (!szl_obj_double(objv[1], &m) || !szl_obj_double(objv[3], &n))
 			return SZL_ERR;
 
-		return szl_set_result_bool(interp, (n >= m));
+		return szl_set_result_bool(interp, (m >= n));
 	}
 	else if (strcmp("<=", op) == 0) {
 		if (!szl_obj_double(objv[1], &m) || !szl_obj_double(objv[3], &n))
 			return SZL_ERR;
 
-		return szl_set_result_bool(interp, (n <= m));
+		return szl_set_result_bool(interp, (m <= n));
 	}
 	else if (strcmp("&&", op) == 0) {
 		return szl_set_result_bool(interp,

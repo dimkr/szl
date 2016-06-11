@@ -26,21 +26,37 @@
 
 #include "szl.h"
 
-static const char szlsh_inc[] = {
-#include "szlsh.inc"
-};
-
-int main(int argc, char *argv[])
+static
+enum szl_res szl_env_proc_get(struct szl_interp *interp,
+                              const int objc,
+                              struct szl_obj **objv)
 {
-	struct szl_interp *interp;
-	enum szl_res res;
+	const char *name, *val;
+	size_t len;
 
-	interp = szl_interp_new();
-	if (!interp)
+	name = szl_obj_str(objv[1], &len);
+	if (!name || !len)
 		return SZL_ERR;
 
-	res = szl_run_const(interp, szlsh_inc, sizeof(szlsh_inc) - 1);
-	szl_interp_free(interp);
+	val = getenv(name);
+	if (!val)
+		return SZL_ERR;
 
-	return (res == SZL_OK) ? EXIT_SUCCESS : EXIT_FAILURE;
+	return szl_set_result_str(interp, val, -1);
+}
+
+int szl_init_env(struct szl_interp *interp)
+{
+	return (szl_new_const(interp,
+	                      "env.ver",
+	                      SZL_VERSION,
+	                      sizeof(SZL_VERSION) - 1) &&
+	        szl_new_proc(interp,
+	                     "env.get",
+	                     2,
+	                     2,
+	                     "env.get name",
+	                     szl_env_proc_get,
+	                     NULL,
+	                     NULL));
 }

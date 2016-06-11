@@ -22,25 +22,48 @@
  * THE SOFTWARE.
  */
 
-#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <errno.h>
 
 #include "szl.h"
 
-static const char szlsh_inc[] = {
-#include "szlsh.inc"
-};
-
-int main(int argc, char *argv[])
+static
+enum szl_res szl_path_proc_exists(struct szl_interp *interp,
+                                  const int objc,
+                                  struct szl_obj **objv)
 {
-	struct szl_interp *interp;
-	enum szl_res res;
+	struct stat stbuf;
+	const char *path;
+	size_t len;
 
-	interp = szl_interp_new();
-	if (!interp)
+	path = szl_obj_str(objv[1], &len);
+	if (!path || !len)
 		return SZL_ERR;
 
-	res = szl_run_const(interp, szlsh_inc, sizeof(szlsh_inc) - 1);
-	szl_interp_free(interp);
+	if (stat(path, &stbuf) < 0) {
+		if (errno == ENOENT)
+			return szl_set_result_bool(interp, 0);
 
-	return (res == SZL_OK) ? EXIT_SUCCESS : EXIT_FAILURE;
+		return SZL_ERR;
+	}
+
+	return szl_set_result_bool(interp, 1);
+}
+
+int szl_init_path(struct szl_interp *interp)
+{
+	return (szl_new_const(interp,
+	                      "path.sep",
+	                      "/",
+	                      1) &&
+	        szl_new_proc(interp,
+	                     "path.exists",
+	                     2,
+	                     2,
+	                     "path.exists path",
+	                     szl_path_proc_exists,
+	                     NULL,
+	                     NULL));
 }

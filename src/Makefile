@@ -22,7 +22,10 @@
 
 include ../Makefile.common
 
+SZL_VERSION = "0.1 $(shell git rev-parse HEAD)"
+
 LDFLAGS += -L.
+CFLAGS += -DSZL_VERSION=\"$(SZL_VERSION)\"
 
 OPENSSL_CFLAGS = $(shell pkg-config --cflags openssl)
 OPENSSL_LIBS = $(shell pkg-config --libs openssl)
@@ -43,12 +46,12 @@ SHARED_LIB = libszl.so
 PROGS = szlsh
 
 BUILTIN_EXT_NAMES = obj proc str exc socket null logic io list math loop ext \
-                    time
+                    time env path
 
 BUILTIN_EXT_SRCS = $(addsuffix .c,$(addprefix szl_,$(BUILTIN_EXT_NAMES)))
 BUILTIN_EXT_OBJECTS = $(BUILTIN_EXT_SRCS:.c=.o)
 
-EXTERNAL_EXT_NAMES = tls zlib dict ffi curl archive
+EXTERNAL_EXT_NAMES = tls zlib dict ffi curl archive linenoise
 EXTERNAL_EXT_SRCS = $(addsuffix .c,$(addprefix szl_,$(EXTERNAL_EXT_NAMES)))
 EXTERNAL_EXT_OBJECTS = $(EXTERNAL_EXT_SRCS:.c=.o)
 EXTERNAL_EXT_LIBS = $(EXTERNAL_EXT_SRCS:.c=.so)
@@ -104,7 +107,7 @@ szl_io.o: szl_io.c szl_io.inc szl_conf.h
 szl_loop.o: szl_loop.c szl_loop.inc szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-szlsh.o: szlsh.c szl.h szl_conf.h
+szlsh.o: szlsh.c szlsh.inc szl.h szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 libszl.a: szl.o szl_builtin.o $(BUILTIN_EXT_OBJECTS)
@@ -115,6 +118,9 @@ libszl.so: szl.o szl_builtin.o $(BUILTIN_EXT_OBJECTS)
 
 szlsh: szlsh.o libszl.so
 	$(CC) -o $@ $< $(LDFLAGS) -lszl
+
+%.so: %.o $(SHARED_LIB)
+	$(CC) -o $@ $< $(LDFLAGS) -shared $(EXT_LIBS) $(OPENSSL_LIBS)
 
 szl_zlib.o: szl_zlib.c szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS) $(ZLIB_CFLAGS)
@@ -151,6 +157,12 @@ szl_archive.o: szl_archive.c szl_conf.h
 
 szl_archive.so: szl_archive.o $(SHARED_LIB)
 	$(CC) -o $@ $< $(LDFLAGS) -shared $(EXT_LIBS) $(LIBARCHIVE_LIBS)
+
+szl_linenoise.so: szl_linenoise.o linenoise/linenoise.o $(SHARED_LIB)
+	$(CC) -o $@ \
+	      szl_linenoise.o linenoise/linenoise.o \
+	      $(LDFLAGS) -shared \
+	      $(EXT_LIBS)
 
 install: all
 	$(INSTALL) -D -m 755 szlsh $(DESTDIR)/$(BIN_DIR)/szlsh

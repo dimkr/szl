@@ -8,7 +8,17 @@
 Overview
 ========
 
-szl is a tiny, embeddable scripting engine inspired by Tcl and shell.
+szl is a tiny, embeddable scripting engine inspired by Tcl and shell. It
+combines the simplicity of shell scripting with the power of Tcl and a rich
+standard library that includes bindings for popular libraries.
+  __________________________________________________
+ /                                                  \
+ | szl 0.1 6f1e278e58cc9742c31bef959ab3afe9b8aa7c65 |
+ | >>> load zlib                                    |
+ | >>> zlib.crc32 "Hello, world!"                   |
+ | 3957769958                                       |
+ | >>>                                              |
+ \__________________________________________________/
 
 For more information, see the user manual at http://www.dimakrasner.com/szl.
 

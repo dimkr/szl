@@ -461,6 +461,23 @@ struct szl_obj *szl_new_proc(struct szl_interp *interp,
                              void *priv);
 
 /**
+ * @fn int szl_new_const(struct szl_interp *interp,
+ *                       const char *name,
+ *                       const char *val,
+ *                       const int len)
+ * @brief Defines a new constant, in the global scope
+ * @param interp [in,out] An interpreter
+ * @param name [in] The constant name
+ * @param val [in] The constant value
+ * @param len [in] The value length
+ * @return 1 or 0
+ */
+int szl_new_const(struct szl_interp *interp,
+                  const char *name,
+                  const char *val,
+                  const int len);
+
+/**
  * @def szl_empty
  * Returns a new reference to the empty string singleton
  */

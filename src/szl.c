@@ -475,6 +475,23 @@ struct szl_obj *szl_new_proc(struct szl_interp *interp,
 	return obj;
 }
 
+int szl_new_const(struct szl_interp *interp,
+                  const char *name,
+                  const char *val,
+                  const int len)
+{
+	struct szl_obj *obj;
+	int ret;
+
+	obj = szl_new_str(val, len);
+	if (!obj)
+		return 0;
+
+	ret = szl_local(interp, interp->global, name, obj);
+	szl_obj_unref(obj);
+	return ret;
+}
+
 int szl_append(struct szl_obj *obj, const char *buf, const size_t len)
 {
 	char *s;
@@ -1021,6 +1038,16 @@ char *szl_unescape(struct szl_interp *interp,
 
 				case 'r':
 					s2[*out] = '\r';
+					i += 2;
+					break;
+
+				case '[':
+					s2[*out] = '[';
+					i += 2;
+					break;
+
+				case ']':
+					s2[*out] = ']';
 					i += 2;
 					break;
 

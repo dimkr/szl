@@ -494,6 +494,32 @@ I/O
 	Prints an object to standard output. If the object does not end with a line
 	break ('\n'), a line break character is appended.
 
++null+::
+	Creates a fake, empty file. Every attempt to read from the file returns an
+	empty string and all data written to it is discarded.
+
++$stdin+::
++$stdout+::
++$stderr+::
+	Streams in the global scope, representing standard input, output and error
+	output, respectively.
+
+File System
+^^^^^^^^^^^
++$path.sep+::
+	The separator between path components.
+
+[TIP]
+To join path components in a portable way, use 'string.join' with 'path.sep' as
+the delimiter:
+
+--------------------------------------
+local path [string.join $path.sep .. something.txt]
+--------------------------------------
+
++path.exists+ 'path'::
+	Checks whether a file exists.
+
 +file.size+ 'path'::
 	Returns the size of a file.
 
@@ -520,16 +546,6 @@ Leftover lock files are unlocked automatically, during garbage collection.
 
 +cd+ 'path'::
 	Changes the working directory.
-
-+null+::
-	Creates a fake, empty file. Every attempt to read from the file returns an
-	empty string and all data written to it is discarded.
-
-+$stdin+::
-+$stdout+::
-+$stderr+::
-	Streams in the global scope, representing standard input, output and error
-	output, respectively.
 
 File Operations
 +++++++++++++++
@@ -608,7 +624,7 @@ in data corruption.
 	the original stream.
 
 Sockets
-+++++++
+^^^^^^^
 +socket+ 'type host service'::
 	Creates a new TCP or UDP socket. Client sockets ('stream.client' and
 	'dgram.client') are connected to 'host:service', while server sockets
@@ -650,6 +666,14 @@ exec {uname -a 2>&1}
 local os $_
 puts $?
 --------------------------------------
+
+Environment
+^^^^^^^^^^^
++env.get+ 'name'::
+	Returns the value of an environment variable.
+
++$env.ver+::
+	The +szl+ version.
 
 Extensions
 ~~~~~~~~~~
@@ -839,6 +863,24 @@ http://www.libarchive.org/[libarchive].
 +$archive+ 'extract'::
 	Extracts files contained in an archive to the working directory.
 
+linenoise
+^^^^^^^^^
+
+The 'linenoise' extension provides command-line editing and history through
+https://github.com/antirez/linenoise[linenoise].
+
++linenoise.read+ 'prompt'::
+	Displays a prompt and reads a line.
+
++linenoise.add+ 'line'::
+	Adds a line to history.
+
++linenoise.save+ 'path'::
+	Saves history to a file.
+
++linenoise.load+ 'path'::
+	Loads a previously saved history file.
+
 Best Practices
 --------------
 Efficiency
@@ -920,8 +962,7 @@ Implementation
 Overview
 ~~~~~~~~
 +szl+ is implemented as C (or more specifically, C99) library and targets
-http://www.kernel.org/[Linux] distributions. +szlsh+ is nothing but a wrapper
-that calls 'szl_main()'.
+http://www.kernel.org/[Linux] distributions.
 
 Objects
 ~~~~~~~
