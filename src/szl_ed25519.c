@@ -31,11 +31,11 @@ enum szl_res szl_ed25519_proc_verify(struct szl_interp *interp,
                                      const int objc,
                                      struct szl_obj **objv)
 {
-	const char *sig, *data, *keypair;
+	const char *sig, *data, *kp;
 	size_t len;
 
-	keypair = szl_obj_str(objv[3], &len);
-	if (len < 32) {
+	kp = szl_obj_str(objv[3], &len);
+	if (!kp || (len < 32)) {
 		szl_set_result_str(interp,
 		                   "the keypair must be at least 32 bytes long",
 		                   -1);
@@ -43,13 +43,13 @@ enum szl_res szl_ed25519_proc_verify(struct szl_interp *interp,
 	}
 
 	sig = szl_obj_str(objv[2], &len);
-	if (len != 64) {
+	if (!sig || (len != 64)) {
 		szl_set_result_str(interp, "the signature must be 64 bytes long", -1);
 		return SZL_ERR;
 	}
 
 	data = szl_obj_str(objv[1], &len);
-	if (!len) {
+	if (!data || !len) {
 		szl_set_result_str(interp, "the data cannot be an empty buffer", -1);
 		return SZL_ERR;
 	}
@@ -57,7 +57,7 @@ enum szl_res szl_ed25519_proc_verify(struct szl_interp *interp,
 	if (!ed25519_verify((const unsigned char *)sig,
 	                    (const unsigned char *)data,
 	                    len,
-	                    (const unsigned char *)keypair)) {
+	                    (const unsigned char *)kp)) {
 		szl_set_result_str(interp, "the digital signature is invalid", -1);
 		return SZL_ERR;
 	}
@@ -71,7 +71,7 @@ enum szl_res szl_ed25519_proc_sign(struct szl_interp *interp,
                                    struct szl_obj **objv)
 {
 	char sig[64];
-	const char *data, *keypair;
+	const char *data, *kp;
 	size_t len, klen;
 
 	data = szl_obj_str(objv[1], &len);
@@ -80,7 +80,7 @@ enum szl_res szl_ed25519_proc_sign(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	keypair = szl_obj_str(objv[2], &klen);
+	kp = szl_obj_str(objv[2], &klen);
 	if (klen != 96) {
 		szl_set_result_str(interp, "the keypair must be 96 bytes long", -1);
 		return SZL_ERR;
@@ -88,9 +88,9 @@ enum szl_res szl_ed25519_proc_sign(struct szl_interp *interp,
 
 	ed25519_sign((unsigned char *)sig,
 	             (const unsigned char *)data, len,
-	             (const unsigned char *)keypair,
-	             (const unsigned char *)keypair + 32);
-	return szl_set_result_str(interp, sig, 64);
+	             (const unsigned char *)kp,
+	             (const unsigned char *)kp + 32);
+	return szl_set_result_str(interp, sig, sizeof(sig));
 }
 
 static
@@ -98,25 +98,17 @@ enum szl_res szl_ed25519_proc_keypair(struct szl_interp *interp,
                                       const int objc,
                                       struct szl_obj **objv)
 {
-	char priv[64], pub[32];
+	char kp[64 + 32];
 	unsigned char seed[32];
-	struct szl_obj *obj;
 
 	if (ed25519_create_seed(seed) != 0)
 		return SZL_ERR;
 
-	ed25519_create_keypair((unsigned char *)pub, (unsigned char *)priv, seed);
+	ed25519_create_keypair((unsigned char *)kp,
+	                       (unsigned char *)kp + 64,
+	                       seed);
 
-	obj = szl_new_str(pub, sizeof(pub));
-	if (!obj)
-		return SZL_ERR;
-
-	if (!szl_append(obj, priv, sizeof(priv))) {
-		szl_obj_unref(obj);
-		return SZL_ERR;
-	}
-
-	return szl_set_result(interp, obj);
+	return szl_set_result_str(interp, kp, sizeof(kp));
 }
 
 int szl_init_ed25519(struct szl_interp *interp)

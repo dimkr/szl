@@ -254,7 +254,7 @@ enum szl_res szl_zlib_proc_gunzip(struct szl_interp *interp,
 	szl_int bufsiz = DEF_DECOMPRESS_BUFSIZ;
 	size_t len;
 
-	if ((objc == 2) &&
+	if ((objc == 3) &&
 	    ((!szl_obj_int(objv[2], &bufsiz)) ||
 	     (bufsiz < 0) ||
 	     (bufsiz > LONG_MAX)))
