@@ -1750,7 +1750,6 @@ static enum szl_res szl_stream_flush(struct szl_interp *interp,
 static void szl_stream_close(struct szl_stream *strm)
 {
 	if (!strm->closed) {
-		printf("strm %p %d\n", strm->priv, strm->keep);
 		if (strm->ops->close && !strm->keep)
 			strm->ops->close(strm->priv);
 
