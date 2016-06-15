@@ -23,9 +23,11 @@
 load linenoise
 
 puts "szl $env.ver"
+local interp [szl]
+global history {}
 
 try {
-	local history [string.join $path.sep [env.get HOME] .szl_history]
+	global history [string.join $path.sep [env.get HOME] .szl_history]
 	if [path.exists $history] {linenoise.load $history}
 }
 
@@ -34,7 +36,7 @@ try {
 		local exp [linenoise.read {>>> }]
 		if $exp {
 			try {
-				eval $exp
+				$interp eval $exp
 			} except {
 				$stdout write {[error] }
 			}
@@ -42,11 +44,9 @@ try {
 			local out $_
 			if [test [string.length $out] > 0] {puts $out} else {puts {}}
 
-			try {
-				linenoise.add $exp
-			}
+			try {linenoise.add $exp}
 		}
 	}
 } finally {
-	linenoise.save $history
+	if $history {linenoise.save $history}
 }
