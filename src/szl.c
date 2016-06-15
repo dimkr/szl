@@ -330,9 +330,9 @@ void szl_new_obj_name(struct szl_interp *interp,
                       const char *pfix,
                       char *buf,
                       const size_t len,
-                      const szl_int id)
+                      const void *priv)
 {
-	snprintf(buf, len, "%s:"SZL_INT_FMT, pfix, id);
+	snprintf(buf, len, "%s:"SZL_INT_FMT, pfix, (szl_int)(intptr_t)priv);
 }
 
 struct szl_obj *szl_new_str_noalloc(char *s, const size_t len)
@@ -841,7 +841,7 @@ enum szl_res szl_set_result_fmt(struct szl_interp *interp,
 
 	va_start(ap, fmt);
 	len = vasprintf(&s, fmt, ap);
- 	va_end(ap);
+	va_end(ap);
 
 	if (len >= 0) {
 		obj = szl_new_str_noalloc(s, len);
@@ -1602,7 +1602,7 @@ int szl_load(struct szl_interp *interp, const char *name)
 	szl_ext_init init;
 	unsigned int nexts = interp->nexts + 1;
 
-	for (builtin = szl_builtin_exts; *builtin; ++builtin) {
+	for (builtin = &szl_builtin_exts; *builtin; ++builtin) {
 		if (strcmp(*builtin, name) == 0)
 			return 1;
 	}
@@ -1750,7 +1750,8 @@ static enum szl_res szl_stream_flush(struct szl_interp *interp,
 static void szl_stream_close(struct szl_stream *strm)
 {
 	if (!strm->closed) {
-		if (strm->ops->close)
+		printf("strm %p %d\n", strm->priv, strm->keep);
+		if (strm->ops->close && !strm->keep)
 			strm->ops->close(strm->priv);
 
 		if (strm->buf)
@@ -1871,11 +1872,7 @@ struct szl_obj *szl_new_stream(struct szl_interp *interp,
 	char name[sizeof("socket.stream:"SZL_PASTE(SZL_INT_MIN))];
 	struct szl_obj *proc;
 
-	szl_new_obj_name(interp,
-	                 type,
-	                 name,
-	                 sizeof(name),
-	                 (szl_int)(intptr_t)strm->priv);
+	szl_new_obj_name(interp, type, name, sizeof(name), strm->priv);
 	proc = szl_new_proc(interp,
 	                    name,
 	                    1,

@@ -230,11 +230,7 @@ enum szl_res szl_archive_proc_open(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	szl_new_obj_name(interp,
-	                 "archive",
-	                 name,
-	                 sizeof(name),
-	                 (szl_int)(intptr_t)ar);
+	szl_new_obj_name(interp, "archive", name, sizeof(name), ar);
 	proc = szl_new_proc(interp,
 	                    name,
 	                    1,

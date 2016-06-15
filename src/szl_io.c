@@ -128,7 +128,10 @@ int szl_io_enable_buffering(struct szl_stream *strm, FILE *fp)
 }
 
 static
-int szl_new_file(struct szl_interp *interp, FILE *fp, const int binary)
+int szl_new_file(struct szl_interp *interp,
+                 FILE *fp,
+                 const int binary,
+                 const szl_bool keep)
 {
 	struct szl_obj *obj;
 	struct szl_stream *strm;
@@ -138,8 +141,10 @@ int szl_new_file(struct szl_interp *interp, FILE *fp, const int binary)
 		return 0;
 
 	strm->ops = &szl_file_ops;
+	strm->keep = keep;
 	strm->closed = 0;
 	strm->priv = fp;
+	strm->buf = NULL;
 
 	obj = szl_new_stream(interp, strm, "file");
 	if (!obj) {
@@ -153,8 +158,6 @@ int szl_new_file(struct szl_interp *interp, FILE *fp, const int binary)
 			return 0;
 		}
 	}
-	else
-		strm->buf = NULL;
 
 	szl_set_result(interp, obj);
 	return 1;
@@ -231,7 +234,7 @@ enum szl_res szl_io_proc_open(struct szl_interp *interp,
 	if (!fp)
 		return SZL_ERR;
 
-	if (!szl_new_file(interp, fp, binary)) {
+	if (!szl_new_file(interp, fp, binary, 0)) {
 		fclose(fp);
 		return SZL_ERR;
 	}
@@ -265,7 +268,7 @@ enum szl_res szl_io_proc_fdopen(struct szl_interp *interp,
 	if (!fp)
 		return SZL_ERR;
 
-	if (!szl_new_file(interp, fp, binary)) {
+	if (!szl_new_file(interp, fp, binary, 0)) {
 		fclose(fp);
 		return SZL_ERR;
 	}
@@ -445,11 +448,7 @@ enum szl_res szl_io_proc_lock(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	szl_new_obj_name(interp,
-	                 "file.lock",
-	                 name,
-	                 sizeof(name),
-	                 (szl_int)(intptr_t)lock);
+	szl_new_obj_name(interp, "file.lock", name, sizeof(name), lock);
 	proc = szl_new_proc(interp,
 	                    name,
 	                    1,
@@ -507,9 +506,43 @@ enum szl_res szl_io_proc_locked(struct szl_interp *interp,
 	return szl_set_result_bool(interp, 1);
 }
 
+static
+int szl_io_wrap_stream(struct szl_interp *interp, FILE *fp, const char *name)
+{
+	struct szl_obj *obj;
+	struct szl_stream *strm;
+
+	strm = (struct szl_stream *)malloc(sizeof(struct szl_stream));
+	if (!strm)
+		return 0;
+
+	strm->ops = &szl_file_ops;
+	strm->keep = 1;
+	strm->closed = 0;
+	strm->priv = fp;
+	strm->buf = NULL;
+
+	obj = szl_new_stream(interp, strm, "stream");
+	if (!obj) {
+		szl_stream_free(strm);
+		return 0;
+	}
+
+	if (!szl_local(interp, interp->global, name, obj)) {
+		szl_obj_unref(obj);
+		return 0;
+	}
+
+	szl_obj_unref(obj);
+	return 1;
+}
+
 int szl_init_io(struct szl_interp *interp)
 {
-	return ((szl_new_proc(interp,
+	return ((szl_io_wrap_stream(interp, stdin, "stdin")) &&
+	        (szl_io_wrap_stream(interp, stdout, "stdout")) &&
+	        (szl_io_wrap_stream(interp, stderr, "stderr")) &&
+	        (szl_new_proc(interp,
 	                      "open",
 	                      3,
 	                      3,

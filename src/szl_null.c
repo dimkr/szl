@@ -60,6 +60,7 @@ enum szl_res szl_null_proc_null(struct szl_interp *interp,
 			return SZL_ERR;
 
 		strm->ops = &szl_null_ops;
+		strm->keep = 0;
 		strm->closed = 0;
 		strm->priv = NULL;
 		strm->buf = NULL;

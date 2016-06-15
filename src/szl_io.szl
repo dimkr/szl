@@ -27,24 +27,6 @@ proc fdopen {
 	if [_socket.issocket $1] {_socket.fdopen $1} else {_io.fdopen $1 $2}
 }
 
-try {
-	global stdin [fdopen 0 r]
-} except {
-	global stdin [null]
-}
-
-try {
-	global stdout [fdopen 1 w]
-} except {
-	global stdout [null]
-}
-
-try {
-	global stderr [fdopen 2 w]
-} except {
-	global stderr [null]
-}
-
 proc puts {
 	if [test $# != 1] {throw {bad puts usage: puts msg}}
 	$stdout write $1

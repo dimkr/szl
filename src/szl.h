@@ -371,13 +371,13 @@ void szl_obj_unref(struct szl_obj *obj);
  *                           const char *pfix,
  *                           char *buf,
  *                           const size_t len,
- *                           const szl_int id)
+ *                           const void *priv)
  * @brief Creates a unique name for a newly created variable
  * @param interp [in,out] An interpreter
  * @param pfix [in] A prefix for the variable name
  * @param buf [out] The output buffer
  * @param len [in] The buffer size
- * @param id [in] A unique number
+ * @param priv [in] A unique pointer
  *
  * The returned name is in the format "prefix:number".
  */
@@ -385,7 +385,7 @@ void szl_new_obj_name(struct szl_interp *interp,
                       const char *pfix,
                       char *buf,
                       const size_t len,
-                      const szl_int id);
+                      const void *priv);
 
 /**
  * @fn struct szl_obj *szl_new_str_noalloc(char *s, const size_t len)
@@ -690,6 +690,7 @@ struct szl_stream_ops {
  */
 struct szl_stream {
 	const struct szl_stream_ops *ops; /**< The underlying implementation */
+	szl_bool keep; /**< A flag set for streams that should not be closed */
 	szl_bool closed; /**< A flag set once the stream is closed */
 	void *priv; /**< Private, implementation-specific data */
 	void *buf; /**< A chunked I/O buffer */

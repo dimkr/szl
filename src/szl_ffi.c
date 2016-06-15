@@ -143,11 +143,7 @@ struct szl_obj *szl_ffi_new_at(struct szl_interp *interp,
 	filler(ffi_obj, p, size);
 	ffi_obj->to_str = to_str;
 
-	szl_new_obj_name(interp,
-	                 type,
-	                 buf,
-	                 sizeof(buf),
-	                 (szl_int)(intptr_t)ffi_obj);
+	szl_new_obj_name(interp, type, buf, sizeof(buf), ffi_obj);
 	obj = szl_new_proc(interp,
 	                   buf,
 	                   2,
@@ -901,11 +897,7 @@ enum szl_res szl_ffi_proc_struct(struct szl_interp *interp,
 	s->type.type = FFI_TYPE_STRUCT;
 	s->type.elements[s->nmemb] = NULL;
 
-	szl_new_obj_name(interp,
-	                 "ffi.struct",
-	                 buf,
-	                 sizeof(buf),
-	                 (szl_int)(intptr_t)s);
+	szl_new_obj_name(interp, "ffi.struct", buf, sizeof(buf), s);
 	obj = szl_new_proc(interp,
 	                   buf,
 	                   2,
@@ -986,11 +978,7 @@ enum szl_res szl_ffi_proc_dlopen(struct szl_interp *interp,
 	if (!h)
 		return SZL_ERR;
 
-	szl_new_obj_name(interp,
-	                 "ffi.library",
-	                 buf,
-	                 sizeof(buf),
-	                 (szl_int)(intptr_t)h);
+	szl_new_obj_name(interp, "ffi.library", buf, sizeof(buf), h);
 	obj = szl_new_proc(interp,
 	                   buf,
 	                   2,
@@ -1154,11 +1142,7 @@ enum szl_res szl_ffi_proc_function(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	szl_new_obj_name(interp,
-	                 "ffi.function",
-	                 buf,
-	                 sizeof(buf),
-	                 (szl_int)(intptr_t)f);
+	szl_new_obj_name(interp, "ffi.function", buf, sizeof(buf), f);
 	obj = szl_new_proc(interp,
 	                   buf,
 	                   2 + f->argc, /* procedure, return value and arguments */
