@@ -372,6 +372,12 @@ List Operations
 	with a space. If the string is empty or contains spaces, it is wrapped with
 	braces.
 
++list.extend+ 'name obj'::
+	Adds all items in a list to an existing list.
+
++list.reverse+ 'obj'::
+	Returns all items in a list, in reverse order.
+
 +list.index+ 'obj index'::
 	Returns the list item at the zero-based position 'index'.
 
