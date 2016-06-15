@@ -124,8 +124,6 @@ static enum szl_res szl_str_proc_ltrim(struct szl_interp *interp,
 	if (!s)
 		return SZL_ERR;
 
-	szl_set_result(interp, objv[1]);
-
 	for (i = 0; i < len; ++i) {
 		if (!szl_isspace(s[i])) {
 			obj = szl_new_str(&s[i], len - i);
@@ -136,7 +134,7 @@ static enum szl_res szl_str_proc_ltrim(struct szl_interp *interp,
 		}
 	}
 
-	return SZL_OK;
+	return szl_set_result(interp, szl_obj_ref(objv[1]));
 }
 
 static enum szl_res szl_str_proc_rtrim(struct szl_interp *interp,
@@ -152,8 +150,6 @@ static enum szl_res szl_str_proc_rtrim(struct szl_interp *interp,
 	if (!s)
 		return SZL_ERR;
 
-	szl_set_result(interp, objv[1]);
-
 	for (i = (ssize_t)len - 1; i >= 0; --i) {
 		if (!szl_isspace(s[i])) {
 			obj = szl_new_str(s, (size_t)i + 1);
@@ -164,7 +160,7 @@ static enum szl_res szl_str_proc_rtrim(struct szl_interp *interp,
 		}
 	}
 
-	return SZL_OK;
+	return szl_set_result(interp, szl_obj_ref(objv[1]));
 }
 
 int szl_init_str(struct szl_interp *interp)
