@@ -490,6 +490,14 @@ Any set of statements can be wrapped with a 'try' block without a matching
 	Triggers an error condition and optionally specifies an explanation. The
 	error condition may be caught by a 'try' call.
 
+Interpreters
+++++++++++++
++szl+::
+	Creates a new +szl+ interpreter.
+
++$szl+ 'eval exp'::
+	Evaluates a +szl+ expression in an interpreter.
+
 I/O
 ^^^
 +puts+ 'msg'::
@@ -669,6 +677,16 @@ local os $_
 puts $?
 --------------------------------------
 
+Signals
+^^^^^^^
++signal.block+ 'sig...'::
+	Blocks a list of signals and returns a signal mask object. The signals may
+	be 'term', 'int', 'usr1' or 'usr2'.
+
++$mask+ 'check'::
+	Checks whether a signal blocked by a signal mask has been received and
+	blocked.
+
 Environment
 ^^^^^^^^^^^
 +env.get+ 'name'::
@@ -740,6 +758,8 @@ The 'ffi' extension is a +szl+ wrapper for
 http://sourceware.org/libffi/[libffi] and provides an interface to C data types,
 raw memory operations and C function calls through +szl+ scripts.
 
+Data Types
+++++++++++
 +ffi.int8+ '?val?'::
 +ffi.uint8+ '?val?'::
 +ffi.int16+ '?val?'::
@@ -773,6 +793,8 @@ To convert a 'ffi.char' to its 1-length string representation, use
 	Creates a new dummy object, for use with 'ffi.function' against functions
 	which return 'void'.
 
+Object Operations
++++++++++++++++++
 +$obj+ 'value'::
 	Returns the decoded value of a C variable.
 
@@ -790,6 +812,8 @@ strings).
 +$obj+ 'size'::
 	Returns the raw size of a C variable (equivalent to 'sizeof()').
 
+Strings and Memory Operations
++++++++++++++++++++++++++++++
 +ffi.string+ 'at addr ?len?'::
 	Reads the string at a given memory address. If no length is specified, data
 	is read up to the first '\0' byte found.
@@ -814,6 +838,8 @@ to be '\0'-terminated.
 [TIP]
 Use 'ffi.cast' to dereference pointers.
 
+Data Structures
++++++++++++++++
 +ffi.struct+ 'raw type...'::
 	Creates a new 'struct', which can be optionally initialized by specifying
 	its raw contents instead of an empty string.
@@ -821,6 +847,8 @@ Use 'ffi.cast' to dereference pointers.
 +$struct+ 'member index'::
 	Returns the value of a 'struct' member, as a new variable object.
 
+Libraries
++++++++++
 +ffi.dlopen+ 'path'::
 	Loads a shared object.
 
@@ -835,6 +863,8 @@ string as the path (equivalent to 'dlopen()' with 'NULL').
 +$lib+ 'dlsym name'::
 	Returns the address of a symbol exported by a shared object.
 
+Functions
++++++++++
 +ffi.function+ 'addr rtype ?type...?'::
 	Wraps a C function with a +szl+ procedure. The return value type may be
 	'void', in addition to the types recognized by 'ffi.cast'.
@@ -976,7 +1006,7 @@ Implementation
 --------------
 Overview
 ~~~~~~~~
-+szl+ is implemented as C (or more specifically, C99) library and targets
++szl+ is implemented as a C (or more specifically, C99) library and targets
 http://www.kernel.org/[Linux] distributions.
 
 Objects

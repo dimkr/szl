@@ -51,7 +51,7 @@ SHARED_LIB = libszl.so
 PROGS = szlsh
 
 BUILTIN_EXT_NAMES = obj proc str exc socket null logic io list math loop ext \
-                    time env path
+                    time env path signal szl
 EXTERNAL_EXT_NAMES =
 
 # SZL_LIB is the library szlsh and extensions are linked against
