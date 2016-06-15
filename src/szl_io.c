@@ -22,14 +22,9 @@
  * THE SOFTWARE.
  */
 
-#include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <fcntl.h>
+#include <stdio.h>
 #include <string.h>
-#include <errno.h>
 
 #include "szl.h"
 
@@ -41,12 +36,6 @@
 
 static const char szl_io_inc[] = {
 #include "szl_io.inc"
-};
-
-struct szl_flock {
-	char *path;
-	int fd;
-	int locked;
 };
 
 static
@@ -163,6 +152,7 @@ int szl_new_file(struct szl_interp *interp,
 	return 1;
 }
 
+static
 const char *szl_file_mode(struct szl_interp *interp,
                           const char *mode,
                           int *binary)
@@ -294,219 +284,6 @@ enum szl_res szl_io_proc_dup(struct szl_interp *interp,
 }
 
 static
-enum szl_res szl_io_proc_size(struct szl_interp *interp,
-                              const int objc,
-                              struct szl_obj **objv)
-{
-	struct stat stbuf;
-	const char *path;
-	size_t len;
-
-	path = szl_obj_str(objv[1], &len);
-	if (!path || !len)
-		return SZL_ERR;
-
-	if ((stat(path, &stbuf) < 0) || (stbuf.st_size > SZL_INT_MAX))
-		return SZL_ERR;
-
-	return szl_set_result_int(interp, (szl_int)stbuf.st_size);
-}
-
-static
-enum szl_res szl_io_proc_delete(struct szl_interp *interp,
-                                const int objc,
-                                struct szl_obj **objv)
-{
-	const char *path;
-	size_t len;
-
-	path = szl_obj_str(objv[1], &len);
-	if (!path || !len)
-		return SZL_ERR;
-
-	if (unlink(path) < 0)
-		return SZL_ERR;
-
-	return SZL_OK;
-}
-
-static
-enum szl_res szl_io_proc_mkdir(struct szl_interp *interp,
-                               const int objc,
-                               struct szl_obj **objv)
-{
-	const char *path;
-	size_t len;
-
-	path = szl_obj_str(objv[1], &len);
-	if (!path || !len)
-		return SZL_ERR;
-
-	if (mkdir(path, 0755) < 0)
-		return SZL_ERR;
-
-	return SZL_OK;
-}
-
-static
-enum szl_res szl_io_proc_cd(struct szl_interp *interp,
-                            const int objc,
-                            struct szl_obj **objv)
-{
-	const char *path;
-	size_t len;
-
-	path = szl_obj_str(objv[1], &len);
-	if (!path || !len)
-		return SZL_ERR;
-
-	if (chdir(path) < 0)
-		return SZL_ERR;
-
-	return SZL_OK;
-}
-
-static
-void szl_flock_del(void *priv)
-{
-	struct szl_flock *lock = (struct szl_flock *)priv;
-
-	if (lock->locked)
-		lockf(lock->fd, F_ULOCK, 0);
-	close(lock->fd);
-	unlink(lock->path);
-	free(lock->path);
-
-	free(priv);
-}
-
-static
-enum szl_res szl_flock_proc(struct szl_interp *interp,
-                            const int objc,
-                            struct szl_obj **objv)
-{
-	struct szl_flock *lock = (struct szl_flock *)objv[0]->priv;
-	const char *op;
-	size_t len;
-
-	op = szl_obj_str(objv[1], &len);
-	if (!op || !len)
-		return SZL_ERR;
-
-	if ((objc == 2) && (strcmp("unlock", op) == 0)) {
-		if (lock->locked) {
-			if (lockf(lock->fd, F_ULOCK, 0) < 0)
-				return SZL_ERR;
-			lock->locked = 0;
-		}
-
-		return SZL_OK;
-	}
-
-	return szl_usage(interp, objv[0]);
-}
-
-static
-enum szl_res szl_io_proc_lock(struct szl_interp *interp,
-                              const int objc,
-                              struct szl_obj **objv)
-{
-	char name[sizeof("file.lock:"SZL_PASTE(SZL_INT_MIN))];
-	struct szl_obj *proc;
-	struct szl_flock *lock;
-	const char *path;
-	size_t len;
-
-	path = szl_obj_str(objv[1], &len);
-	if (!path || !len)
-		return SZL_ERR;
-
-	lock = (struct szl_flock *)malloc(sizeof(*lock));
-	if (!lock)
-		return SZL_ERR;
-
-	lock->path = szl_obj_strdup(objv[1], NULL);
-	if (!lock->path) {
-		free(lock);
-		return SZL_ERR;
-	}
-
-	lock->fd = open(path,
-	                O_WRONLY | O_CREAT,
-	                S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-	if (lock->fd < 0) {
-		szl_set_result_fmt(interp, "failed to open %s", path);
-		free(lock->path);
-		free(lock);
-		return SZL_ERR;
-	}
-
-	if (lockf(lock->fd, F_LOCK, 0) < 0) {
-		szl_set_result_fmt(interp, "failed to lock %s", path);
-		free(lock->path);
-		free(lock);
-		return SZL_ERR;
-	}
-
-	szl_new_obj_name(interp, "file.lock", name, sizeof(name), lock);
-	proc = szl_new_proc(interp,
-	                    name,
-	                    1,
-	                    3,
-	                    "lock unlock",
-	                    szl_flock_proc,
-	                    szl_flock_del,
-	                    lock);
-	if (!proc) {
-		free(lock->path);
-		free(lock);
-		return SZL_ERR;
-	}
-
-	lock->locked = 1;
-	return szl_set_result(interp, szl_obj_ref(proc));
-}
-
-static
-enum szl_res szl_io_proc_locked(struct szl_interp *interp,
-                                const int objc,
-                                struct szl_obj **objv)
-{
-	const char *path;
-	size_t len;
-	int fd;
-
-	path = szl_obj_str(objv[1], &len);
-	if (!path || !len)
-		return SZL_ERR;
-
-	fd = open(path, O_RDONLY, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-	if (fd < 0) {
-		if (errno != ENOENT) {
-			szl_set_result_fmt(interp, "failed to open %s", path);
-			return SZL_ERR;
-		}
-
-		return szl_set_result_bool(interp, 0);
-	}
-
-	if (lockf(fd, F_TEST, 0) == 0) {
-		close(fd);
-		return szl_set_result_bool(interp, 0);
-	}
-
-	if ((errno != EAGAIN) && (errno !=  EACCES)) {
-		close(fd);
-		szl_set_result_fmt(interp,
-		                   "failed to check whether %s is locked",
-		                   path);
-		return SZL_ERR;
-	}
-
-	return szl_set_result_bool(interp, 1);
-}
-
-static
 int szl_io_wrap_stream(struct szl_interp *interp, FILE *fp, const char *name)
 {
 	struct szl_obj *obj;
@@ -564,54 +341,6 @@ int szl_init_io(struct szl_interp *interp)
 	                      2,
 	                      "_io.dup handle",
 	                      szl_io_proc_dup,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "file.size",
-	                      2,
-	                      2,
-	                      "file.size path",
-	                      szl_io_proc_size,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "file.delete",
-	                      2,
-	                      2,
-	                      "file.delete path",
-	                      szl_io_proc_delete,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "mkdir",
-	                      2,
-	                      2,
-	                      "mkdir path",
-	                      szl_io_proc_mkdir,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "cd",
-	                      2,
-	                      2,
-	                      "cd path",
-	                      szl_io_proc_cd,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "file.lock",
-	                      2,
-	                      2,
-	                      "file.lock path",
-	                      szl_io_proc_lock,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "file.locked",
-	                      2,
-	                      2,
-	                      "file.locked path",
-	                      szl_io_proc_locked,
 	                      NULL,
 	                      NULL)) &&
 	        (szl_run_const(interp,

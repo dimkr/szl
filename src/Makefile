@@ -50,8 +50,8 @@ STATIC_LIBS = $(STATIC_LIB) liblinenoise.a ed25519.a
 SHARED_LIB = libszl.so
 PROGS = szlsh
 
-BUILTIN_EXT_NAMES = obj proc str exc socket null logic io list math loop ext \
-                    time env path signal szl
+BUILTIN_EXT_NAMES = obj proc str exc socket null logic file dir io list math \
+                    loop ext time env path signal szl
 EXTERNAL_EXT_NAMES =
 
 # SZL_LIB is the library szlsh and extensions are linked against
@@ -196,6 +196,9 @@ szl_str.o: szl_str.c szl_str.inc szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 szl_io.o: szl_io.c szl_io.inc szl_conf.h
+	$(CC) -c -o $@ $< $(CFLAGS)
+
+szl_dir.o: szl_dir.c szl_dir.inc szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 szl_loop.o: szl_loop.c szl_loop.inc szl_conf.h

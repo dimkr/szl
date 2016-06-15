@@ -551,8 +551,14 @@ Leftover lock files are unlocked automatically, during garbage collection.
 +file.locked+ 'path'::
 	Checks whether a lock file is locked.
 
-+mkdir+ 'path'::
++dir.create+ 'path'::
 	Creates a directory.
+
++dir.delete+ 'path':
+	Deletes an empty directory.
+
++dir.rdelete+ 'path':
+	Recursively deletes the contents of a directory and the directory itself.
 
 +cd+ 'path'::
 	Changes the working directory.

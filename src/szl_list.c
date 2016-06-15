@@ -23,6 +23,7 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "szl.h"
 
@@ -64,13 +65,50 @@ enum szl_res szl_list_proc_append(struct szl_interp *interp,
 }
 
 static
+enum szl_res szl_list_proc_extend(struct szl_interp *interp,
+                                  const int objc,
+                                  struct szl_obj **objv)
+{
+	struct szl_obj *obj;
+	const char *name, **toks;
+	size_t len, n, i;
+
+	name = szl_obj_str(objv[1], &len);
+	if (!name || !len)
+		return SZL_ERR;
+
+	if (!szl_obj_len(objv[2], &len))
+		return SZL_ERR;
+
+	obj = szl_get(interp, name);
+	if (!obj)
+		return SZL_ERR;
+
+	if (!len)
+		return SZL_OK;
+
+	toks = szl_obj_list(interp, objv[2], &n);
+	if (!toks || (n >= SZL_INT_MAX))
+		return SZL_ERR;
+
+	for (i = 0; i < n; ++i) {
+		if (!szl_lappend_str(obj, toks[i])) {
+			szl_obj_unref(obj);
+			return SZL_ERR;
+		}
+	}
+
+	return SZL_OK;
+}
+
+static
 enum szl_res szl_list_proc_index(struct szl_interp *interp,
                                  const int objc,
                                  struct szl_obj **objv)
 {
 	const char **toks;
 	szl_int i;
-	size_t n;
+	size_t n, len;
 
 	if ((!szl_obj_int(objv[2], &i)) || (i < 0))
 		return SZL_ERR;
@@ -79,7 +117,14 @@ enum szl_res szl_list_proc_index(struct szl_interp *interp,
 	if (!toks || (i >= n))
 		return SZL_ERR;
 
-	return szl_set_result_str(interp, toks[i], -1);
+	len = strlen(toks[i]);
+	if ((len >= 2) &&
+	    (toks[i][0] == '{') &&
+	    (toks[i][len - 2] != '\\') &&
+	    (toks[i][len - 1] == '}'))
+		return szl_set_result_str(interp, toks[i] + 1, (int)len - 2);
+
+	return szl_set_result_str(interp, toks[i], (int)len);
 }
 
 static
@@ -118,6 +163,34 @@ enum szl_res szl_list_proc_range(struct szl_interp *interp,
 	return szl_set_result(interp, obj);
 }
 
+static
+enum szl_res szl_list_proc_reverse(struct szl_interp *interp,
+                                   const int objc,
+                                   struct szl_obj **objv)
+{
+	struct szl_obj *obj;
+	const char **toks;
+	szl_int i;
+	size_t n;
+
+	toks = szl_obj_list(interp, objv[1], &n);
+	if (!toks || (n >= SZL_INT_MAX))
+		return SZL_ERR;
+
+	obj = szl_new_empty();
+	if (!obj)
+		return SZL_ERR;
+
+	for (i = (szl_int)n - 1; i >= 0; --i) {
+		if (!szl_lappend_str(obj, toks[i])) {
+			szl_obj_unref(obj);
+			return SZL_ERR;
+		}
+	}
+
+	return szl_set_result(interp, obj);
+}
+
 int szl_init_list(struct szl_interp *interp)
 {
 	return ((szl_new_proc(interp,
@@ -137,6 +210,14 @@ int szl_init_list(struct szl_interp *interp)
 	                      NULL,
 	                      NULL)) &&
 	        (szl_new_proc(interp,
+	                      "list.extend",
+	                      3,
+	                      3,
+	                      "list.extend name obj",
+	                      szl_list_proc_extend,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
 	                      "list.index",
 	                      3,
 	                      3,
@@ -150,6 +231,14 @@ int szl_init_list(struct szl_interp *interp)
 	                      4,
 	                      "list.range obj start end",
 	                      szl_list_proc_range,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "list.reverse",
+	                      2,
+	                      2,
+	                      "list.reverse obj",
+	                      szl_list_proc_reverse,
 	                      NULL,
 	                      NULL)));
 }
