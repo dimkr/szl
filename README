@@ -30,6 +30,15 @@ For more information, see the user manual at http://www.dimakrasner.com/szl.
 Building
 ========
 
+On Debian (http://www.debian.org) based distributions:
+
+  $ apt-get install git gcc make pkg-config libz-dev libcurl-dev libarchive-dev
+                    libssl-dev libffi-dev
+
+Then:
+
+  $ git clone --recursive https://github.com/dimkr/szl
+  $ cd szl
   $ make
   $ make install
 
