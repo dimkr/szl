@@ -46,7 +46,7 @@ LIBSZL_DEPS =
 SZLSH_LIBS =
 
 STATIC_LIB = libszl.a
-STATIC_LIBS = $(STATIC_LIB) liblinenoise.a ed25519.a
+STATIC_LIBS = $(STATIC_LIB) liblinenoise.a libed25519.a
 SHARED_LIB = libszl.so
 PROGS = szlsh
 
