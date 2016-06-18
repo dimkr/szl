@@ -22,7 +22,10 @@ libraries.
   | 3957769958                                       |
   | >>> rtrim [exec "uname -s"]                      |
   | Linux                                            |
-  | >>>                                              |
+  | >>> [open /bin/gunzip rb] read 9                 |
+  | #!/bin/sh                                        |
+  | >>> map i [range 1 4] {calc $i * 3}              |
+  | 3 6 9                                            |
   \__________________________________________________/
 
 For more information, see the user manual at http://www.dimakrasner.com/szl.
@@ -55,7 +58,7 @@ into the interpreter:
 
   $ ALL_STATIC=1 make
 
-In addition, built-in extensions can be chosen individually, e.g:
+In addition, built-in extensions can be chosen individually, e.g.:
 
   $ STATIC_CURL=1 STATIC_FFI=1 make
 
