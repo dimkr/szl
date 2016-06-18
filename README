@@ -50,7 +50,8 @@ entire standard library is lower.
 However, in some use cases (for example, when szl is embedded into another
 project), this is undesirable.
 
-To build szl with all extensions linked statically into the interpreter:
+To build szl as a single executable file, with all extensions linked statically
+into the interpreter:
 
   $ ALL_STATIC=1 make
 
