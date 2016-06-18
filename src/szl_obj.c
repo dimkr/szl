@@ -31,7 +31,7 @@ enum szl_res szl_obj_proc_global(struct szl_interp *interp,
 {
 	const char *s;
 
-	s = szl_obj_str(objv[1], NULL);
+	s = szl_obj_str(interp, objv[1], NULL);
 	if (!s)
 		return SZL_ERR;
 
@@ -50,7 +50,7 @@ enum szl_res szl_obj_proc_local(struct szl_interp *interp,
 	const char *name;
 	int resi;
 
-	name = szl_obj_str(objv[1], NULL);
+	name = szl_obj_str(interp, objv[1], NULL);
 	if (!name)
 		return SZL_ERR;
 
@@ -73,11 +73,11 @@ enum szl_res szl_obj_proc_eval(struct szl_interp *interp,
 	const char *s;
 	size_t len;
 
-	s = szl_obj_str(objv[1], &len);
+	s = szl_obj_str(interp, objv[1], &len);
 	if (!s || !len)
 		return SZL_ERR;
 
-	return szl_run_const(interp, s, len);
+	return szl_run(interp, s, len);
 }
 
 int szl_init_obj(struct szl_interp *interp)

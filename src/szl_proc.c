@@ -49,7 +49,7 @@ enum szl_res szl_proc_proc_exec(struct szl_interp *interp,
 	ssize_t clen;
 	enum szl_res res = SZL_OK;
 
-	cmd = szl_obj_str(objv[1], &len);
+	cmd = szl_obj_str(interp, objv[1], &len);
 	if (!cmd || !len)
 		return SZL_ERR;
 
@@ -165,17 +165,17 @@ enum szl_res szl_proc_eval_proc(struct szl_interp *interp,
 {
 	char buf[SZL_MAX_OBJC_DIGITS + 1];
 	struct szl_obj *argv_obj, *argc_obj;
-	const char *s, *tok, *exp;
-	size_t len, elen, tlen;
+	const char *s, *exp;
+	size_t len, elen;
 	int i, resi;
 	enum szl_res res;
 
-	s = szl_obj_str((struct szl_obj *)objv[0]->priv, &len);
+	s = szl_obj_str(interp, (struct szl_obj *)objv[0]->priv, &len);
 	if (!s)
 		return SZL_ERR;
 
 	/* get the currently running expression */
-	exp = szl_obj_str(interp->current, &elen);
+	exp = szl_obj_str(interp, interp->current, &elen);
 	if (!exp || !elen)
 		return SZL_ERR;
 
@@ -195,13 +195,7 @@ enum szl_res szl_proc_eval_proc(struct szl_interp *interp,
 		return SZL_ERR;
 
 	for (i = 1; i < objc; ++i) {
-		tok = szl_obj_str(objv[i], &tlen);
-		if (!tok) {
-			szl_obj_unref(argv_obj);
-			return SZL_ERR;
-		}
-
-		if (!szl_lappend_str(argv_obj, tok)) {
+		if (!szl_lappend(interp, argv_obj, objv[i])) {
 			szl_obj_unref(argv_obj);
 			return SZL_ERR;
 		}
@@ -219,7 +213,7 @@ enum szl_res szl_proc_eval_proc(struct szl_interp *interp,
 			return SZL_ERR;
 	}
 
-	res = szl_run_const(interp, s, len);
+	res = szl_run(interp, s, len);
 
 	if (res == SZL_RET)
 		return SZL_OK;
@@ -240,7 +234,7 @@ enum szl_res szl_proc_proc_proc(struct szl_interp *interp,
 {
 	const char *name;
 
-	name = szl_obj_str(objv[1], NULL);
+	name = szl_obj_str(interp, objv[1], NULL);
 	if (!name)
 		return SZL_ERR;
 

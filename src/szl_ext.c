@@ -32,7 +32,7 @@ enum szl_res szl_ext_proc_load(struct szl_interp *interp,
 	const char *name;
 	size_t len;
 
-	name = szl_obj_str(objv[1], &len);
+	name = szl_obj_str(interp, objv[1], &len);
 	if (!name || !len)
 		return SZL_ERR;
 
@@ -50,7 +50,7 @@ enum szl_res szl_ext_proc_source(struct szl_interp *interp,
 	const char *path;
 	size_t len;
 
-	path = szl_obj_str(objv[1], &len);
+	path = szl_obj_str(interp, objv[1], &len);
 	if (!path || !len)
 		return SZL_ERR;
 

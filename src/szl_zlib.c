@@ -44,10 +44,10 @@ enum szl_res szl_zlib_proc_crc32(struct szl_interp *interp,
 
 	if (objc == 2)
 		init = (szl_int)crc32(0L, Z_NULL, 0);
-	else if (!szl_obj_int(objv[2], &init))
+	else if (!szl_obj_int(interp, objv[2], &init))
 		return SZL_ERR;
 
-	s = szl_obj_str(objv[1], &len);
+	s = szl_obj_str(interp, objv[1], &len);
 	if (!s || !len)
 		return SZL_ERR;
 
@@ -126,10 +126,10 @@ enum szl_res szl_zlib_proc_deflate(struct szl_interp *interp,
 	const char *in;
 	size_t len;
 
-	if ((objc == 3) && (!szl_obj_int(objv[2], &level)))
+	if ((objc == 3) && (!szl_obj_int(interp, objv[2], &level)))
 		return SZL_ERR;
 
-	in = szl_obj_str(objv[1], &len);
+	in = szl_obj_str(interp, objv[1], &len);
 	if (!in || !len)
 		return SZL_ERR;
 
@@ -184,7 +184,8 @@ enum szl_res szl_zlib_decompress(struct szl_interp *interp,
 			case Z_OK:
 			case Z_STREAM_END:
 				/* append each chunk to the output object */
-				if (szl_append(out,
+				if (szl_append(interp,
+				               out,
 				               buf,
 				               (size_t)bufsiz - (size_t)strm.avail_out))
 					break;
@@ -216,10 +217,10 @@ enum szl_res szl_zlib_proc_inflate(struct szl_interp *interp,
 	szl_int bufsiz = DEF_DECOMPRESS_BUFSIZ;
 	size_t len;
 
-	if ((objc == 3) && (!szl_obj_int(objv[2], &bufsiz)))
+	if ((objc == 3) && (!szl_obj_int(interp, objv[2], &bufsiz)))
 		return SZL_ERR;
 
-	in = szl_obj_str(objv[1], &len);
+	in = szl_obj_str(interp, objv[1], &len);
 	if (!in || !len)
 		return SZL_ERR;
 
@@ -235,10 +236,10 @@ enum szl_res szl_zlib_proc_gzip(struct szl_interp *interp,
 	const char *in;
 	size_t len;
 
-	if ((objc == 3) && (!szl_obj_int(objv[2], &level)))
+	if ((objc == 3) && (!szl_obj_int(interp, objv[2], &level)))
 		return szl_usage(interp, objv[0]);
 
-	in = szl_obj_str(objv[1], &len);
+	in = szl_obj_str(interp, objv[1], &len);
 	if (!in || !len)
 		return SZL_ERR;
 
@@ -255,12 +256,12 @@ enum szl_res szl_zlib_proc_gunzip(struct szl_interp *interp,
 	size_t len;
 
 	if ((objc == 3) &&
-	    ((!szl_obj_int(objv[2], &bufsiz)) ||
+	    ((!szl_obj_int(interp, objv[2], &bufsiz)) ||
 	     (bufsiz < 0) ||
 	     (bufsiz > LONG_MAX)))
 		return szl_usage(interp, objv[0]);
 
-	in = szl_obj_str(objv[1], &len);
+	in = szl_obj_str(interp, objv[1], &len);
 	if (!in)
 		return SZL_ERR;
 

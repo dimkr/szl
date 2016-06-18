@@ -35,7 +35,7 @@ enum szl_res szl_str_proc_length(struct szl_interp *interp,
 {
 	size_t len;
 
-	if (!szl_obj_len(objv[1], &len) || (len > INT_MAX))
+	if (!szl_obj_len(interp, objv[1], &len) || (len > INT_MAX))
 		return SZL_ERR;
 
 	return szl_set_result_int(interp, (szl_int)len);
@@ -50,14 +50,14 @@ enum szl_res szl_str_proc_range(struct szl_interp *interp,
 	szl_int start, end;
 	size_t len;
 
-	s = szl_obj_str(objv[1], &len);
+	s = szl_obj_str(interp, objv[1], &len);
 	if (!s)
 		return SZL_ERR;
 
-	if (!szl_obj_int(objv[2], &start) ||
+	if (!szl_obj_int(interp, objv[2], &start) ||
 	    (start < 0) ||
 	    (start >= len) ||
-	    !szl_obj_int(objv[3], &end) ||
+	    !szl_obj_int(interp, objv[3], &end) ||
 	    (end < start) ||
 	    (end >= len))
 		return SZL_ERR;
@@ -76,7 +76,7 @@ enum szl_res szl_str_proc_append(struct szl_interp *interp,
 	size_t len;
 	enum szl_res res = SZL_OK;
 
-	name = szl_obj_str(objv[1], NULL);
+	name = szl_obj_str(interp, objv[1], NULL);
 	if (!name)
 		return SZL_ERR;
 
@@ -84,10 +84,10 @@ enum szl_res szl_str_proc_append(struct szl_interp *interp,
 	if (!obj)
 		return SZL_ERR;
 
-	s = szl_obj_str(objv[2], &len);
+	s = szl_obj_str(interp, objv[2], &len);
 	if (s) {
 		if (len) {
-			if (!szl_append(obj, s, len))
+			if (!szl_append(interp, obj, s, len))
 				res = SZL_ERR;
 		}
 	}
@@ -105,7 +105,7 @@ enum szl_res szl_str_proc_join(struct szl_interp *interp,
 {
 	struct szl_obj *obj;
 
-	obj = szl_join(interp, objc - 2, objv[1], &objv[2]);
+	obj = szl_join(interp, objv[1], &objv[2], objc - 2, 0);
 	if (obj)
 		return szl_set_result(interp, obj);
 
@@ -120,7 +120,7 @@ static enum szl_res szl_str_proc_ltrim(struct szl_interp *interp,
 	const char *s;
 	size_t len, i;
 
-	s = szl_obj_str(objv[1], &len);
+	s = szl_obj_str(interp, objv[1], &len);
 	if (!s)
 		return SZL_ERR;
 
@@ -146,7 +146,7 @@ static enum szl_res szl_str_proc_rtrim(struct szl_interp *interp,
 	size_t len;
 	ssize_t i;
 
-	s = szl_obj_str(objv[1], &len);
+	s = szl_obj_str(interp, objv[1], &len);
 	if (!s)
 		return SZL_ERR;
 
@@ -213,7 +213,5 @@ int szl_init_str(struct szl_interp *interp)
 	                      szl_str_proc_rtrim,
 	                      NULL,
 	                      NULL)) &&
-	        (szl_run_const(interp,
-	                       szl_str_inc,
-	                       sizeof(szl_str_inc) - 1) == SZL_OK));
+	        (szl_run(interp, szl_str_inc, sizeof(szl_str_inc) - 1) == SZL_OK));
 }

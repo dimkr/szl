@@ -34,11 +34,11 @@ enum szl_res szl_math_proc_calc(struct szl_interp *interp,
 	const char *op;
 	szl_double n, m;
 
-	op = szl_obj_str(objv[2], NULL);
+	op = szl_obj_str(interp, objv[2], NULL);
 	if (!op)
 		return SZL_ERR;
 
-	if (!szl_obj_double(objv[1], &m) || !szl_obj_double(objv[3], &n))
+	if (!szl_obj_double(interp, objv[1], &m) || !szl_obj_double(interp, objv[3], &n))
 		return SZL_ERR;
 
 	if (strcmp("+", op) == 0)

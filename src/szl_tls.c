@@ -129,7 +129,7 @@ enum szl_res szl_tls_proc_connect(struct szl_interp *interp,
 {
 	szl_int fd;
 
-	if ((!szl_obj_int(objv[1], &fd)) || (fd < 0) || (fd > INT_MAX))
+	if ((!szl_obj_int(interp, objv[1], &fd)) || (fd < 0) || (fd > INT_MAX))
 		return SZL_ERR;
 
 	return szl_tls_new(interp, (int)fd, 0, NULL, NULL);
@@ -144,14 +144,14 @@ enum szl_res szl_tls_proc_accept(struct szl_interp *interp,
 	szl_int fd;
 	size_t len;
 
-	if ((!szl_obj_int(objv[1], &fd)) || (fd < 0) || (fd > INT_MAX))
+	if ((!szl_obj_int(interp, objv[1], &fd)) || (fd < 0) || (fd > INT_MAX))
 		return SZL_ERR;
 
-	cert = szl_obj_str(objv[2], &len);
+	cert = szl_obj_str(interp, objv[2], &len);
 	if (!cert || !len)
 		return SZL_ERR;
 
-	priv = szl_obj_str(objv[3], &len);
+	priv = szl_obj_str(interp, objv[3], &len);
 	if (!priv || !len)
 		return SZL_ERR;
 

@@ -34,7 +34,7 @@ enum szl_res szl_env_proc_get(struct szl_interp *interp,
 	const char *name, *val;
 	size_t len;
 
-	name = szl_obj_str(objv[1], &len);
+	name = szl_obj_str(interp, objv[1], &len);
 	if (!name || !len)
 		return SZL_ERR;
 

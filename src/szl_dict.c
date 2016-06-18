@@ -30,7 +30,7 @@ static const char szl_dict_inc[] = {
 
 int szl_init_dict(struct szl_interp *interp)
 {
-	return (szl_run_const(interp,
+	return (szl_run(interp,
 	                      szl_dict_inc,
 	                      sizeof(szl_dict_inc) - 1) == SZL_OK) ? 1 : 0;
 }

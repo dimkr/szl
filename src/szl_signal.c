@@ -53,7 +53,7 @@ enum szl_res szl_signal_sigmask_proc(struct szl_interp *interp,
 	size_t len;
 	int i, out;
 
-	s = szl_obj_str(objv[1], &len);
+	s = szl_obj_str(interp, objv[1], &len);
 	if (!s || !len)
 		return SZL_ERR;
 
@@ -106,7 +106,7 @@ enum szl_res szl_signal_proc_block(struct szl_interp *interp,
 	}
 
 	for (i = 1; i < objc; ++i) {
-		s = szl_obj_str(objv[i], &len);
+		s = szl_obj_str(interp, objv[i], &len);
 		if (!s || !len) {
 			free(mask);
 			return SZL_ERR;

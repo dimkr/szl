@@ -37,14 +37,3 @@ proc dup {
 	if [test $# != 1] {throw {bad dup usage: dup strm}}
 	fdopen [_io.dup [$1 handle]]
 }
-
-proc with {
-	if [test $# != 3] {throw {bad with usage: with name exp exp}}
-
-	local $1 [eval $2]
-	try {
-		eval $3
-	} except {} finally {
-		eval "$1 close"
-	}
-}

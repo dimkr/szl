@@ -38,7 +38,7 @@ enum szl_res szl_path_proc_exists(struct szl_interp *interp,
 	const char *path;
 	size_t len;
 
-	path = szl_obj_str(objv[1], &len);
+	path = szl_obj_str(interp, objv[1], &len);
 	if (!path || !len)
 		return SZL_ERR;
 

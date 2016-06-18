@@ -192,7 +192,7 @@ static enum szl_res szl_ffi_scalar_proc(struct szl_interp *interp,
 	const char *op;
 	size_t len;
 
-	op = szl_obj_str(objv[1], &len);
+	op = szl_obj_str(interp, objv[1], &len);
 	if (!op || !len)
 		return SZL_ERR;
 
@@ -286,7 +286,7 @@ enum szl_res SZL_FFI_NEW_PROC_NAME(szl_name)(struct szl_interp *interp,        \
 	c_type tmp;                                                                \
 	                                                                           \
 	if (objc == 2) {                                                           \
-		if (!szl_obj_int(objv[1], &i))                                         \
+		if (!szl_obj_int(interp, objv[1], &i))                                         \
 			return SZL_ERR;                                                    \
                                                                                \
 		if ((i < min) || (i > max)) {                                          \
@@ -444,7 +444,7 @@ enum szl_res SZL_FFI_NEW_PROC_NAME(pointer)(struct szl_interp *interp,
 	void *tmp = NULL;
 
 	if (objc == 2) {
-		if (!szl_obj_int(objv[1], &i))
+		if (!szl_obj_int(interp, objv[1], &i))
 			return SZL_ERR;
 
 		tmp = (void *)(intptr_t)i;
@@ -509,19 +509,19 @@ enum szl_res SZL_FFI_NEW_PROC_NAME(string)(struct szl_interp *interp,
 	char *s2;
 	size_t slen;
 
-	op = szl_obj_str(objv[1], NULL);
+	op = szl_obj_str(interp, objv[1], NULL);
 	if (!op)
 		return SZL_ERR;
 
 	if (strcmp("at", op) == 0) {
 		if ((objc == 4) &&
-		    ((!szl_obj_int(objv[3], &len)) ||
+		    ((!szl_obj_int(interp, objv[3], &len)) ||
 		     (len == 0) ||
 		     (len < -1) ||
 		     (len > INT_MAX)))
 			goto usage;
 
-		if (!szl_obj_int(objv[2], &addr))
+		if (!szl_obj_int(interp, objv[2], &addr))
 			goto usage;
 
 		if (len == -1) {
@@ -540,7 +540,7 @@ enum szl_res SZL_FFI_NEW_PROC_NAME(string)(struct szl_interp *interp,
 		}
 	}
 	else if ((objc == 3) && (strcmp("copy", op) == 0)) {
-		s2 = szl_obj_strdup(objv[2], &slen);
+		s2 = szl_obj_strdup(interp, objv[2], &slen);
 		if (!s2)
 			return SZL_ERR;
 	}
@@ -642,10 +642,10 @@ enum szl_res szl_ffi_proc_cast(struct szl_interp *interp,
 	szl_int addr;
 	size_t len;
 
-	if (!szl_obj_int(objv[1], &addr))
+	if (!szl_obj_int(interp, objv[1], &addr))
 		return SZL_ERR;
 
-	type = szl_obj_str(objv[2], &len);
+	type = szl_obj_str(interp, objv[2], &len);
 	if (!type || !len)
 		return SZL_ERR;
 
@@ -738,7 +738,7 @@ enum szl_res szl_ffi_struct_proc(struct szl_interp *interp,
 	szl_int i;
 	size_t len;
 
-	op = szl_obj_str(objv[1], &len);
+	op = szl_obj_str(interp, objv[1], &len);
 	if (!op || !len)
 		return SZL_ERR;
 
@@ -763,7 +763,7 @@ enum szl_res szl_ffi_struct_proc(struct szl_interp *interp,
 		goto usage;
 	}
 	else if (strcmp("member", op) == 0) {
-		if (!szl_obj_int(objv[2], &i))
+		if (!szl_obj_int(interp, objv[2], &i))
 			return SZL_ERR;
 
 		if ((i < 0) || (i >= s->nmemb - 1)) {
@@ -830,7 +830,7 @@ enum szl_res szl_ffi_proc_struct(struct szl_interp *interp,
 
 	s->size = 0;
 	for (i = 2; i < objc; ++i) {
-		type = szl_obj_str(objv[i], &len);
+		type = szl_obj_str(interp, objv[i], &len);
 		if (!type || !len) {
 			free(s->offs);
 			free(s->type.elements);
@@ -861,7 +861,7 @@ enum szl_res szl_ffi_proc_struct(struct szl_interp *interp,
 		}
 	}
 
-	raw = szl_obj_str(objv[1], &len);
+	raw = szl_obj_str(interp, objv[1], &len);
 	if (!raw) {
 		free(s->offs);
 		free(s->type.elements);
@@ -928,7 +928,7 @@ enum szl_res szl_ffi_library_proc(struct szl_interp *interp,
 	void *p;
 	size_t len;
 
-	op = szl_obj_str(objv[1], NULL);
+	op = szl_obj_str(interp, objv[1], NULL);
 	if (!op)
 		return SZL_ERR;
 
@@ -936,7 +936,7 @@ enum szl_res szl_ffi_library_proc(struct szl_interp *interp,
 		if (strcmp("dlsym", op) != 0)
 			goto usage;
 
-		sym = szl_obj_str(objv[2], &len);
+		sym = szl_obj_str(interp, objv[2], &len);
 		if (!sym || !len)
 			return SZL_ERR;
 
@@ -968,7 +968,7 @@ enum szl_res szl_ffi_proc_dlopen(struct szl_interp *interp,
 	struct szl_obj *obj;
 	size_t len;
 
-	path = szl_obj_str(objv[1], &len);
+	path = szl_obj_str(interp, objv[1], &len);
 	if (!path)
 		return SZL_ERR;
 	if (!len)
@@ -1015,7 +1015,7 @@ enum szl_res szl_ffi_function_proc(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	if (!szl_obj_int(objv[1], &out_int))
+	if (!szl_obj_int(interp, objv[1], &out_int))
 		return SZL_ERR;
 
 	out = (void *)(intptr_t)out_int;
@@ -1030,7 +1030,7 @@ enum szl_res szl_ffi_function_proc(struct szl_interp *interp,
 
 	if (f->argc) {
 		for (i = 2; i < objc; ++i) {
-			if (!szl_obj_int(objv[i], &tmp)) {
+			if (!szl_obj_int(interp, objv[i], &tmp)) {
 				free(args);
 				return SZL_ERR;
 			}
@@ -1080,7 +1080,7 @@ enum szl_res szl_ffi_proc_function(struct szl_interp *interp,
 	size_t len;
 	int i, j;
 
-	if (!szl_obj_int(objv[1], &addr))
+	if (!szl_obj_int(interp, objv[1], &addr))
 		return SZL_ERR;
 
 	if (!addr) {
@@ -1088,7 +1088,7 @@ enum szl_res szl_ffi_proc_function(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	s = szl_obj_str(objv[2], &len);
+	s = szl_obj_str(interp, objv[2], &len);
 	if (!s || !len)
 		return SZL_ERR;
 
@@ -1112,7 +1112,7 @@ enum szl_res szl_ffi_proc_function(struct szl_interp *interp,
 
 	if (f->argc)
 		for (i = 3; i < objc; ++i) {
-			s = szl_obj_str(objv[i], &len);
+			s = szl_obj_str(interp, objv[i], &len);
 			if (!s || !len) {
 				free(f->atypes);
 				free(f);

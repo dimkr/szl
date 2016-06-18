@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
 
 	switch (argc) {
 		case 1:
-			res = szl_run_const(interp, szlsh_inc, sizeof(szlsh_inc) - 1);
+			res = szl_run(interp, szlsh_inc, sizeof(szlsh_inc) - 1);
 			break;
 
 		case 2:
@@ -55,13 +55,13 @@ int main(int argc, char *argv[])
 
 		case 3:
 			if (strcmp("-c", argv[1]) == 0) {
-				res = szl_run_const(interp, argv[2], strlen(argv[2]));
+				res = szl_run(interp, argv[2], strlen(argv[2]));
 				break;
 			}
 	}
 
 	if (res != SZL_EXIT) {
-		s = szl_obj_str(interp->last, &len);
+		s = szl_obj_str(interp, interp->last, &len);
 		strm = res == SZL_ERR ? stderr : stdout;
 		if (s && len && (fwrite(s, 1, len, strm) > 0))
 			fflush(strm);

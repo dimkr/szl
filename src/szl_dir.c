@@ -40,7 +40,7 @@ enum szl_res szl_dir_proc_create(struct szl_interp *interp,
 	const char *path;
 	size_t len;
 
-	path = szl_obj_str(objv[1], &len);
+	path = szl_obj_str(interp, objv[1], &len);
 	if (!path || !len)
 		return SZL_ERR;
 
@@ -58,7 +58,7 @@ enum szl_res szl_dir_proc_delete(struct szl_interp *interp,
 	const char *path;
 	size_t len;
 
-	path = szl_obj_str(objv[1], &len);
+	path = szl_obj_str(interp, objv[1], &len);
 	if (!path || !len)
 		return SZL_ERR;
 
@@ -76,7 +76,7 @@ enum szl_res szl_dir_proc_cd(struct szl_interp *interp,
 	const char *path;
 	size_t len;
 
-	path = szl_obj_str(objv[1], &len);
+	path = szl_obj_str(interp, objv[1], &len);
 	if (!path || !len)
 		return SZL_ERR;
 
@@ -100,7 +100,7 @@ enum szl_res szl_dir_proc_list(struct szl_interp *interp,
 	size_t len;
 	int i, out;
 
-	path = szl_obj_str(objv[1], &len);
+	path = szl_obj_str(interp, objv[1], &len);
 	if (!path || !len)
 		return SZL_ERR;
 
@@ -139,10 +139,10 @@ enum szl_res szl_dir_proc_list(struct szl_interp *interp,
 			     (entp->d_name[2] == '\0')))
 				continue;
 
-			out = szl_lappend_str(names[0], entp->d_name);
+			out = szl_lappend_str(interp, names[0], entp->d_name);
 		}
 		else
-			out = szl_lappend_str(names[1], entp->d_name);
+			out = szl_lappend_str(interp, names[1], entp->d_name);
 
 		if (!out) {
 			szl_obj_unref(obj);
@@ -154,8 +154,8 @@ enum szl_res szl_dir_proc_list(struct szl_interp *interp,
 	} while (1);
 
 	for (i = 0; i < 2; ++i) {
-		s = szl_obj_str(names[i], NULL);
-		if (!s || !szl_lappend_str(obj, s)) {
+		s = szl_obj_str(interp, names[i], NULL);
+		if (!s || !szl_lappend_str(interp, obj, s)) {
 			szl_obj_unref(obj);
 			szl_obj_unref(names[1]);
 			szl_obj_unref(names[0]);
@@ -204,7 +204,5 @@ int szl_init_dir(struct szl_interp *interp)
 	                      szl_dir_proc_list,
 	                      NULL,
 	                      NULL)) &&
-	        (szl_run_const(interp,
-	                       szl_dir_inc,
-	                       sizeof(szl_dir_inc) - 1) == SZL_OK));
+	        (szl_run(interp, szl_dir_inc, sizeof(szl_dir_inc) - 1) == SZL_OK));
 }

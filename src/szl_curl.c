@@ -120,11 +120,11 @@ enum szl_res szl_curl_proc_get(struct szl_interp *interp,
 	i = 1;
 	j = 0;
 	while (i < objc) {
-		urls[j] = szl_obj_str(objv[i], &len);
+		urls[j] = szl_obj_str(interp, objv[i], &len);
 		if (!urls[j] || !len)
 			goto cleanup_cm;
 
-		paths[j] = szl_obj_str(objv[i + 1], &len);
+		paths[j] = szl_obj_str(interp, objv[i + 1], &len);
 		if (!paths[j] || !len)
 			goto cleanup_cm;
 

@@ -36,16 +36,20 @@ enum szl_res szl_logic_proc_test(struct szl_interp *interp,
 	szl_double n, m;
 	size_t alen, blen;
 
-	op = szl_obj_str(objv[2], NULL);
+	op = szl_obj_str(interp, objv[2], NULL);
 	if (!op)
 		return SZL_ERR;
 
 	if (strcmp("==", op) == 0) {
-		a = szl_obj_str(objv[1], &alen);
+		/* optimization: check if it's the same object first */
+		if (objv[1] == objv[3])
+			return szl_set_result_bool(interp, 1);
+
+		a = szl_obj_str(interp, objv[1], &alen);
 		if (!a)
 			return SZL_ERR;
 
-		b = szl_obj_str(objv[3], &blen);
+		b = szl_obj_str(interp, objv[3], &blen);
 		if (!b)
 			return SZL_ERR;
 
@@ -53,11 +57,11 @@ enum szl_res szl_logic_proc_test(struct szl_interp *interp,
 		                           ((alen == blen) && (strcmp(a, b) == 0)));
 	}
 	else if (strcmp("!=", op) == 0) {
-		a = szl_obj_str(objv[1], &alen);
+		a = szl_obj_str(interp, objv[1], &alen);
 		if (!a)
 			return SZL_ERR;
 
-		b = szl_obj_str(objv[3], &blen);
+		b = szl_obj_str(interp, objv[3], &blen);
 		if (!b)
 			return SZL_ERR;
 
@@ -65,25 +69,29 @@ enum szl_res szl_logic_proc_test(struct szl_interp *interp,
 		                           ((alen != blen) || (strcmp(a, b) != 0)));
 	}
 	else if (strcmp(">", op) == 0) {
-		if (!szl_obj_double(objv[1], &m) || !szl_obj_double(objv[3], &n))
+		if (!szl_obj_double(interp, objv[1], &m) ||
+		    !szl_obj_double(interp, objv[3], &n))
 			return SZL_ERR;
 
 		return szl_set_result_bool(interp, (m > n));
 	}
 	else if (strcmp("<", op) == 0) {
-		if (!szl_obj_double(objv[1], &m) || !szl_obj_double(objv[3], &n))
+		if (!szl_obj_double(interp, objv[1], &m) ||
+		    !szl_obj_double(interp, objv[3], &n))
 			return SZL_ERR;
 
 		return szl_set_result_bool(interp, (m > n));
 	}
 	else if (strcmp(">=", op) == 0) {
-		if (!szl_obj_double(objv[1], &m) || !szl_obj_double(objv[3], &n))
+		if (!szl_obj_double(interp, objv[1], &m) ||
+		    !szl_obj_double(interp, objv[3], &n))
 			return SZL_ERR;
 
 		return szl_set_result_bool(interp, (m >= n));
 	}
 	else if (strcmp("<=", op) == 0) {
-		if (!szl_obj_double(objv[1], &m) || !szl_obj_double(objv[3], &n))
+		if (!szl_obj_double(interp, objv[1], &m) ||
+		    !szl_obj_double(interp, objv[3], &n))
 			return SZL_ERR;
 
 		return szl_set_result_bool(interp, (m <= n));
@@ -160,7 +168,7 @@ enum szl_res szl_logic_proc_if(struct szl_interp *interp,
 			break;
 
 		case 5:
-			s = szl_obj_str(objv[3], NULL);
+			s = szl_obj_str(interp, objv[3], NULL);
 			if (!s)
 				return SZL_ERR;
 
@@ -173,19 +181,19 @@ enum szl_res szl_logic_proc_if(struct szl_interp *interp,
 	}
 
 	if (szl_obj_istrue(objv[1])) {
-		s = szl_obj_str(objv[2], &len);
+		s = szl_obj_str(interp, objv[2], &len);
 		if (!s)
 			return SZL_ERR;
 
-		return szl_run_const(interp, s, len);
+		return szl_run(interp, s, len);
 	}
 
 	if (objc == 5) {
-		s = szl_obj_str(objv[4], &len);
+		s = szl_obj_str(interp, objv[4], &len);
 		if (!s)
 			return SZL_ERR;
 
-		return szl_run_const(interp, s, len);
+		return szl_run(interp, s, len);
 	}
 
 	return SZL_OK;

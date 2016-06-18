@@ -34,7 +34,7 @@ enum szl_res szl_ed25519_proc_verify(struct szl_interp *interp,
 	const char *sig, *data, *kp;
 	size_t len;
 
-	kp = szl_obj_str(objv[3], &len);
+	kp = szl_obj_str(interp, objv[3], &len);
 	if (!kp || (len < 32)) {
 		szl_set_result_str(interp,
 		                   "the keypair must be at least 32 bytes long",
@@ -42,13 +42,13 @@ enum szl_res szl_ed25519_proc_verify(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	sig = szl_obj_str(objv[2], &len);
+	sig = szl_obj_str(interp, objv[2], &len);
 	if (!sig || (len != 64)) {
 		szl_set_result_str(interp, "the signature must be 64 bytes long", -1);
 		return SZL_ERR;
 	}
 
-	data = szl_obj_str(objv[1], &len);
+	data = szl_obj_str(interp, objv[1], &len);
 	if (!data || !len) {
 		szl_set_result_str(interp, "the data cannot be an empty buffer", -1);
 		return SZL_ERR;
@@ -74,13 +74,13 @@ enum szl_res szl_ed25519_proc_sign(struct szl_interp *interp,
 	const char *data, *kp;
 	size_t len, klen;
 
-	data = szl_obj_str(objv[1], &len);
+	data = szl_obj_str(interp, objv[1], &len);
 	if (!len) {
 		szl_set_result_str(interp, "the data cannot be an empty buffer", -1);
 		return SZL_ERR;
 	}
 
-	kp = szl_obj_str(objv[2], &klen);
+	kp = szl_obj_str(interp, objv[2], &klen);
 	if (klen != 96) {
 		szl_set_result_str(interp, "the keypair must be 96 bytes long", -1);
 		return SZL_ERR;

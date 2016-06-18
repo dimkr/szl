@@ -110,6 +110,7 @@ int szl_io_enable_buffering(struct szl_stream *strm, FILE *fp)
 
 	if (setvbuf(fp, strm->buf, _IOFBF, SZL_BINARY_FILE_BUFSIZ) != 0) {
 		free(strm->buf);
+		strm->buf = NULL;
 		return 0;
 	}
 
@@ -208,11 +209,11 @@ enum szl_res szl_io_proc_open(struct szl_interp *interp,
 	size_t len;
 	int binary;
 
-	path = szl_obj_str(objv[1], &len);
+	path = szl_obj_str(interp, objv[1], &len);
 	if (!path || !len)
 		return SZL_ERR;
 
-	mode = szl_obj_str(objv[2], &len);
+	mode = szl_obj_str(interp, objv[2], &len);
 	if (!mode || !len)
 		return SZL_ERR;
 
@@ -243,10 +244,10 @@ enum szl_res szl_io_proc_fdopen(struct szl_interp *interp,
 	size_t len;
 	int binary;
 
-	if ((!szl_obj_int(objv[1], &fd)) || (fd < 0) || (fd > INT_MAX))
+	if ((!szl_obj_int(interp, objv[1], &fd)) || (fd < 0) || (fd > INT_MAX))
 		return SZL_ERR;
 
-	mode = szl_obj_str(objv[2], &len);
+	mode = szl_obj_str(interp, objv[2], &len);
 	if (!mode || !len)
 		return SZL_ERR;
 
@@ -273,7 +274,7 @@ enum szl_res szl_io_proc_dup(struct szl_interp *interp,
 {
 	szl_int fd;
 
-	if ((!szl_obj_int(objv[1], &fd)) || (fd < 0) || (fd > INT_MAX))
+	if ((!szl_obj_int(interp, objv[1], &fd)) || (fd < 0) || (fd > INT_MAX))
 		return SZL_ERR;
 
 	fd = (szl_int)dup((int)fd);
@@ -305,7 +306,8 @@ int szl_io_wrap_stream(struct szl_interp *interp, FILE *fp, const char *name)
 		return 0;
 	}
 
-	if (!szl_local(interp, interp->global, name, obj)) {
+	if ((!isatty(fileno(fp)) && !szl_io_enable_buffering(strm, fp)) ||
+	    !szl_local(interp, interp->global, name, obj)) {
 		szl_obj_unref(obj);
 		return 0;
 	}
@@ -343,7 +345,5 @@ int szl_init_io(struct szl_interp *interp)
 	                      szl_io_proc_dup,
 	                      NULL,
 	                      NULL)) &&
-	        (szl_run_const(interp,
-	                       szl_io_inc,
-	                       sizeof(szl_io_inc) - 1) == SZL_OK));
+	        (szl_run(interp, szl_io_inc, sizeof(szl_io_inc) - 1) == SZL_OK));
 }

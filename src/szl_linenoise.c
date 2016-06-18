@@ -40,7 +40,7 @@ enum szl_res szl_linenoise_proc_read(struct szl_interp *interp,
 	const char *prompt;
 	char *s;
 
-	prompt = szl_obj_str(objv[1], NULL);
+	prompt = szl_obj_str(interp, objv[1], NULL);
 	if (!prompt)
 		return SZL_ERR;
 
@@ -49,8 +49,10 @@ enum szl_res szl_linenoise_proc_read(struct szl_interp *interp,
 		return SZL_ERR;
 
 	obj = szl_new_str_noalloc(s, strlen(s));
-	if (!obj)
+	if (!obj) {
 		linenoiseFree(s);
+		return SZL_ERR;
+	}
 
 	/* we assume linenoiseFree() calls free(), since we don't use a custom
 	 * allocator */
@@ -65,7 +67,7 @@ enum szl_res szl_linenoise_proc_add(struct szl_interp *interp,
 	const char *line;
 	size_t len;
 
-	line = szl_obj_str(objv[1], &len);
+	line = szl_obj_str(interp, objv[1], &len);
 	if (!line || !len)
 		return SZL_ERR;
 
@@ -80,7 +82,7 @@ enum szl_res szl_linenoise_proc_save(struct szl_interp *interp,
 	const char *path;
 	size_t len;
 
-	path = szl_obj_str(objv[1], &len);
+	path = szl_obj_str(interp, objv[1], &len);
 	if (!path || !len)
 		return SZL_ERR;
 
@@ -95,7 +97,7 @@ enum szl_res szl_linenoise_proc_load(struct szl_interp *interp,
 	const char *path;
 	size_t len;
 
-	path = szl_obj_str(objv[1], &len);
+	path = szl_obj_str(interp, objv[1], &len);
 	if (!path || !len)
 		return SZL_ERR;
 

@@ -82,7 +82,7 @@ int szl_archive_append_path(struct szl_interp *interp,
                             const char *path,
                             void *arg)
 {
-	return szl_lappend_str((struct szl_obj *)arg, path);
+	return szl_lappend_str(interp, (struct szl_obj *)arg, path);
 }
 
 static
@@ -153,7 +153,7 @@ enum szl_res szl_archive_proc(struct szl_interp *interp,
 	const char *op;
 	size_t len;
 
-	op = szl_obj_str(objv[1], &len);
+	op = szl_obj_str(interp, objv[1], &len);
 	if (!op || !len)
 		return SZL_ERR;
 
@@ -191,7 +191,7 @@ enum szl_res szl_archive_proc_open(struct szl_interp *interp,
 	struct szl_archive *ar;
 	size_t len;
 
-	data = (void *)szl_obj_str(objv[1], &len);
+	data = (void *)szl_obj_str(interp, objv[1], &len);
 	if (!data || !len)
 		return SZL_ERR;
 

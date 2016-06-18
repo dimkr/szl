@@ -38,18 +38,18 @@ enum szl_res szl_szl_proc(struct szl_interp *interp,
 	size_t len;
 	enum szl_res res;
 
-	s = szl_obj_str(objv[1], &len);
+	s = szl_obj_str(interp, objv[1], &len);
 	if (!s || !len)
 		return SZL_ERR;
 
 	if (strcmp("eval", s) != 0)
 		return SZL_ERR;
 
-	s = szl_obj_str(objv[2], &len);
+	s = szl_obj_str(interp, objv[2], &len);
 	if (!s || !len)
 		return SZL_ERR;
 
-	res = szl_run_const(interp2, s, len);
+	res = szl_run(interp2, s, len);
 	szl_set_result(interp, szl_obj_ref(interp2->last));
 	return res;
 }

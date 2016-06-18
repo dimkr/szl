@@ -38,7 +38,7 @@ enum szl_res szl_time_proc_sleep(struct szl_interp *interp,
 	szl_double d;
 
 	/* we assume sizeof(time_t) == 4 */
-	if (!szl_obj_double(objv[1], &d) || (d < 0) || (d > INT_MAX))
+	if (!szl_obj_double(interp, objv[1], &d) || (d < 0) || (d > INT_MAX))
 		return SZL_ERR;
 
 	req.tv_sec = (time_t)floor(d);

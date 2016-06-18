@@ -32,9 +32,10 @@ enum szl_res szl_list_proc_length(struct szl_interp *interp,
                                   const int objc,
                                   struct szl_obj **objv)
 {
+	struct szl_obj **toks;
 	size_t n;
 
-	if (!szl_obj_list(interp, objv[1], &n))
+	if (!szl_obj_list(interp, objv[1], &toks, &n))
 		return SZL_ERR;
 
 	return szl_set_result_int(interp, (szl_int)n);
@@ -46,19 +47,15 @@ enum szl_res szl_list_proc_append(struct szl_interp *interp,
                                   struct szl_obj **objv)
 {
 	struct szl_obj *obj;
-	const char *name, *s;
-	size_t len, slen;
+	const char *name;
+	size_t len;
 
-	s = szl_obj_str(objv[2], &slen);
-	if (!s)
-		return SZL_ERR;
-
-	name = szl_obj_str(objv[1], &len);
+	name = szl_obj_str(interp, objv[1], &len);
 	if (!name || !len)
 		return SZL_ERR;
 
 	obj = szl_get(interp, name);
-	if (!obj || !szl_lappend_str(obj, s))
+	if (!obj || !szl_lappend(interp, obj, objv[2]))
 		return SZL_ERR;
 
 	return SZL_OK;
@@ -69,15 +66,15 @@ enum szl_res szl_list_proc_extend(struct szl_interp *interp,
                                   const int objc,
                                   struct szl_obj **objv)
 {
-	struct szl_obj *obj;
-	const char *name, **toks;
+	const char *name;
+	struct szl_obj *obj, **toks;
 	size_t len, n, i;
 
-	name = szl_obj_str(objv[1], &len);
+	name = szl_obj_str(interp, objv[1], &len);
 	if (!name || !len)
 		return SZL_ERR;
 
-	if (!szl_obj_len(objv[2], &len))
+	if (!szl_obj_len(interp, objv[2], &len))
 		return SZL_ERR;
 
 	obj = szl_get(interp, name);
@@ -87,12 +84,11 @@ enum szl_res szl_list_proc_extend(struct szl_interp *interp,
 	if (!len)
 		return SZL_OK;
 
-	toks = szl_obj_list(interp, objv[2], &n);
-	if (!toks || (n >= SZL_INT_MAX))
+	if (!szl_obj_list(interp, objv[2], &toks, &n) || (n >= SZL_INT_MAX))
 		return SZL_ERR;
 
 	for (i = 0; i < n; ++i) {
-		if (!szl_lappend_str(obj, toks[i])) {
+		if (!szl_lappend(interp, obj, toks[i])) {
 			szl_obj_unref(obj);
 			return SZL_ERR;
 		}
@@ -106,25 +102,17 @@ enum szl_res szl_list_proc_index(struct szl_interp *interp,
                                  const int objc,
                                  struct szl_obj **objv)
 {
-	const char **toks;
+	struct szl_obj **toks;
 	szl_int i;
-	size_t n, len;
+	size_t n;
 
-	if ((!szl_obj_int(objv[2], &i)) || (i < 0))
+	if ((!szl_obj_int(interp, objv[2], &i)) || (i < 0))
 		return SZL_ERR;
 
-	toks = szl_obj_list(interp, objv[1], &n);
-	if (!toks || (i >= n))
+	if (!szl_obj_list(interp, objv[1], &toks, &n) || (i >= n))
 		return SZL_ERR;
 
-	len = strlen(toks[i]);
-	if ((len >= 2) &&
-	    (toks[i][0] == '{') &&
-	    (toks[i][len - 2] != '\\') &&
-	    (toks[i][len - 1] == '}'))
-		return szl_set_result_str(interp, toks[i] + 1, (int)len - 2);
-
-	return szl_set_result_str(interp, toks[i], (int)len);
+	return szl_set_result(interp, szl_obj_ref(toks[i]));
 }
 
 static
@@ -132,19 +120,17 @@ enum szl_res szl_list_proc_range(struct szl_interp *interp,
                                  const int objc,
                                  struct szl_obj **objv)
 {
-	struct szl_obj *obj;
-	const char **toks;
+	struct szl_obj *obj, **toks;
 	szl_int start, end, i;
 	size_t n;
 
-	toks = szl_obj_list(interp, objv[1], &n);
-	if (!toks || (n >= SZL_INT_MAX))
+	if (!szl_obj_list(interp, objv[1], &toks, &n) || (n >= SZL_INT_MAX))
 		return SZL_ERR;
 
-	if (!szl_obj_int(objv[2], &start) ||
+	if (!szl_obj_int(interp, objv[2], &start) ||
 	    (start < 0) ||
 	    (start >= (szl_int)n) ||
-	    !szl_obj_int(objv[3], &end) ||
+	    !szl_obj_int(interp, objv[3], &end) ||
 	    (end < start) ||
 	    (end >= (szl_int)n))
 		return SZL_ERR;
@@ -154,7 +140,7 @@ enum szl_res szl_list_proc_range(struct szl_interp *interp,
 		return SZL_ERR;
 
 	for (i = start; i <= end; ++i) {
-		if (!szl_lappend_str(obj, toks[i])) {
+		if (!szl_lappend(interp, obj, toks[i])) {
 			szl_obj_unref(obj);
 			return SZL_ERR;
 		}
@@ -168,13 +154,11 @@ enum szl_res szl_list_proc_reverse(struct szl_interp *interp,
                                    const int objc,
                                    struct szl_obj **objv)
 {
-	struct szl_obj *obj;
-	const char **toks;
+	struct szl_obj *obj, **toks;
 	szl_int i;
 	size_t n;
 
-	toks = szl_obj_list(interp, objv[1], &n);
-	if (!toks || (n >= SZL_INT_MAX))
+	if (!szl_obj_list(interp, objv[1], &toks, &n) || (n >= SZL_INT_MAX))
 		return SZL_ERR;
 
 	obj = szl_new_empty();
@@ -182,7 +166,7 @@ enum szl_res szl_list_proc_reverse(struct szl_interp *interp,
 		return SZL_ERR;
 
 	for (i = (szl_int)n - 1; i >= 0; --i) {
-		if (!szl_lappend_str(obj, toks[i])) {
+		if (!szl_lappend(interp, obj, toks[i])) {
 			szl_obj_unref(obj);
 			return SZL_ERR;
 		}

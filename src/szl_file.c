@@ -47,7 +47,7 @@ enum szl_res szl_file_proc_size(struct szl_interp *interp,
 	const char *path;
 	size_t len;
 
-	path = szl_obj_str(objv[1], &len);
+	path = szl_obj_str(interp, objv[1], &len);
 	if (!path || !len)
 		return SZL_ERR;
 
@@ -65,7 +65,7 @@ enum szl_res szl_file_proc_delete(struct szl_interp *interp,
 	const char *path;
 	size_t len;
 
-	path = szl_obj_str(objv[1], &len);
+	path = szl_obj_str(interp, objv[1], &len);
 	if (!path || !len)
 		return SZL_ERR;
 
@@ -98,7 +98,7 @@ enum szl_res szl_file_lock_proc(struct szl_interp *interp,
 	const char *op;
 	size_t len;
 
-	op = szl_obj_str(objv[1], &len);
+	op = szl_obj_str(interp, objv[1], &len);
 	if (!op || !len)
 		return SZL_ERR;
 
@@ -126,7 +126,7 @@ enum szl_res szl_file_proc_lock(struct szl_interp *interp,
 	const char *path;
 	size_t len;
 
-	path = szl_obj_str(objv[1], &len);
+	path = szl_obj_str(interp, objv[1], &len);
 	if (!path || !len)
 		return SZL_ERR;
 
@@ -134,7 +134,7 @@ enum szl_res szl_file_proc_lock(struct szl_interp *interp,
 	if (!lock)
 		return SZL_ERR;
 
-	lock->path = szl_obj_strdup(objv[1], NULL);
+	lock->path = szl_obj_strdup(interp, objv[1], NULL);
 	if (!lock->path) {
 		free(lock);
 		return SZL_ERR;
@@ -185,7 +185,7 @@ enum szl_res szl_file_proc_locked(struct szl_interp *interp,
 	size_t len;
 	int fd;
 
-	path = szl_obj_str(objv[1], &len);
+	path = szl_obj_str(interp, objv[1], &len);
 	if (!path || !len)
 		return SZL_ERR;
 

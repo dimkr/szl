@@ -10,7 +10,7 @@ Dima Krasner <dima@dimakrasner.com>
 Introduction
 ------------
 +szl+ (pronounced "sizzle") is a scripting language heavily inspired by Tcl and
-shell. It follows four design principles:
+shell. It follows five design principles:
 
 1. Less syntax: there should be only *one, obvious way* to achieve a certain
    effect, to make the language easier to learn
@@ -21,6 +21,11 @@ shell. It follows four design principles:
 3. Minimal standard library, but comprehensive and useful enough to allow the
    addition of more complex operations
 4. One-liners are first-class citizens and *not* frowned upon
+5. Good balance between performance and code size: the interpreter core should
+   be as small as possible, while more high-level parts of the standard library
+   are implemented as scripts; however, the interpreter should be efficient
+   enough to achieve reasonable performance and the language should be designed
+   to allow this
 
 [quote, 'Vincent Van Gogh']
 Great things are ... done by a series of small things brought together.
@@ -560,10 +565,10 @@ Leftover lock files are unlocked automatically, during garbage collection.
 +dir.create+ 'path'::
 	Creates a directory.
 
-+dir.delete+ 'path':
++dir.delete+ 'path'::
 	Deletes an empty directory.
 
-+dir.rdelete+ 'path':
++dir.rdelete+ 'path'::
 	Recursively deletes the contents of a directory and the directory itself.
 
 +cd+ 'path'::
@@ -605,21 +610,12 @@ Reading and writing operations on files are buffered. To ensure data passed to
 
 [NOTE]
 'close' is called automatically during garbage collection. In many cases, an
-implicit 'close' call is redundant.
-
-+with+ 'name exp exp'::
-	Evaluates an expression, stores the result in a local variable (say, 'obj')
-	with a given name, evaluates an additional expression, always calls
-	'$obj close' and passes the return value of the second expression.
+implicit 'close' call is redundant and trivial file operations can be
+implemented as one-liners:
 
 --------------------------------------
-local content [with hosts {open /etc/hosts r} {$hosts read 512}]
+local content [[open /etc/hosts r] read 512]
 --------------------------------------
-
-[TIP]
-Use 'with' to implement relatively short file operations (like reading and
-parsing) as one-liners, instead of using the longer
-'try {...} finally {$file close}'.
 
 File Handle Operations
 ++++++++++++++++++++++
@@ -1064,6 +1060,13 @@ procedure that performs a numeric operation, a numeric representation is added
 to the passed object (i.e. so it has two representations, textual and numeric).
 In similar fashion, objects are assigned a truth value once they are passed to a
 procedure that performs a logical operation.
+
+In addition, a procedure call is represented as a list object containing the
+statement (the procedure name, plus the value of '@') and a procedure call
+object, which holds local variables. When a procedure is invoked more than once
+(e.g. inside a 'for' block), the list representation of the statement is
+preserved to eliminate parsing overhead, while the procedure call object is
+discarded to free its local variables.
 
 Booleans
 ^^^^^^^^
