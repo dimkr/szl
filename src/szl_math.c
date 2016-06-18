@@ -32,23 +32,48 @@ enum szl_res szl_math_proc_calc(struct szl_interp *interp,
                                 struct szl_obj **objv)
 {
 	const char *op;
-	szl_double n, m;
+	szl_int ni, mi;
+	szl_double nd, md;
 
 	op = szl_obj_str(interp, objv[2], NULL);
 	if (!op)
 		return SZL_ERR;
 
-	if (!szl_obj_double(interp, objv[1], &m) || !szl_obj_double(interp, objv[3], &n))
+	if (!szl_obj_double(interp, objv[1], &md) ||
+	    !szl_obj_double(interp, objv[3], &nd) ||
+	    !szl_obj_int(interp, objv[1], &mi) ||
+	    !szl_obj_int(interp, objv[1], &ni))
 		return SZL_ERR;
 
-	if (strcmp("+", op) == 0)
-		return szl_set_result_double(interp, m + n);
-	else if (strcmp("-", op) == 0)
-		return szl_set_result_double(interp, m - n);
-	else if (strcmp("*", op) == 0)
-		return szl_set_result_double(interp, m * n);
-	else if (strcmp("/", op) == 0)
-		return szl_set_result_double(interp, m / n);
+	if (strcmp("+", op) == 0) {
+		if ((md != (szl_double)mi) || (nd != (szl_double)ni))
+			return szl_set_result_double(interp, md + nd);
+
+		return szl_set_result_int(interp, mi + ni);
+	}
+	else if (strcmp("-", op) == 0) {
+		if ((md != (szl_double)mi) || (nd != (szl_double)ni))
+			return szl_set_result_double(interp, md - nd);
+
+		return szl_set_result_int(interp, mi - ni);
+	}
+	else if (strcmp("*", op) == 0) {
+		if ((md != (szl_double)mi) || (nd != (szl_double)ni))
+			return szl_set_result_double(interp, md * nd);
+
+		return szl_set_result_int(interp, mi * ni);
+	}
+	else if (strcmp("/", op) == 0) {
+		if (nd == 0) {
+			szl_set_result_str(interp, "division by 0", -1);
+			return SZL_ERR;
+		}
+
+		if ((md != (szl_double)mi) || (nd != (szl_double)ni))
+			return szl_set_result_double(interp, md / nd);
+
+		return szl_set_result_int(interp, mi / ni);
+	}
 
 	return szl_usage(interp, objv[0]);
 }

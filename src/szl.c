@@ -697,8 +697,10 @@ int szl_obj_int(struct szl_interp *interp, struct szl_obj *obj, szl_int *i)
 			if (!s || !len)
 				return 0;
 
-			if (sscanf(s, SZL_INT_FMT, &obj->i) != 1)
+			if (sscanf(s, SZL_INT_FMT, &obj->i) != 1) {
+				szl_set_result_fmt(interp, "bad int: %s", s);
 				return 0;
+			}
 		}
 
 		obj->type |= SZL_TYPE_INT;
@@ -724,8 +726,10 @@ int szl_obj_double(struct szl_interp *interp,
 			if (!s || !len)
 				return 0;
 
-			if (sscanf(s, SZL_DOUBLE_SCANF_FMT, &obj->d) != 1)
+			if (sscanf(s, SZL_DOUBLE_SCANF_FMT, &obj->d) != 1) {
+				szl_set_result_fmt(interp, "bad float: %s", s);
 				return 0;
+			}
 		}
 
 		obj->type |= SZL_TYPE_DOUBLE;
