@@ -427,6 +427,22 @@ Flow Control
 +if+ 'cond exp ?else exp?'::
 	Conditionally runs a block.
 
++switch+ 'obj val exp val exp...'::
+	For each pair of a value and a block, compares an object to the value and
+	runs the block and stops if they are equal, or if the value is '*'.
+
+--------------------------------------
+switch [calc 1 + 2] 2 {
+	puts "it is 2"
+} 3 {
+	puts "it is 3"
+} 4 {
+	puts "it is 4"
+} * {
+	puts "unknown result"
+}
+--------------------------------------
+
 +while+ 'cond exp'::
 	Runs a block as long as a condition is met.
 
@@ -965,6 +981,7 @@ Every action has its pleasures and its price.
     multiple 'for' loops with the same input (say, a series of words), store
     that input in a variable. This way, the string representation of the object
     is split only once.
+11. Use 'switch' instead of nested 'if' calls.
 
 Error Handling
 ~~~~~~~~~~~~~~

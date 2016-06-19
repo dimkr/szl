@@ -26,47 +26,32 @@
 
 #include "szl.h"
 
+#define SZL_SWITCH_DEFAULT "*"
+
 static
 enum szl_res szl_logic_proc_test(struct szl_interp *interp,
                                  const int objc,
                                  struct szl_obj **objv)
 {
-	const char *a, *b;
 	const char *op;
 	szl_double n, m;
-	size_t alen, blen;
+	int eq;
 
 	op = szl_obj_str(interp, objv[2], NULL);
 	if (!op)
 		return SZL_ERR;
 
 	if (strcmp("==", op) == 0) {
-		/* optimization: check if it's the same object first */
-		if (objv[1] == objv[3])
-			return szl_set_result_bool(interp, 1);
-
-		a = szl_obj_str(interp, objv[1], &alen);
-		if (!a)
+		if (!szl_obj_eq(interp, objv[1], objv[3], &eq))
 			return SZL_ERR;
 
-		b = szl_obj_str(interp, objv[3], &blen);
-		if (!b)
-			return SZL_ERR;
-
-		return szl_set_result_bool(interp,
-		                           ((alen == blen) && (strcmp(a, b) == 0)));
+		return szl_set_result_bool(interp, (szl_int)eq);
 	}
 	else if (strcmp("!=", op) == 0) {
-		a = szl_obj_str(interp, objv[1], &alen);
-		if (!a)
+		if (!szl_obj_eq(interp, objv[1], objv[3], &eq))
 			return SZL_ERR;
 
-		b = szl_obj_str(interp, objv[3], &blen);
-		if (!b)
-			return SZL_ERR;
-
-		return szl_set_result_bool(interp,
-		                           ((alen != blen) || (strcmp(a, b) != 0)));
+		return szl_set_result_bool(interp, (szl_int)!eq);
 	}
 	else if (strcmp(">", op) == 0) {
 		if (!szl_obj_double(interp, objv[1], &m) ||
@@ -199,6 +184,43 @@ enum szl_res szl_logic_proc_if(struct szl_interp *interp,
 	return SZL_OK;
 }
 
+static
+enum szl_res szl_logic_proc_switch(struct szl_interp *interp,
+                                   const int objc,
+                                   struct szl_obj **objv)
+{
+	const char *s, *exp;
+	size_t len;
+	int i, eq;
+
+	if (objc % 2 == 1)
+		return szl_usage(interp, objv[0]);
+
+	for (i = 2; i < objc; i += 2) {
+		if (!szl_obj_eq(interp, objv[1], objv[i], &eq))
+			return SZL_ERR;
+
+		if (!eq) {
+			s = szl_obj_str(interp, objv[i], &len);
+			if (!s)
+				return SZL_ERR;
+
+			if (strcmp(SZL_SWITCH_DEFAULT, s) == 0)
+				eq = 1;
+		}
+
+		if (eq) {
+			exp = szl_obj_str(interp, objv[i + 1], &len);
+			if (!exp || !len)
+				return SZL_ERR;
+
+			return szl_run(interp, exp, len);
+		}
+	}
+
+	return SZL_OK;
+}
+
 int szl_init_logic(struct szl_interp *interp)
 {
 	return ((szl_new_proc(interp,
@@ -239,6 +261,14 @@ int szl_init_logic(struct szl_interp *interp)
 	                      5,
 	                      "if cond exp else exp",
 	                      szl_logic_proc_if,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "switch",
+	                      5,
+	                      -1,
+	                      "switch obj val exp val exp...",
+	                      szl_logic_proc_switch,
 	                      NULL,
 	                      NULL)));
 }

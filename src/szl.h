@@ -729,6 +729,23 @@ int szl_obj_istrue(struct szl_obj *obj);
 #	define szl_obj_isfalse !szl_obj_istrue
 
 /**
+ * @fn int szl_obj_eq(struct szl_interp *interp,
+ *                    struct szl_obj *a,
+ *                    struct szl_obj *b,
+ *                    int *eq)
+ * @brief Determines whether two objects are equal
+ * @param interp [in,out] An interpreter
+ * @param a [in,out] An object
+ * @param b [in,out] An object
+ * @param eq [out] The return value
+ * @return 1 or 0
+ */
+int szl_obj_eq(struct szl_interp *interp,
+               struct szl_obj *a,
+               struct szl_obj *b,
+               int *eq);
+
+/**
  * @}
  *
  * @defgroup io I/O streams

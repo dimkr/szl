@@ -482,6 +482,11 @@ int szl_append(struct szl_interp *interp,
 	char *s;
 	size_t i, nlen = str->len + len;
 
+	if (nlen >= INT_MAX) {
+		szl_set_result_str(interp, "reached the str length limit", -1);
+		return 0;
+	}
+
 	if (!szl_obj_str(interp, str, NULL))
 		return 0;
 
@@ -502,7 +507,10 @@ int szl_append(struct szl_interp *interp,
 		str->l = NULL;
 	}
 
-	str->type = SZL_TYPE_STR;
+	str->type &= ~(SZL_TYPE_INT |
+	               SZL_TYPE_DOUBLE |
+	               SZL_TYPE_BOOL |
+	               SZL_TYPE_LIST);
 
 	return 1;
 }
@@ -516,6 +524,11 @@ int szl_lappend(struct szl_interp *interp,
 
 	if (!szl_obj_list(interp, list, &l, &n))
 		return 0;
+
+	if (n >= INT_MAX) {
+		szl_set_result_str(interp, "reached the list length limit", -1);
+		return 0;
+	}
 
 	++n;
 	l = realloc(l, sizeof(struct szl_obj *) * n);
@@ -648,12 +661,16 @@ char *szl_obj_str(struct szl_interp *interp, struct szl_obj *obj, size_t *len)
 			space = szl_space(interp);
 			obj2 = szl_join(interp, space, obj->l, (int)obj->n, 1);
 			szl_obj_unref(space);
-			obj->s = szl_obj_strdup(interp, obj2, &obj->len);
-			rlen = obj->len;
-			/* TODO: this is inefficient */
-			szl_obj_unref(obj2);
-			if (!obj->s)
+			if (!obj2)
 				return 0;
+
+			/* kinda ugly - we "steal" the string representation of the
+			 * result */
+			obj->s = obj2->s;
+			rlen = obj2->len;
+
+			obj2->s = NULL;
+			szl_obj_unref(obj2);
 		}
 		else if (obj->type & SZL_TYPE_DOUBLE) {
 			if (!szl_obj_int(interp, obj, &i))
@@ -694,10 +711,10 @@ int szl_obj_int(struct szl_interp *interp, struct szl_obj *obj, szl_int *i)
 			obj->i = (szl_int)round(obj->d);
 		else {
 			s = szl_obj_str(interp, obj, &len);
-			if (!s || !len)
+			if (!s)
 				return 0;
 
-			if (sscanf(s, SZL_INT_FMT, &obj->i) != 1) {
+			if (!len || (sscanf(s, SZL_INT_FMT, &obj->i) != 1)) {
 				szl_set_result_fmt(interp, "bad int: %s", s);
 				return 0;
 			}
@@ -723,10 +740,10 @@ int szl_obj_double(struct szl_interp *interp,
 			obj->d = (szl_double)obj->i;
 		else {
 			s = szl_obj_str(interp, obj, &len);
-			if (!s || !len)
+			if (!s)
 				return 0;
 
-			if (sscanf(s, SZL_DOUBLE_SCANF_FMT, &obj->d) != 1) {
+			if (!len || (sscanf(s, SZL_DOUBLE_SCANF_FMT, &obj->d) != 1)) {
 				szl_set_result_fmt(interp, "bad float: %s", s);
 				return 0;
 			}
@@ -834,6 +851,45 @@ int szl_obj_istrue(struct szl_obj *obj)
 	}
 
 	return (int)obj->b;
+}
+
+int szl_obj_eq(struct szl_interp *interp,
+               struct szl_obj *a,
+               struct szl_obj *b,
+               int *eq)
+{
+	const char *as, *bs;
+	size_t alen, blen;
+
+	/* optimization: could be the same object */
+	if (a == b) {
+		*eq = 1;
+		return 1;
+	}
+
+	if ((a->type & SZL_TYPE_INT) && (b->type & SZL_TYPE_INT)) {
+		*eq = (a->i == b->i);
+		return 1;
+	}
+
+	if ((a->type & SZL_TYPE_DOUBLE) && (b->type & SZL_TYPE_DOUBLE)) {
+		*eq = (a->d == b->d);
+		return 1;
+	}
+
+	as = szl_obj_str(interp, a, &alen);
+	if (!as)
+		return 0;
+
+	bs = szl_obj_str(interp, b, &blen);
+	if (!bs)
+		return 0;
+
+	*eq = 0;
+	if ((alen == blen) || (strcmp(as, bs) == 0))
+		*eq = 1;
+
+	return 1;
 }
 
 enum szl_res szl_set_result(struct szl_interp *interp, struct szl_obj *obj)
@@ -1445,19 +1501,25 @@ enum szl_res szl_run_line(struct szl_interp *interp, struct szl_obj *exp)
 	/* if no return value is specified, fall back to the empty object */
 	szl_empty_result(interp);
 
-	s = szl_obj_str(interp, exp, &len);
-	if (!s)
+	if (!szl_obj_list(interp, exp, &argv, &argc))
 		return SZL_ERR;
-	if (!len) {
-		szl_set_result_str(interp, "empty expression", -1);
+
+	if (argc > INT_MAX) {
+		szl_set_result_str(interp, "statement is too long", -1);
 		return SZL_ERR;
 	}
 
-	if (!szl_obj_list(interp, exp, &argv, &argc) || (argc > INT_MAX))
+	proc = szl_obj_str(interp, argv[0], &plen);
+	if (!proc)
 		return SZL_ERR;
 
-	proc = szl_obj_str(interp, argv[0], &plen);
-	if (!proc || !plen)
+	if (!plen) {
+		szl_set_result_str(interp, "empty proc name", -1);
+		return SZL_ERR;
+	}
+
+	s = szl_obj_str(interp, exp, &len);
+	if (!s)
 		return SZL_ERR;
 
 	call = szl_new_call(interp, s, len, 1);
@@ -1721,12 +1783,15 @@ int szl_load(struct szl_interp *interp, const char *name)
 
 	snprintf(path, sizeof(path), SZL_EXT_PATH_FMT, name);
 	handle = dlopen(path, RTLD_LAZY);
-	if (!handle)
+	if (!handle) {
+		szl_set_result_fmt(interp, "failed to load %s", path);
 		return 0;
+	}
 
 	snprintf(init_name, sizeof(init_name), SZL_EXT_INIT_FUNC_NAME_FMT, name);
 	init = (szl_ext_init)dlsym(handle, init_name);
 	if (!init) {
+		szl_set_result_fmt(interp, "failed to locate %s", init_name);
 		szl_unload(handle);
 		return 0;
 	}
@@ -1770,11 +1835,14 @@ enum szl_res szl_source(struct szl_interp *interp, const char *path)
 	szl_empty_result(interp);
 
 	fd = open(path, O_RDONLY);
-	if (fd < 0)
+	if (fd < 0) {
+		szl_set_result_fmt(interp, "failed to open %s", path);
 		return SZL_ERR;
+	}
 
 	if (fstat(fd, &stbuf) < 0) {
 		close(fd);
+		szl_set_result_fmt(interp, "failed to stat %s", path);
 		return SZL_ERR;
 	}
 
@@ -1788,6 +1856,7 @@ enum szl_res szl_source(struct szl_interp *interp, const char *path)
 	if (len <= 0) {
 		free(buf);
 		close(fd);
+		szl_set_result_fmt(interp, "failed to read %s", path);
 		return SZL_ERR;
 	}
 	buf[len] = '\0';
@@ -1805,16 +1874,19 @@ enum szl_res szl_source(struct szl_interp *interp, const char *path)
 	return res;
 }
 
-static enum szl_res szl_stream_read(struct szl_interp *interp,
-                                    struct szl_stream *strm,
-                                    const size_t len)
+static
+enum szl_res szl_stream_read(struct szl_interp *interp,
+                             struct szl_stream *strm,
+                             const size_t len)
 {
 	struct szl_obj *obj;
 	unsigned char *buf;
 	ssize_t out;
 
-	if (!strm->ops->read)
+	if (!strm->ops->read) {
+		szl_set_result_str(interp, "read from unsupported stream", -1);
 		return SZL_ERR;
+	}
 
 	if (strm->closed)
 		return SZL_OK;
@@ -1843,13 +1915,21 @@ static enum szl_res szl_stream_read(struct szl_interp *interp,
 	return SZL_OK;
 }
 
-static enum szl_res szl_stream_write(struct szl_interp *interp,
-                                     struct szl_stream *strm,
-                                     const unsigned char *buf,
-                                     const size_t len)
+static
+enum szl_res szl_stream_write(struct szl_interp *interp,
+                              struct szl_stream *strm,
+                              const unsigned char *buf,
+                              const size_t len)
 {
-	if (!strm->ops->write || strm->closed)
+	if (!strm->ops->write) {
+		szl_set_result_str(interp, "write to unsupported stream", -1);
 		return SZL_ERR;
+	}
+
+	if (strm->closed) {
+		szl_set_result_str(interp, "write to closed stream", -1);
+		return SZL_ERR;
+	}
 
 	if (strm->ops->write(strm->priv, buf, len) == (ssize_t)len)
 		return SZL_OK;
@@ -1857,16 +1937,23 @@ static enum szl_res szl_stream_write(struct szl_interp *interp,
 	return SZL_ERR;
 }
 
-static enum szl_res szl_stream_flush(struct szl_interp *interp,
-                                     struct szl_stream *strm)
+static
+enum szl_res szl_stream_flush(struct szl_interp *interp,
+                              struct szl_stream *strm)
 {
 	if (!strm->ops->flush)
 		return SZL_OK;
 
+	if (strm->closed) {
+		szl_set_result_str(interp, "flush of closed stream", -1);
+		return SZL_ERR;
+	}
+
 	return strm->ops->flush(strm->priv);
 }
 
-static void szl_stream_close(struct szl_stream *strm)
+static
+void szl_stream_close(struct szl_stream *strm)
 {
 	if (!strm->closed) {
 		if (strm->ops->close && !strm->keep)
@@ -1885,8 +1972,9 @@ void szl_stream_free(struct szl_stream *strm)
 	free(strm);
 }
 
-static struct szl_obj *szl_stream_handle(struct szl_interp *interp,
-                                         struct szl_stream *strm)
+static
+struct szl_obj *szl_stream_handle(struct szl_interp *interp,
+                                  struct szl_stream *strm)
 {
 	if (strm->closed)
 		return szl_empty(interp);
@@ -1894,11 +1982,22 @@ static struct szl_obj *szl_stream_handle(struct szl_interp *interp,
 	return szl_new_int(strm->ops->handle(strm->priv));
 }
 
-static enum szl_res szl_stream_accept(struct szl_interp *interp,
-                                      struct szl_stream *strm)
+static
+enum szl_res szl_stream_accept(struct szl_interp *interp,
+                               struct szl_stream *strm)
 {
 	struct szl_obj *obj;
 	struct szl_stream *client;
+
+	if (!strm->ops->accept) {
+		szl_set_result_str(interp, "accept from unsupported stream", -1);
+		return SZL_ERR;
+	}
+
+	if (strm->closed) {
+		szl_set_result_str(interp, "accept from closed stream", -1);
+		return SZL_ERR;
+	}
 
 	client = strm->ops->accept(strm->priv);
 	if (!client)
@@ -1913,9 +2012,10 @@ static enum szl_res szl_stream_accept(struct szl_interp *interp,
 	return szl_set_result(interp, obj);
 }
 
-static enum szl_res szl_stream_proc(struct szl_interp *interp,
-                                    const int objc,
-                                    struct szl_obj **objv)
+static
+enum szl_res szl_stream_proc(struct szl_interp *interp,
+                             const int objc,
+                             struct szl_obj **objv)
 {
 	struct szl_stream *strm = (struct szl_stream *)objv[0]->priv;
 	struct szl_obj *obj;
@@ -1977,7 +2077,8 @@ static enum szl_res szl_stream_proc(struct szl_interp *interp,
 	return szl_usage(interp, objv[0]);
 }
 
-static void szl_stream_del(void *priv)
+static
+void szl_stream_del(void *priv)
 {
 	szl_stream_close((struct szl_stream *)priv);
 	free(priv);
