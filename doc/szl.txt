@@ -334,56 +334,55 @@ within the procedure will refer to the local variable.
 
 String Operations
 +++++++++++++++++
-+string.length+ 'obj'::
++string.length+ 'str'::
 	Returns the length of a string.
 
-+string.range+ 'obj start end'::
++string.range+ 'str start end'::
 	Returns the characters in a string, between zero-based indices 'start' and
 	'end'.
 
-+string.tail+ 'obj ?count?'::
++string.tail+ 'str ?count?'::
 	Returns the last characters of a string. If the number of characters is not
 	specified, the default is '1'.
 
-+string.append+ 'name obj'::
++string.append+ 'name str'::
 	Appends a string to an existing string.
 
-+string.join+ 'delim obj obj ?...?'::
++string.join+ 'delim str str ?...?'::
 	Joins multiple strings, with a delimiter (which may be an empty string).
 
 [NOTE]
 'string.join' is the most efficient way to concatenate more than two strings.
 
-+rtrim+ 'obj'::
++rtrim+ 'str'::
 	Removes whitespace at the end of a string.
 
-+ltrim+ 'obj'::
++ltrim+ 'str'::
 	Removes whitespace at the beginning of a string.
 
-+trim+ 'obj'::
++trim+ 'str'::
 	Removes whitespace at both ends of a string.
 
 List Operations
 +++++++++++++++
-+list.length+ 'obj'::
-	Returns the number of whitespace-delimited tokens in a string. Multi-word
-	tokens may be grouped using braces.
++list.length+ 'list'::
+	Returns the number of items in a list.
 
-+list.range+ 'obj start end'::
++list.range+ 'list start end'::
 	Returns the items in a list, between zero-based indices 'start' and 'end'.
 
-+list.append+ 'name obj'::
-	Appends a string to a list. If the list is not empty, the string is prefixed
-	with a space. If the string is empty or contains spaces, it is wrapped with
-	braces.
++list.append+ 'name item'::
+	Appends an object to a list. If the list is not empty, the item is prefixed
+	with a space. If the item is an empty string or contains spaces, it is
+	wrapped with braces.
 
-+list.extend+ 'name obj'::
++list.extend+ 'name list'::
 	Adds all items in a list to an existing list.
 
-+list.reverse+ 'obj'::
++list.reverse+ 'list'::
 	Returns all items in a list, in reverse order.
 
-+list.index+ 'obj index'::
++list.index+ 'list index'::
 	Returns the list item at the zero-based position 'index'.
 
 +range+ '?start? end'::
@@ -392,7 +391,7 @@ List Operations
 
 Arithmetic and Logical Operations
 +++++++++++++++++++++++++++++++++
-+calc+ 'obj op obj'::
++calc+ 'm op n'::
 	Performs an arithmetic operation on two objects. The operation may be '+',
 	'-', '*' or '/'.
 
@@ -607,8 +606,8 @@ file access more efficient: fully buffered and not line buffered.
 +$file+ 'read len'::
 	Reads a given amount of bytes from a file.
 
-+$file+ 'write obj'::
-	Writes an object to a file.
++$file+ 'write str'::
+	Writes a string to a file.
 
 [NOTE]
 Reading and writing operations on files are buffered. To ensure data passed to
@@ -737,25 +736,25 @@ zlib
 The 'zlib' extension is a +szl+ wrapper for http://zlib.net/[zlib], a general
 purpose data compression library.
 
-+zlib.crc32+ 'data ?init?'::
++zlib.crc32+ 'str ?init?'::
 	Returns the CRC32 checksum of a buffer. Optionally, an initial value may be
 	specified; this is most useful for calculating the checksum of chunked data
 	read from a stream (for instance, a pipe).
 
-+zlib.deflate+ 'string ?level?'::
++zlib.deflate+ 'str ?level?'::
 	Compresses a buffer and outputs a raw, Deflate-compressed stream.
 	Optionally, a compression level ('1'-'9') may be specified to choose the
 	desired speed vs. compression rate ratio.
 
-+zlib.inflate+ 'data ?bufsiz?'::
++zlib.inflate+ 'str ?bufsiz?'::
 	Decompresses a raw, Deflate-compressed stream. When the uncompressed data
 	size is known and specified, memory allocation is *more efficient*.
 	Otherwise, decomperssion is chunked and therefore slower.
 
-+zlib.gzip+ 'string ?level?'::
++zlib.gzip+ 'str ?level?'::
 	Compresses a buffer and adds a gzip header.
 
-+zlib.gunzip+ 'data ?bufsiz?'::
++zlib.gunzip+ 'str ?bufsiz?'::
 	Decompresses a gzip-compressed buffer. Decompression is chunked, with a
 	default, *small* buffer size of 64K which guarantees lower memory
 	footprint at the cost of speed. It is *highly recommended* to use a bigger
@@ -772,7 +771,7 @@ arrays on top of lists and 'zlib.crc32'.
 +dict.set+ 'name k v'::
 	Sets the dictionary value associated with a key.
 
-+dict.get+ 'obj k'::
++dict.get+ 'dict k'::
 	Returns the dictionary value associated with a key, or throws an exception
 	if the key is missing.
 

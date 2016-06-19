@@ -34,7 +34,7 @@ proc dict.set {
 }
 
 proc dict.get {
-	if [test $# != 2] {throw {bad dict.get usage: dict.get obj k}}
+	if [test $# != 2] {throw {bad dict.get usage: dict.get dict k}}
 	local hash [zlib.crc32 $2]
 	for {key value} $1 {if [test $key == $hash] {return $value}}
 	throw "missing key: $2"

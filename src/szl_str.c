@@ -169,7 +169,7 @@ int szl_init_str(struct szl_interp *interp)
 	                      "string.length",
 	                      2,
 	                      2,
-	                      "string.length obj",
+	                      "string.length str",
 	                      szl_str_proc_length,
 	                      NULL,
 	                      NULL)) &&
@@ -177,7 +177,7 @@ int szl_init_str(struct szl_interp *interp)
 	                      "string.range",
 	                      4,
 	                      4,
-	                      "string.range obj start end",
+	                      "string.range str start end",
 	                      szl_str_proc_range,
 	                      NULL,
 	                      NULL)) &&
@@ -185,7 +185,7 @@ int szl_init_str(struct szl_interp *interp)
 	                      "string.append",
 	                      3,
 	                      3,
-	                      "string.append name obj",
+	                      "string.append name str",
 	                      szl_str_proc_append,
 	                      NULL,
 	                      NULL)) &&
@@ -193,7 +193,7 @@ int szl_init_str(struct szl_interp *interp)
 	                      "string.join",
 	                      4,
 	                      -1,
-	                      "string.join delim obj obj ?...?",
+	                      "string.join delim str str ?...?",
 	                      szl_str_proc_join,
 	                      NULL,
 	                      NULL)) &&
@@ -201,7 +201,7 @@ int szl_init_str(struct szl_interp *interp)
 	                      "ltrim",
 	                      2,
 	                      2,
-	                      "ltrim obj",
+	                      "ltrim str",
 	                      szl_str_proc_ltrim,
 	                      NULL,
 	                      NULL)) &&
@@ -209,7 +209,7 @@ int szl_init_str(struct szl_interp *interp)
 	                      "rtrim",
 	                      2,
 	                      2,
-	                      "rtrim obj",
+	                      "rtrim str",
 	                      szl_str_proc_rtrim,
 	                      NULL,
 	                      NULL)) &&

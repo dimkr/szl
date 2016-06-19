@@ -212,7 +212,7 @@ int szl_init_list(struct szl_interp *interp)
 	                      "list.length",
 	                      2,
 	                      2,
-	                      "list.length obj",
+	                      "list.length list",
 	                      szl_list_proc_length,
 	                      NULL,
 	                      NULL)) &&
@@ -220,7 +220,7 @@ int szl_init_list(struct szl_interp *interp)
 	                      "list.append",
 	                      3,
 	                      3,
-	                      "list.append name obj",
+	                      "list.append name item",
 	                      szl_list_proc_append,
 	                      NULL,
 	                      NULL)) &&
@@ -228,7 +228,7 @@ int szl_init_list(struct szl_interp *interp)
 	                      "list.extend",
 	                      3,
 	                      3,
-	                      "list.extend name obj",
+	                      "list.extend name list",
 	                      szl_list_proc_extend,
 	                      NULL,
 	                      NULL)) &&
@@ -236,7 +236,7 @@ int szl_init_list(struct szl_interp *interp)
 	                      "list.index",
 	                      3,
 	                      3,
-	                      "list.index obj index",
+	                      "list.index list index",
 	                      szl_list_proc_index,
 	                      NULL,
 	                      NULL)) &&
@@ -244,7 +244,7 @@ int szl_init_list(struct szl_interp *interp)
 	                      "list.range",
 	                      4,
 	                      4,
-	                      "list.range obj start end",
+	                      "list.range list start end",
 	                      szl_list_proc_range,
 	                      NULL,
 	                      NULL)) &&
@@ -252,7 +252,7 @@ int szl_init_list(struct szl_interp *interp)
 	                      "list.reverse",
 	                      2,
 	                      2,
-	                      "list.reverse obj",
+	                      "list.reverse list",
 	                      szl_list_proc_reverse,
 	                      NULL,
 	                      NULL)));

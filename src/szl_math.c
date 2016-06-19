@@ -84,7 +84,7 @@ int szl_init_math(struct szl_interp *interp)
 	                    "calc",
 	                    4,
 	                    4,
-	                    "calc obj op obj",
+	                    "calc m op n",
 	                    szl_math_proc_calc,
 	                    NULL,
 	                    NULL) ? 1 : 0;

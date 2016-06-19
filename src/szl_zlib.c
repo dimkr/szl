@@ -274,7 +274,7 @@ int szl_init_zlib(struct szl_interp *interp)
 	                      "zlib.crc32",
 	                      2,
 	                      3,
-	                      "zlib.crc32 buf ?init?",
+	                      "zlib.crc32 str ?init?",
 	                      szl_zlib_proc_crc32,
 	                      NULL,
 	                      NULL)) &&
@@ -282,7 +282,7 @@ int szl_init_zlib(struct szl_interp *interp)
 	                      "zlib.deflate",
 	                      2,
 	                      3,
-	                      "zlib.deflate string ?level?",
+	                      "zlib.deflate str ?level?",
 	                      szl_zlib_proc_deflate,
 	                      NULL,
 	                      NULL)) &&
@@ -290,7 +290,7 @@ int szl_init_zlib(struct szl_interp *interp)
 	                      "zlib.inflate",
 	                      2,
 	                      3,
-	                      "zlib.inflate data ?bufsiz?",
+	                      "zlib.inflate str ?bufsiz?",
 	                      szl_zlib_proc_inflate,
 	                      NULL,
 	                      NULL)) &&
@@ -298,7 +298,7 @@ int szl_init_zlib(struct szl_interp *interp)
 	                      "zlib.gzip",
 	                      2,
 	                      3,
-	                      "zlib.gzip data ?level?",
+	                      "zlib.gzip str ?level?",
 	                      szl_zlib_proc_gzip,
 	                      NULL,
 	                      NULL)) &&
@@ -306,7 +306,7 @@ int szl_init_zlib(struct szl_interp *interp)
 	                      "zlib.gunzip",
 	                      2,
 	                      3,
-	                      "zlib.gunzip data ?bufsiz?",
+	                      "zlib.gunzip str ?bufsiz?",
 	                      szl_zlib_proc_gunzip,
 	                      NULL,
 	                      NULL)));

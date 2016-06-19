@@ -13,7 +13,7 @@ proc string.tail {
 			local end [calc $length - 1]
 			string.range $1 [calc $length - $2] $end
 		} else {
-			throw {bad string.tail usage: string.tail obj ?count?}
+			throw {bad string.tail usage: string.tail str ?count?}
 		}
 	}
 }
