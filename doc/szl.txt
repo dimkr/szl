@@ -551,7 +551,7 @@ File System
 +$path.sep+::
 	The separator between path components.
 
-+path.join+ str...:
++path.join+ 'str...'::
 	Joins path components.
 
 --------------------------------------
