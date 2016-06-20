@@ -28,10 +28,14 @@
 
 #include "szl.h"
 
+static const char szl_szl_inc[] = {
+#include "szl_szl.inc"
+};
+
 static
-enum szl_res szl_szl_proc(struct szl_interp *interp,
-                          const int objc,
-                          struct szl_obj **objv)
+enum szl_res szl_szl_interp_proc(struct szl_interp *interp,
+                                 const int objc,
+                                 struct szl_obj **objv)
 {
 	struct szl_interp *interp2 = (struct szl_interp *)objv[0]->priv;
 	const char *s;
@@ -55,17 +59,17 @@ enum szl_res szl_szl_proc(struct szl_interp *interp,
 }
 
 static
-void szl_szl_del(void *priv)
+void szl_szl_interp_del(void *priv)
 {
 	szl_interp_free((struct szl_interp *)priv);
 }
 
 static
-enum szl_res szl_szl_proc_szl(struct szl_interp *interp,
-                              const int objc,
-                              struct szl_obj **objv)
+enum szl_res szl_szl_proc_interp(struct szl_interp *interp,
+                                 const int objc,
+                                 struct szl_obj **objv)
 {
-	char name[sizeof("szl:"SZL_PASTE(SZL_INT_MIN))];
+	char name[sizeof("interp:"SZL_PASTE(SZL_INT_MIN))];
 	struct szl_obj *proc;
 	struct szl_interp *interp2;
 
@@ -73,14 +77,14 @@ enum szl_res szl_szl_proc_szl(struct szl_interp *interp,
 	if (!interp2)
 		return SZL_ERR;
 
-	szl_new_obj_name(interp, "szl", name, sizeof(name), interp2);
+	szl_new_obj_name(interp, "interp", name, sizeof(name), interp2);
 	proc = szl_new_proc(interp,
 	                    name,
 	                    3,
 	                    3,
-	                    "szl eval exp",
-	                    szl_szl_proc,
-	                    szl_szl_del,
+	                    "interp eval exp",
+	                    szl_szl_interp_proc,
+	                    szl_szl_interp_del,
 	                    interp2);
 	if (!proc) {
 		szl_interp_free(interp2);
@@ -92,13 +96,15 @@ enum szl_res szl_szl_proc_szl(struct szl_interp *interp,
 
 int szl_init_szl(struct szl_interp *interp)
 {
-	return szl_new_proc(interp,
-	                    "szl",
-	                    1,
-	                    1,
-	                    "szl",
-	                    szl_szl_proc_szl,
-	                    NULL,
-	                    NULL) ? 1 : 0;
+	return (szl_new_proc(interp,
+	                     "szl.interp",
+	                     1,
+	                     1,
+	                     "szl.interp",
+	                     szl_szl_proc_interp,
+	                     NULL,
+	                     NULL) &&
+	        (szl_run(interp, szl_szl_inc, sizeof(szl_szl_inc) - 1) == SZL_OK));
+
 }
 

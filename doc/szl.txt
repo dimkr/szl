@@ -521,11 +521,14 @@ Any set of statements can be wrapped with a 'try' block without a matching
 
 Interpreters
 ++++++++++++
-+szl+::
++szl.interp+::
 	Creates a new +szl+ interpreter.
 
-+$szl+ 'eval exp'::
++$interp+ 'eval exp'::
 	Evaluates a +szl+ expression in an interpreter.
+
++szl.shell+::
+	Runs an interactive +szl+ interpreter.
 
 I/O
 ^^^

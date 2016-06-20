@@ -22,12 +22,23 @@
 
 load linenoise
 
-local history [path.join [env.get HOME] .szl_history]
-if [path.exists $history] {linenoise.load $history}
+proc szl.shell {
+	local interp [szl.interp]
 
-try {
-	puts "szl $env.ver"
-	szl.shell
-} finally {
-	try {linenoise.save $history}
+	while 1 {
+		local exp [linenoise.read {>>> }]
+		if $exp {
+			try {
+				$interp eval $exp
+				local out $_
+				if [test [string.length $out] > 0] {puts $out}
+			} except {
+				local out $_
+				$stdout write {[error] }
+				if [test [string.length $out] > 0] {puts $out} else {puts {}}
+			}
+
+			try {linenoise.add $exp}
+		}
+	}
 }
