@@ -206,6 +206,39 @@ enum szl_res szl_list_proc_reverse(struct szl_interp *interp,
 	return szl_set_result(interp, list);
 }
 
+static
+enum szl_res szl_list_proc_join(struct szl_interp *interp,
+                                const int objc,
+                                struct szl_obj **objv)
+{
+	struct szl_obj *str, **items;
+	const char *delim, *s;
+	size_t i, n, len, dlen;
+
+	delim = szl_obj_str(interp, objv[1], &dlen);
+	if (!delim)
+		return SZL_ERR;
+
+	if (!szl_obj_list(interp, objv[2], &items, &n) || (n > SIZE_MAX))
+		return SZL_ERR;
+
+	str = szl_new_empty();
+	if (!str)
+		return SZL_ERR;
+
+	for (i = 0; i < n; ++i) {
+		s = szl_obj_str(interp, items[i], &len);
+		if (!s ||
+		   !szl_append(interp, str, s, len) ||
+		   ((i < n - 1) && !szl_append(interp, str, delim, dlen))) {
+			szl_obj_unref(str);
+			return SZL_ERR;
+		}
+	}
+
+	return szl_set_result(interp, str);
+}
+
 int szl_init_list(struct szl_interp *interp)
 {
 	return ((szl_new_proc(interp,
@@ -254,6 +287,14 @@ int szl_init_list(struct szl_interp *interp)
 	                      2,
 	                      "list.reverse list",
 	                      szl_list_proc_reverse,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "list.join",
+	                      3,
+	                      3,
+	                      "list.join delim list",
+	                      szl_list_proc_join,
 	                      NULL,
 	                      NULL)));
 }

@@ -29,6 +29,10 @@
 
 #include "szl.h"
 
+static const char szl_path_inc[] = {
+#include "szl_path.inc"
+};
+
 static
 enum szl_res szl_path_proc_exists(struct szl_interp *interp,
                                   const int objc,
@@ -65,5 +69,8 @@ int szl_init_path(struct szl_interp *interp)
 	                     "path.exists path",
 	                     szl_path_proc_exists,
 	                     NULL,
-	                     NULL));
+	                     NULL) &&
+	        (szl_run(interp,
+	                 szl_path_inc,
+	                 sizeof(szl_path_inc) - 1) == SZL_OK));
 }

@@ -376,6 +376,9 @@ List Operations
 	with a space. If the item is an empty string or contains spaces, it is
 	wrapped with braces.
 
++list.join+ 'delim list'::
+	Joins the items of a list to form a string.
+
 +list.extend+ 'name list'::
 	Adds all items in a list to an existing list.
 
@@ -545,13 +548,15 @@ File System
 +$path.sep+::
 	The separator between path components.
 
-[TIP]
-To join path components in a portable way, use 'string.join' with 'path.sep' as
-the delimiter:
++path.join+ str...:
+	Joins path components.
 
 --------------------------------------
-local path [string.join $path.sep .. something.txt]
+local path [path.join .. something.txt]
 --------------------------------------
+
+[TIP]
+To join path components in a portable way, use 'path.join'.
 
 +path.exists+ 'path'::
 	Checks whether a file exists.
