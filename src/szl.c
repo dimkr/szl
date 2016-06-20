@@ -973,6 +973,27 @@ enum szl_res szl_set_result_fmt(struct szl_interp *interp,
 	return SZL_ERR;
 }
 
+enum szl_res szl_set_result_list(struct szl_interp *interp,
+                                 struct szl_obj **items,
+                                 const size_t n)
+{
+	struct szl_obj *list;
+	size_t i;
+
+	list = szl_new_empty();
+	if (!list)
+		return SZL_ERR;
+
+	for (i = 0; i < n; ++i) {
+		if (!szl_lappend(interp, list, items[i])) {
+			szl_obj_unref(list);
+			return SZL_ERR;
+		}
+	}
+
+	return szl_set_result(interp, list);
+}
+
 enum szl_res szl_usage(struct szl_interp *interp, struct szl_obj *proc)
 {
 	const char *name, *exp;

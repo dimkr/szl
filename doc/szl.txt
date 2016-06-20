@@ -946,12 +946,13 @@ The 'ed25519' extension implements a public key security system, using
 https://github.com/orlp/ed25519[Ed25519].
 
 +ed25519.keypair+::
-	Generates a key pair.
+	Generates a key pair and returns a list of two items: the first is the
+	private key and the second is the public one.
 
-+ed25519.sign+ 'data keypair'::
++ed25519.sign+ 'data priv pub'::
 	Digitally-signs a buffer.
 
-+ed25519.verify+ 'data sig keypair'::
++ed25519.verify+ 'data sig pub'::
 	Verifies the digital signature of a buffer.
 
 Best Practices

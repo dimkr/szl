@@ -858,6 +858,20 @@ enum szl_res szl_set_result_fmt(struct szl_interp *interp,
                                 const char *fmt, ...);
 
 /**
+ * @fn enum szl_res szl_set_result_list(struct szl_interp *interp,
+ *                                      struct szl_obj **items,
+ *                                      const size_t n)
+ * @brief Sets the return value of a procedure to a newly created list
+ * @param interp [in,out] An interpreter
+ * @param items [in,out] The list items
+ * @param n [in] The list length
+ * @return SZL_OK or SZL_ERR
+ */
+enum szl_res szl_set_result_list(struct szl_interp *interp,
+                                 struct szl_obj **items,
+                                 const size_t n);
+
+/**
  * @fn enum szl_res szl_set_result_int(struct szl_interp *interp,
  *                                     const szl_int i)
  * @brief Sets the return value of a procedure to a new integer object
