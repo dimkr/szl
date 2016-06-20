@@ -22,7 +22,7 @@
 
 include ../Makefile.common
 
-SZL_VERSION = "0.1 $(shell git rev-parse HEAD)"
+SZL_VERSION = "0.1 $(shell git rev-parse HEAD | cut -c 1-8)"
 
 LDFLAGS += -L.
 CFLAGS += -DSZL_VERSION=\"$(SZL_VERSION)\"
