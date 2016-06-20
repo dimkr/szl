@@ -355,7 +355,7 @@ enum szl_res szl_socket_proc_select(struct szl_interp *interp,
 	const char *l;
 	szl_int *fdi;
 	size_t len, n;
-	int nfds, i, j, ready;
+	int nfds = -1, i, j, ready;
 
 	if (!szl_obj_list(interp, objv[1], &toks, &n))
 		return SZL_ERR;
@@ -401,7 +401,7 @@ enum szl_res szl_socket_proc_select(struct szl_interp *interp,
 
 		FD_SET(_szl_int_to_socket(fdi[i]), &fds[0]);
 
-		if ((i == 0) || ((int)fdi[i] > nfds))
+		if ((int)fdi[i] > nfds)
 			nfds = (int)fdi[i];
 	}
 
