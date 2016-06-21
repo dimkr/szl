@@ -348,6 +348,9 @@ String Operations
 +string.append+ 'name str'::
 	Appends a string to an existing string.
 
++string.split+ 'str delim'::
+	Splits a string consisting of tokens separated by a delimiter.
+
 +string.join+ 'delim str str ?...?'::
 	Joins multiple strings, with a delimiter (which may be an empty string).
 

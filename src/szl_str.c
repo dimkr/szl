@@ -22,6 +22,8 @@
  * THE SOFTWARE.
  */
 
+#include <string.h>
+
 #include "szl.h"
 
 static const char szl_str_inc[] = {
@@ -96,6 +98,46 @@ enum szl_res szl_str_proc_append(struct szl_interp *interp,
 
 	szl_obj_unref(obj);
 	return res;
+}
+
+static
+enum szl_res szl_str_proc_split(struct szl_interp *interp,
+                                const int objc,
+                                struct szl_obj **objv)
+{
+	struct szl_obj *list;
+	char *s, *delim, *tok, *pos;
+	size_t slen, dlen;
+
+	s = szl_obj_str(interp, objv[1], &slen);
+	if (!s)
+		return SZL_ERR;
+
+	delim = szl_obj_str(interp, objv[2], &dlen);
+	if (!delim)
+		return SZL_ERR;
+
+	if (!dlen)
+		return szl_usage(interp, objv[0]);
+
+	if (!slen)
+		return SZL_OK;
+
+	list = szl_new_empty();
+	if (!list)
+		return SZL_ERR;
+
+	tok = strtok_r(s, delim, &pos);
+	while (tok) {
+		if (!szl_lappend_str(interp, list, tok)) {
+			szl_obj_unref(list);
+			return SZL_ERR;
+		}
+
+		tok = strtok_r(NULL, delim, &pos);
+	}
+
+	return szl_set_result(interp, list);
 }
 
 static
@@ -187,6 +229,14 @@ int szl_init_str(struct szl_interp *interp)
 	                      3,
 	                      "string.append name str",
 	                      szl_str_proc_append,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "string.split",
+	                      3,
+	                      3,
+	                      "string.split str delim",
+	                      szl_str_proc_split,
 	                      NULL,
 	                      NULL)) &&
 	        (szl_new_proc(interp,
