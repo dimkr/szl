@@ -218,6 +218,7 @@ struct szl_interp *szl_interp_new(void)
 
 	interp->null = NULL;
 	interp->last = szl_empty(interp);
+	interp->level = 0;
 
 	if (szl_init_builtin_exts(interp) != SZL_OK) {
 		szl_interp_free(interp);
@@ -1539,6 +1540,11 @@ enum szl_res szl_run_line(struct szl_interp *interp, struct szl_obj *exp)
 		return SZL_ERR;
 	}
 
+	if (interp->level >= SZL_MAX_NESTING) {
+		szl_set_result_str(interp, "reached nesting limit", -1);
+		return SZL_ERR;
+	}
+
 	s = szl_obj_str(interp, exp, &len);
 	if (!s)
 		return SZL_ERR;
@@ -1574,6 +1580,7 @@ enum szl_res szl_run_line(struct szl_interp *interp, struct szl_obj *exp)
 	prev_caller = szl_obj_ref(interp->caller);
 	interp->caller = szl_obj_ref(interp->current);
 	interp->current = call;
+	++interp->level;
 
 	/* evaluate all arguments */
 	for (i = 1; i < argc; ++i) {
@@ -1591,6 +1598,7 @@ enum szl_res szl_run_line(struct szl_interp *interp, struct szl_obj *exp)
 		for (j = 0; j < i; ++j)
 			szl_obj_unref(objv[j]);
 
+		--interp->level;
 		interp->current = interp->caller;
 		szl_obj_unref(interp->caller);
 		interp->caller = prev_caller;
@@ -1605,6 +1613,7 @@ enum szl_res szl_run_line(struct szl_interp *interp, struct szl_obj *exp)
 	szl_empty_result(interp);
 	res = szl_call(interp, argc, objv);
 
+	--interp->level;
 	interp->current = interp->caller;
 	szl_obj_unref(interp->caller);
 	interp->caller = prev_caller;

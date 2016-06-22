@@ -54,6 +54,12 @@
  */
 
 /**
+ * @def SZL_MAX_NESTING
+ * The maximum nesting level of procedure calls
+ */
+#	define SZL_MAX_NESTING 128
+
+/**
  * @def SZL_MAX_PROC_OBJC
  * The maximum number of procedure arguments
  */
@@ -266,6 +272,7 @@ struct szl_interp {
 
 	struct szl_obj *current; /**< The currently running procedure */
 	struct szl_obj *caller; /**< The procedure that called current */
+	unsigned int level; /**< The current nesting level, up to @ref SZL_MAX_NESTING */
 
 	struct szl_ext *exts; /**< Loaded extensions */
 	unsigned int nexts; /**< The number of elements in exts */
