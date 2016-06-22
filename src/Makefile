@@ -195,6 +195,9 @@ szl.o: szl.c szl.h szl_conf.h
 szl_str.o: szl_str.c szl_str.inc szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS)
 
+szl_list.o: szl_list.c szl_list.inc szl_conf.h
+	$(CC) -c -o $@ $< $(CFLAGS)
+
 szl_io.o: szl_io.c szl_io.inc szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS)
 

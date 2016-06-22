@@ -27,6 +27,10 @@
 
 #include "szl.h"
 
+static const char szl_list_inc[] = {
+#include "szl_list.inc"
+};
+
 static
 enum szl_res szl_list_proc_length(struct szl_interp *interp,
                                   const int objc,
@@ -106,8 +110,7 @@ enum szl_res szl_list_proc_extend(struct szl_interp *interp,
 		}
 	}
 
-	szl_obj_unref(list);
-	return SZL_OK;
+	return szl_set_result(interp, list);
 }
 
 static
@@ -239,6 +242,86 @@ enum szl_res szl_list_proc_join(struct szl_interp *interp,
 	return szl_set_result(interp, str);
 }
 
+static
+enum szl_res szl_list_proc_zip(struct szl_interp *interp,
+                               const int objc,
+                               struct szl_obj **objv)
+{
+	struct szl_obj *list, *item, ***items;
+	size_t *ns, j;
+	int n, i;
+
+	n = objc - 1;
+
+	items = (struct szl_obj ***)malloc(sizeof(struct szl_obj **) * n);
+	if (!items)
+		return SZL_ERR;
+
+	ns = (size_t *)malloc(sizeof(size_t) * n);
+	if (!ns) {
+		free(items);
+		return SZL_ERR;
+	}
+
+	for (i = 1; i < objc; ++i) {
+	    if (!szl_obj_list(interp, objv[i], &items[i - 1], &ns[i - 1])) {
+			free(ns);
+			free(items);
+			return SZL_ERR;
+		}
+	}
+
+	for (i = 1; i < n; ++i) {
+		if (ns[i] != ns[0]) {
+			free(ns);
+			free(items);
+			szl_set_result_str(interp, "cannot zip lists of different len", -1);
+			return SZL_ERR;
+		}
+	}
+
+	list = szl_new_empty();
+	if (!list) {
+		free(ns);
+		free(items);
+		return SZL_ERR;
+	}
+
+	for (j = 0; j < ns[0]; ++j) {
+		item = szl_new_empty();
+		if (!item) {
+			szl_obj_unref(list);
+			free(ns);
+			free(items);
+			return SZL_ERR;
+		}
+
+		for (i = 0; i < n; ++i) {
+			if (!szl_lappend(interp, item, items[i][j])) {
+				szl_obj_unref(item);
+				szl_obj_unref(list);
+				free(ns);
+				free(items);
+				return SZL_ERR;
+			}
+		}
+
+		if (!szl_lappend(interp, list, item)) {
+			szl_obj_unref(item);
+			szl_obj_unref(list);
+			free(ns);
+			free(items);
+			return SZL_ERR;
+		}
+
+		szl_obj_unref(item);
+	}
+
+	free(ns);
+	free(items);
+	return szl_set_result(interp, list);
+}
+
 int szl_init_list(struct szl_interp *interp)
 {
 	return ((szl_new_proc(interp,
@@ -296,5 +379,16 @@ int szl_init_list(struct szl_interp *interp)
 	                      "list.join delim list",
 	                      szl_list_proc_join,
 	                      NULL,
-	                      NULL)));
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "list.zip",
+	                      3,
+	                      -1,
+	                      "list.zip list list...",
+	                      szl_list_proc_zip,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_run(interp,
+	                 szl_list_inc,
+	                 sizeof(szl_list_inc) - 1) == SZL_OK));
 }

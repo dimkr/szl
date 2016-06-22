@@ -385,6 +385,13 @@ List Operations
 +list.extend+ 'name list'::
 	Adds all items in a list to an existing list.
 
++list.zip+ 'list list...'::
+	Returns a list of lists, each containing the 'n'-th elements of given lists
+	of the same length.
+
++list.sum+ 'list list...'::
+	Returns a list containing the items of given lists.
+
 +list.reverse+ 'list'::
 	Returns all items in a list, in reverse order.
 

@@ -154,9 +154,10 @@ enum szl_res szl_str_proc_join(struct szl_interp *interp,
 	return SZL_ERR;
 }
 
-static enum szl_res szl_str_proc_ltrim(struct szl_interp *interp,
-                                       const int objc,
-                                       struct szl_obj **objv)
+static
+enum szl_res szl_str_proc_ltrim(struct szl_interp *interp,
+                                const int objc,
+                                struct szl_obj **objv)
 {
 	struct szl_obj *obj;
 	const char *s;
@@ -179,9 +180,10 @@ static enum szl_res szl_str_proc_ltrim(struct szl_interp *interp,
 	return szl_set_result(interp, szl_obj_ref(objv[1]));
 }
 
-static enum szl_res szl_str_proc_rtrim(struct szl_interp *interp,
-                                       const int objc,
-                                       struct szl_obj **objv)
+static
+enum szl_res szl_str_proc_rtrim(struct szl_interp *interp,
+                                const int objc,
+                                struct szl_obj **objv)
 {
 	struct szl_obj *obj;
 	const char *s;
