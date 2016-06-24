@@ -611,12 +611,16 @@ struct szl_obj *szl_join(struct szl_interp *interp,
 
 		if (wrap) {
 			mw = 0;
-			for (j = 0; j < slen; ++j) {
-				if (szl_isspace(s[j])) {
-					mw = 1;
-					break;
+			if (slen) {
+				for (j = 0; j < slen; ++j) {
+					if (szl_isspace(s[j])) {
+						mw = 1;
+						break;
+					}
 				}
 			}
+			else
+				mw = 1;
 		}
 
 		if (mw) {
