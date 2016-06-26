@@ -202,28 +202,27 @@ variable '_', in the calling scope.
 Both braces and brackets may be nested, to form more complex logic:
 
 --------------------------------------
-local sum [calc [string.length {hello world}] - 3]
+local sum [calc [str.length {hello world}] - 3]
 --------------------------------------
 
 Special Characters
 ~~~~~~~~~~~~~~~~~~
 Special characters such as braces can be used in object declarations, using a
-backslash ('\') and 'string.expand':
+backslash ('\') and 'str.expand':
 
 --------------------------------------
-local braces [string.expand \{\}]
+local braces [str.expand \{\}]
 --------------------------------------
 
 Formatting Strings
 ~~~~~~~~~~~~~~~~~~
-To form more complex strings, such as user-friendly messages, use
-'string.format':
+To form more complex strings, such as user-friendly messages, use 'str.format':
 
 --------------------------------------
-puts [string.format {the sum of {} and {} is {}} 3 4 [calc 3 + 4]]
+puts [str.format {the sum of {} and {} is {}} 3 4 [calc 3 + 4]]
 --------------------------------------
 
-'string.format' accepts a format string (or, a template) and replaces
+'str.format' accepts a format string (or, a template) and replaces
 occurrences of '{}' with the arguments that follow.
 
 Declaring Procedures
@@ -351,48 +350,48 @@ within the procedure will refer to the local variable.
 
 String Operations
 +++++++++++++++++
-+string.length+ 'str'::
++str.length+ 'str'::
 	Returns the length of a string.
 
-+string.range+ 'str start end'::
++str.range+ 'str start end'::
 	Returns the characters in a string, between zero-based indices 'start' and
 	'end'.
 
-+string.tail+ 'str ?count?'::
++str.tail+ 'str ?count?'::
 	Returns the last characters of a string. If the number of characters is not
 	specified, the default is '1'.
 
-+string.append+ 'name str'::
-	Appends a string to an existing string.
++str.append+ 'name str'::
+	Appends a string to an existing str.
 
-+string.split+ 'str delim'::
++str.split+ 'str delim'::
 	Splits a string consisting of tokens separated by a delimiter.
 
-+string.join+ 'delim str str ?...?'::
++str.join+ 'delim str str ?...?'::
 	Joins multiple strings, with a delimiter (which may be an empty string).
 
 [NOTE]
-'string.join' is the most efficient way to concatenate more than two strings.
+'str.join' is the most efficient way to concatenate more than two strings.
 
-+string.expand+ 'str'::
++str.expand+ 'str'::
 	Expands escape sequences in a string: '\0', '\\', '\n', '\t', '\r', '\{',
 	'\}' and hexadecimal numbers in '\x' notation (e.g. '\xff').
 
 --------------------------------------
-puts [string.expand {this is a\n\tmulti-line strin\x67}]
+puts [str.expand {this is a\n\tmulti-line strin\x67}]
 --------------------------------------
 
-+string.format+ 'fmt obj...'::
++str.format+ 'fmt obj...'::
 	Receives a format string and replaces all occurrences of '{}' with their
 	values.
 
-+rtrim+ 'str'::
++str.rtrim+ 'str'::
 	Removes whitespace at the end of a string.
 
-+ltrim+ 'str'::
++str.ltrim+ 'str'::
 	Removes whitespace at the beginning of a string.
 
-+trim+ 'str'::
++str.trim+ 'str'::
 	Removes whitespace at both ends of a string.
 
 List Operations
@@ -1004,7 +1003,7 @@ Efficiency
 [quote, 'Socrates']
 Every action has its pleasures and its price.
 
-1. Avoid unnecessary 'string.expand' or 'string.format' calls.
+1. Avoid unnecessary 'str.expand' or 'str.format' calls.
 2. Avoid the wrapping of strings with braces, if they do not contain spaces.
 3. Avoid the creation of redundant variables; it's OK and even recommended not
    to save the return value of a statement if you don't need it.
@@ -1015,9 +1014,9 @@ Every action has its pleasures and its price.
    They get garbage collected earlier, so this results in reduced memory usage.
 6. Always simplify logical expressions, to reduce the number of procedure calls.
    For example, 'test $foo != $bar' runs faster than 'not [test $foo == $bar]'.
-7. When joining more than two objects, avoid multiple 'string.append' calls and
-   use 'string.join' instead.
-8. 'string.append' does not create a new object and therefore it is more
+7. When joining more than two objects, avoid multiple 'str.append' calls and use
+   'str.join' instead.
+8. 'str.append' does not create a new object and therefore it is more
    efficient for joining only two strings.
 9. Always trim useless trailing whitespace in scripts (or use a text editor that
    takes care of this automatically), to speed up parsing.

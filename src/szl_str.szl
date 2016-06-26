@@ -20,22 +20,22 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-proc trim {
-	ltrim [rtrim $1]
+proc str.trim {
+	str.ltrim [str.rtrim $1]
 }
 
-proc string.tail {
+proc str.tail {
 	if [test $# == 1] {
-		local length [string.length $1]
+		local length [str.length $1]
 		if [test $length == 0] {return {}}
 		local end [calc $length - 1]
-		string.range $1 $end $end
+		str.range $1 $end $end
 	} else {
 		if [test $# == 2] {
 			local end [calc $length - 1]
-			string.range $1 [calc $length - $2] $end
+			str.range $1 [calc $length - $2] $end
 		} else {
-			throw {bad string.tail usage: string.tail str ?count?}
+			throw {bad str.tail usage: str.tail str ?count?}
 		}
 	}
 }

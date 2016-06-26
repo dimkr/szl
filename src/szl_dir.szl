@@ -33,8 +33,8 @@ proc dir.rdelete {
 
 		for dir $subdirs {
 			local subnames [dir.list $dir]
-			list.extend next_subdirs [map name [list.index $subnames 0] {string.join $path.sep $dir $name}]
-			list.extend files [map name [list.index $subnames 1] {string.join $path.sep $dir $name}]
+			list.extend next_subdirs [map name [list.index $subnames 0] {str.join $path.sep $dir $name}]
+			list.extend files [map name [list.index $subnames 1] {str.join $path.sep $dir $name}]
 
 			list.append dirs $dir
 		}
