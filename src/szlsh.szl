@@ -26,7 +26,7 @@ local history [path.join [env.get HOME] .szl_history]
 if [path.exists $history] {linenoise.load $history}
 
 try {
-	puts "szl $env.ver"
+	puts [string.format {szl {}} $env.ver]
 	szl.shell
 } finally {
 	try {linenoise.save $history}

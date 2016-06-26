@@ -815,7 +815,8 @@ int szl_obj_list(struct szl_interp *interp,
 	}
 
 	*objc = obj->n;
-	*objv = obj->l;
+	if (objv)
+		*objv = obj->l;
 	return 1;
 }
 
@@ -1132,185 +1133,6 @@ void szl_trim(char *s, char **start, char **end)
 	szl_ltrim(s, start);
 }
 
-SZL_STATIC
-char *szl_unescape(struct szl_interp *interp,
-                   const char *s,
-                   const size_t len,
-                   size_t *out)
-{
-	char *s2;
-	size_t i, end;
-
-	s2 = (char *)malloc(len + 1);
-	if (!s2)
-		return NULL;
-
-	i = 0;
-	*out = 0;
-	end = i - 1;
-	while (i < len) {
-		if (s[i] != '\\') {
-			s2[*out] = s[i];
-			++i;
-			++*out;
-		}
-		else {
-			if (len == end) {
-				szl_set_result_str(interp, "bad escape sequence", -1);
-				free(s2);
-				return NULL;
-			}
-
-			switch (s[i + 1]) {
-				case '0':
-					s2[*out] = '\0';
-					i += 2;
-					break;
-
-				case '\\':
-					s2[*out] = '\\';
-					i += 2;
-					break;
-
-				case 'n':
-					s2[*out] = '\n';
-					i += 2;
-					break;
-
-				case 't':
-					s2[*out] = '\t';
-					i += 2;
-					break;
-
-				case 'r':
-					s2[*out] = '\r';
-					i += 2;
-					break;
-
-				case '[':
-					s2[*out] = '[';
-					i += 2;
-					break;
-
-				case ']':
-					s2[*out] = ']';
-					i += 2;
-					break;
-
-				default:
-					s2[*out] = s[i];
-					++i;
-					break;
-			}
-
-			++*out;
-		}
-	}
-
-	s2[*out] = '\0';
-	return s2;
-}
-
-SZL_STATIC
-struct szl_obj *szl_expand(struct szl_interp *interp,
-                           const char *s,
-                           const int len)
-{
-	struct szl_obj *tmp, *obj;
-	char **toks, *s2, *exp;
-	const char *tok;
-	size_t tlen;
-	int ntoks, i, j, nspaces;
-
-	if (len == 0)
-		return szl_empty(interp);
-
-	s2 = strndup(s, len);
-	if (!s2)
-		return NULL;
-
-	if (!szl_split(interp, s2, &toks, &ntoks)) {
-		free(s2);
-		return NULL;
-	}
-
-	/* initialize the result with all whitespace between the beginning of the
-	 * string and the first token */
-	obj = szl_new_str(s2, toks[0] - s2);
-	if (!obj) {
-		free(toks);
-		free(s2);
-		return NULL;
-	}
-
-	for (i = 0; i < ntoks; ++i) {
-		/* append all whitespace between the previous token and the current
-		 * one */
-		if (i > 0) {
-			j = i - 1;
-			tlen = strlen(toks[j]);
-			nspaces = toks[i] - toks[j] - (int)tlen;
-			if (nspaces > 0) {
-				if (!szl_append(interp,
-				                obj,
-				                &s[toks[j] - s2 + tlen],
-				                (size_t)nspaces)) {
-					szl_obj_unref(obj);
-					free(toks);
-					free(s2);
-					return NULL;
-				}
-			}
-		}
-
-		/* evaluate the current token */
-		tmp = NULL;
-		if (szl_eval(interp, &tmp, toks[i]) != SZL_OK) {
-			if (tmp)
-				szl_obj_unref(tmp);
-			szl_obj_unref(obj);
-			free(toks);
-			free(s2);
-			return NULL;
-		}
-
-		tok = szl_obj_str(interp, tmp, &tlen);
-		if (!tok) {
-			szl_obj_unref(tmp);
-			szl_obj_unref(obj);
-			free(toks);
-			free(s2);
-			return NULL;
-		}
-
-		exp = szl_unescape(interp, tok, tlen, &tlen);
-		if (!exp) {
-			szl_obj_unref(tmp);
-			szl_obj_unref(obj);
-			free(toks);
-			free(s2);
-			return NULL;
-		}
-
-		/* append it to the result */
-		if (!szl_append(interp, obj, exp, tlen)) {
-			free(exp);
-			szl_obj_unref(tmp);
-			szl_obj_unref(obj);
-			free(toks);
-			free(s2);
-			return NULL;
-		}
-
-		free(exp);
-		szl_obj_unref(tmp);
-	}
-
-	free(toks);
-	free(s2);
-	return obj;
-}
-
 enum szl_res szl_eval(struct szl_interp *interp,
                       struct szl_obj **out,
                       const char *s)
@@ -1368,18 +1190,7 @@ enum szl_res szl_eval(struct szl_interp *interp,
 	else if (start[0] == '$')
 		*out = szl_get(interp, start + 1);
 
-	/* if the expression is wrapped with quotes, treat everything between them
-	 * as a string literal */
-	else if ((start[0] == '"') && (*(end - 1) == '"')) {
-		if (start + 1 == end - 1)
-			*out = szl_empty(interp);
-		else {
-			*(end - 1) = '\0';
-			*out = szl_expand(interp, start + 1, end - start);
-		}
-	}
-
-	/* otherwise, treat it as an unquoted string literal */
+	/* otherwise, treat it as a string literal */
 	else
 		*out = szl_new_str(start, end - start);
 
@@ -1426,25 +1237,6 @@ char *szl_get_next_token(struct szl_interp *interp, char *s)
 		}
 
 		szl_set_result_fmt(interp, "unbalanced %c%c: %s", odelim, cdelim, s);
-		return NULL;
-	}
-
-	if (s[0] == '"') {
-		for (pos = s; pos[0] != '\0'; ++pos) {
-			if ((pos[0] == '"') && szl_isspace(pos[1])) {
-				++nodelim;
-				if (nodelim % 2 == 0) {
-					for (pos += 1; szl_isspace(pos[0]); ++pos);
-					if (pos[0] != '\0') {
-						*(pos - 1) = '\0';
-						return pos;
-					}
-					return NULL;
-				}
-			}
-		}
-
-		szl_set_result_fmt(interp, "unbalanced quotes: %s", s);
 		return NULL;
 	}
 
@@ -1649,7 +1441,7 @@ char **szl_split_lines(struct szl_interp *interp,
 	char **lines = NULL, **mlines, *line = s, *next = NULL;
 	const char *fmt = NULL;
 	size_t i = 0;
-	int mn, nbraces = 0, nbrackets = 0, nquotes = 0;
+	int mn, nbraces = 0, nbrackets = 0;
 
 	*n = 0;
 	while (i < len) {
@@ -1661,16 +1453,12 @@ char **szl_split_lines(struct szl_interp *interp,
 			++nbrackets;
 		else if (s[i] == ']')
 			--nbrackets;
-		else if (s[i] == '"')
-			++nquotes;
 
 		if (i == len - 1) {
 			if (nbraces != 0)
 				fmt = "unbalanced {}: %s\n";
 			else if (nbrackets != 0)
 				fmt = "unbalanced []: %s\n";
-			else if (nquotes % 2 != 0)
-				fmt = "unbalanced quotes: %s\n";
 
 			if (fmt) {
 				szl_set_result_fmt(interp, fmt, s);
@@ -1679,11 +1467,10 @@ char **szl_split_lines(struct szl_interp *interp,
 				return NULL;
 			}
 		}
-		else if ((s[i] != '\n') ||
-		         (nbraces != 0) ||
-		         (nbrackets != 0) ||
-		         (nquotes % 2 != 0))
-			goto nexti;
+		else if ((s[i] != '\n') || (nbraces != 0) || (nbrackets != 0)) {
+			++i;
+			continue;
+		}
 
 		if (s[i] == '\n')
 			s[i] = '\0';
@@ -1707,9 +1494,6 @@ char **szl_split_lines(struct szl_interp *interp,
 		}
 
 		line = next;
-		nquotes = 0;
-
-nexti:
 		++i;
 	}
 

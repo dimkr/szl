@@ -22,9 +22,12 @@
  * THE SOFTWARE.
  */
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "szl.h"
+
+#define SZL_FORMAT_SEQ "{}"
 
 static const char szl_str_inc[] = {
 #include "szl_str.inc"
@@ -155,6 +158,181 @@ enum szl_res szl_str_proc_join(struct szl_interp *interp,
 }
 
 static
+enum szl_res szl_str_proc_expand(struct szl_interp *interp,
+                                 const int objc,
+                                 struct szl_obj **objv)
+{
+	struct szl_obj *str;
+	const char *s;
+	char *s2;
+	size_t len, i, end, out;
+
+	s = szl_obj_str(interp, objv[1], &len);
+	if (!s)
+		return SZL_ERR;
+
+	s2 = (char *)malloc(len + 1);
+	if (!s2)
+		return SZL_ERR;
+
+	i = 0;
+	out = 0;
+	end = len - 1;
+	while (i < len) {
+		if (s[i] != '\\') {
+			s2[out] = s[i];
+			++i;
+			++out;
+		}
+		else {
+			if (len == end) {
+				free(s2);
+				szl_set_result_str(interp, "bad escape sequence", -1);
+				return SZL_ERR;
+			}
+
+			switch (s[i + 1]) {
+				case '0':
+					s2[out] = '\0';
+					i += 2;
+					break;
+
+				case '\\':
+					s2[out] = '\\';
+					i += 2;
+					break;
+
+				case 'n':
+					s2[out] = '\n';
+					i += 2;
+					break;
+
+				case 't':
+					s2[out] = '\t';
+					i += 2;
+					break;
+
+				case 'r':
+					s2[out] = '\r';
+					i += 2;
+					break;
+
+				case '{':
+					s2[out] = '{';
+					i += 2;
+					break;
+
+				case '}':
+					s2[out] = '}';
+					i += 2;
+					break;
+
+				case 'x':
+					if ((i + 3 > end) ||
+					    !(((s[i + 2] >= '0') && (s[i + 2] <= '9')) ||
+					      ((s[i + 2] >= 'a') && (s[i + 2] <= 'f')) ||
+					      ((s[i + 2] >= 'A') && (s[i + 2] <= 'F'))) ||
+					    !(((s[i + 3] >= '0') && (s[i + 3] <= '9')) ||
+					      ((s[i + 3] >= 'a') && (s[i + 3] <= 'f')) ||
+					      ((s[i + 3] >= 'A') && (s[i + 3] <= 'F')))) {
+						free(s2);
+						szl_set_result_str(interp, "bad hex escape", -1);
+						return SZL_ERR;
+					}
+
+					s2[out] = ((s[i + 2] - '0') << 4) | (s[i + 3] - '0');
+					i += 4;
+					break;
+
+				default:
+					s2[out] = s[i];
+					++i;
+					break;
+			}
+
+			++out;
+			if (out >= INT_MAX) {
+				free(s2);
+				szl_set_result_str(interp, "reached string len limit", -1);
+				return SZL_ERR;
+			}
+		}
+	}
+
+	s2[out] = '\0';
+	str = szl_new_str_noalloc(s2, out);
+	if (!str) {
+		free(s2);
+		return SZL_ERR;
+	}
+
+	return szl_set_result(interp, str);
+}
+
+static
+enum szl_res szl_str_proc_format(struct szl_interp *interp,
+                                 const int objc,
+                                 struct szl_obj **objv)
+{
+	struct szl_obj *str;
+	const char *fmt, *pos, *prev, *item;
+	size_t flen, len, plen;
+	int i;
+
+	fmt = szl_obj_str(interp, objv[1], &flen);
+	if (!fmt)
+		return SZL_ERR;
+
+	str = szl_new_empty();
+	if (!str)
+		return SZL_ERR;
+
+	i = 2;
+	prev = fmt;
+	do {
+		pos = strstr(prev, SZL_FORMAT_SEQ);
+		if (!pos) {
+			if (i == objc)
+				break;
+
+			szl_obj_unref(str);
+			szl_set_result_fmt(interp, "too many args for fmt: %s", fmt);
+			return SZL_ERR;
+		}
+		else if (i == objc) {
+			szl_obj_unref(str);
+			szl_set_result_fmt(interp, "bad fmt: %s", fmt);
+			return SZL_ERR;
+		}
+
+		plen = pos - prev;
+		if (plen && !szl_append(interp, str, prev, plen)) {
+			szl_obj_unref(str);
+			return SZL_ERR;
+		}
+
+		item = szl_obj_str(interp, objv[i], &len);
+		if (!item || !szl_append(interp, str, item, len)) {
+			szl_obj_unref(str);
+			return SZL_ERR;
+		}
+
+		pos += sizeof(SZL_FORMAT_SEQ) - 1;
+		prev = pos;
+
+		++i;
+	} while (1);
+
+	len = flen - (prev - fmt);
+	if (len && !szl_append(interp, str, prev, len)) {
+		szl_obj_unref(str);
+		return SZL_ERR;
+	}
+
+	return szl_set_result(interp, str);
+}
+
+static
 enum szl_res szl_str_proc_ltrim(struct szl_interp *interp,
                                 const int objc,
                                 struct szl_obj **objv)
@@ -247,6 +425,22 @@ int szl_init_str(struct szl_interp *interp)
 	                      -1,
 	                      "string.join delim str str ?...?",
 	                      szl_str_proc_join,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "string.expand",
+	                      2,
+	                      2,
+	                      "string.expand str",
+	                      szl_str_proc_expand,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "string.format",
+	                      3,
+	                      -1,
+	                      "string.format fmt obj...",
+	                      szl_str_proc_format,
 	                      NULL,
 	                      NULL)) &&
 	        (szl_new_proc(interp,

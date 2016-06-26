@@ -8,19 +8,19 @@
 Overview
 ========
 
-szl is a tiny, embeddable scripting engine inspired by Tcl and shell. It
-combines the simplicity of shell scripting with the power of Tcl and a rich
-standard library that includes bindings for popular, permissively-licensed
-libraries.
+szl is a tiny, embeddable scripting engine inspired by Tcl and shell. It's a
+balanced mix of Tcl and shell: szl combines the simplicity of shell scripting
+with the power of Tcl and a rich standard library that includes bindings for
+popular, permissively-licensed libraries.
    __________________________________________________
   /                                                  \
   | szl 0.1 6f1e278e58cc9742c31bef959ab3afe9b8aa7c65 |
-  | >>> global msg "Hello, world!"                   |
+  | >>> global msg {Hello, world!}                   |
   | Hello, world!                                    |
   | >>> load zlib                                    |
   | >>> zlib.crc32 $msg                              |
   | 3957769958                                       |
-  | >>> rtrim [exec "uname -s"]                      |
+  | >>> rtrim [exec {uname -s}]                      |
   | Linux                                            |
   | >>> [open /bin/gunzip rb] read 9                 |
   | #!/bin/sh                                        |

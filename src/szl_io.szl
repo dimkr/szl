@@ -20,6 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+global newline [string.expand \n]
+
 proc fdopen {
 	if [test $# != 2] {
 		throw {bad fdopen usage: fdopen handle mode}
@@ -30,7 +32,7 @@ proc fdopen {
 proc puts {
 	if [test $# != 1] {throw {bad puts usage: puts msg}}
 	$stdout write $1
-	if [test [string.tail $1] != \n] {$stdout write "\n"}
+	if [test [string.tail $1] != \n] {$stdout write $newline}
 }
 
 proc dup {

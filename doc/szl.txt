@@ -148,27 +148,13 @@ associated with it: that's "garbage collection".
 
 Grouping
 ~~~~~~~~
-To create strings that contain spaces, they should be grouped using quotes or
-braces:
+Multi-word values should be grouped using braces:
 
 --------------------------------------
-local message "hello world"
 local message {hello world}
 --------------------------------------
 
-The difference between the two is that whatever comes between quotes gets
-expanded (for example, '"it is $number"' will be expanded into 'it is 5'), while
-tokens wrapped with braces are passed as-is without any processing:
-
---------------------------------------
-local number 5
-
-# expected output: 5
-puts "$number"
-
-# expected output: $number
-puts {$number}
---------------------------------------
+In this example, 'local' accepts two arguments: 'message' and 'hello world'.
 
 Some procedures (for example, 'if') accept +szl+ statements as their arguments.
 For example, in the the following snippet (which prints 'ok'), 'puts ok' is an
@@ -178,8 +164,8 @@ argument of 'if':
 if 1 {puts ok}
 --------------------------------------
 
-Multiple +szl+ statements passed as an argument can be also be laid out like
-this:
+A block of multiple +szl+ statements passed as an argument can be also be laid
+out like this:
 
 --------------------------------------
 if 1 {
@@ -218,6 +204,27 @@ Both braces and brackets may be nested, to form more complex logic:
 --------------------------------------
 local sum [calc [string.length {hello world}] - 3]
 --------------------------------------
+
+Special Characters
+~~~~~~~~~~~~~~~~~~
+Special characters such as braces can be used in object declarations, using a
+backslash ('\') and 'string.expand':
+
+--------------------------------------
+local braces [string.expand \{\}]
+--------------------------------------
+
+Formatting Strings
+~~~~~~~~~~~~~~~~~~
+To form more complex strings, such as user-friendly messages, use
+'string.format':
+
+--------------------------------------
+puts [string.format {the sum of {} and {} is {}} 3 4 [calc 3 + 4]]
+--------------------------------------
+
+'string.format' accepts a format string (or, a template) and replaces
+occurrences of '{}' with the arguments that follow.
 
 Declaring Procedures
 ~~~~~~~~~~~~~~~~~~~~
@@ -307,6 +314,16 @@ Then, 'source' can be used to execute this file through the script body:
 source util.szl
 --------------------------------------
 
+Summary
+~~~~~~~
+The entire syntax of +szl+ is based on four types of expressions:
+
+1. Single-word strings
+2. Strings wrapped with braces: multi-word strings
+3. Strings that begin with '$' followed by a variable name and whitespace:
+   variable values
+4. Strings wrapped with brackets: procedure calls
+
 Standard Library
 ----------------
 Builtin Procedures
@@ -356,6 +373,18 @@ String Operations
 
 [NOTE]
 'string.join' is the most efficient way to concatenate more than two strings.
+
++string.expand+ 'str'::
+	Expands escape sequences in a string: '\0', '\\', '\n', '\t', '\r', '\{',
+	'\}' and hexadecimal numbers in '\x' notation (e.g. '\xff').
+
+--------------------------------------
+puts [string.expand {this is a\n\tmulti-line strin\x67}]
+--------------------------------------
+
++string.format+ 'fmt obj...'::
+	Receives a format string and replaces all occurrences of '{}' with their
+	values.
 
 +rtrim+ 'str'::
 	Removes whitespace at the end of a string.
@@ -975,11 +1004,8 @@ Efficiency
 [quote, 'Socrates']
 Every action has its pleasures and its price.
 
-1. Always prefer braces over quotes, since the evaluation of constant strings is
-   much faster than an attempt to expand a string that does not require any
-   expansion.
-2. Avoid the wrapping of strings with quotes, if they do not contain spaces or
-   expressions that need to be evaluated.
+1. Avoid unnecessary 'string.expand' or 'string.format' calls.
+2. Avoid the wrapping of strings with braces, if they do not contain spaces.
 3. Avoid the creation of redundant variables; it's OK and even recommended not
    to save the return value of a statement if you don't need it.
 4. Avoid redundant statements, like 'return [foo]' instead of 'foo' at the end
