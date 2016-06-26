@@ -207,6 +207,7 @@ enum szl_res szl_archive_proc_open(struct szl_interp *interp,
 
 	ar->out = archive_write_disk_new();
 	if (!ar->out) {
+		archive_read_free(ar->in);
 		free(ar);
 		return SZL_ERR;
 	}
