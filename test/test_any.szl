@@ -28,4 +28,4 @@ test.run {false} 1 {any 0} 0
 test.run {true false} 1 {any 1 0} 1
 test.run {false true} 1 {any 0 1} 1
 test.run {false true false} 1 {any 0 1 0} 1
-test.run {false false true} 1 {any 0 0 1}
+test.run {false false true} 1 {any 0 0 1} 1
