@@ -1,0 +1,140 @@
+# this file is part of szl.
+#
+# Copyright (c) 2016 Dima Krasner
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
+source szl_test.szl
+
+test.run {no test args} 0 {test} {bad test call: 'test', should be 'test obj op obj'}
+test.run {too few test args 1} 0 {test 1} {bad test call: 'test 1', should be 'test obj op obj'}
+test.run {too few test args 2} 0 {test 1 ==} {bad test call: 'test 1 ==', should be 'test obj op obj'}
+test.run {too many test args} 0 {test 1 == 2 ==} {bad test call: 'test 1 == 2 ==', should be 'test obj op obj'}
+
+test.run {equal str and str 1} 1 {test a == a} 1
+test.run {equal str and str 2} 1 {test a != a} 0
+test.run {different str and str 1} 1 {test a == b} 0
+test.run {different str and str 2} 1 {test b == a} 0
+test.run {different str and str 3} 1 {test a != b} 1
+test.run {different str and str 4} 1 {test b != a} 1
+test.run {bigger str and str 1} 0 {test a > 5} {bad float: a}
+test.run {bigger str and str 2} 0 {test 5 > a} {bad float: a}
+test.run {smaller str and str 1} 0 {test a < 5} {bad float: a}
+test.run {smaller str and str 2} 0 {test 5 < a} {bad float: a}
+test.run {bigger or equal str and str 1} 0 {test a >= 5} {bad float: a}
+test.run {bigger or equal str and str 2} 0 {test 5 >= a} {bad float: a}
+test.run {bigger or equal str and str 3} 0 {test a >= a} {bad float: a}
+test.run {smaller or equal str and str 1} 0 {test a < 5} {bad float: a}
+test.run {smaller or equal str and str 2} 0 {test 5 < a} {bad float: a}
+test.run {smaller or equal str and str 3} 0 {test a <= a} {bad float: a}
+
+test.run {equal int and int 1} 1 {test 2 == 2} 1
+test.run {equal int and int 2} 1 {test 2 != 2} 0
+test.run {different int and int 1} 1 {test 2 == 1} 0
+test.run {different int and int 2} 1 {test 1 == 2} 0
+test.run {different int and int 3} 1 {test 2 != 1} 1
+test.run {different int and int 4} 1 {test 1 != 2} 1
+test.run {bigger int and int 1} 1 {test 2 > 1} 1
+test.run {bigger int and int 2} 1 {test 1 > 2} 0
+test.run {smaller int and int 1} 1 {test 1 < 2} 0
+test.run {smaller int and int 2} 1 {test 2 < 1} 1
+test.run {bigger or equal int and int 1} 1 {test 2 >= 1} 1
+test.run {bigger or equal int and int 2} 1 {test 1 >= 2} 0
+test.run {bigger or equal int and int 3} 1 {test 2 >= 2} 1
+test.run {smaller or equal int and int 1} 1 {test 1 <= 2} 1
+test.run {smaller or equal int and int 2} 1 {test 2 <= 1} 0
+test.run {smaller or equal int and int 3} 1 {test 2 <= 2} 1
+
+test.run {equal float and float 1} 1 {test 2.5 == 2.5} 1
+test.run {equal float and float 2.5} 1 {test 2.5 != 2.5} 0
+test.run {different float and float 1} 1 {test 2.5 == 1.33} 0
+test.run {different float and float 2} 1 {test 1.33 == 2.5} 0
+test.run {different float and float 3} 1 {test 2.5 != 1.33} 1
+test.run {different float and float 4} 1 {test 1.33 != 2.5} 1
+test.run {bigger float and float 1} 1 {test 2.5 > 1.33} 1
+test.run {bigger float and float 2} 1 {test 1.33 > 2.5} 0
+test.run {smaller float and float 1} 1 {test 1.33 < 2.5} 0
+test.run {smaller float and float 2} 1 {test 2.5 < 1.33} 1
+test.run {bigger or equal float and float 1.33} 1.33 {test 2.5 >= 1.33} 1
+test.run {bigger or equal float and float 2.5} 1.33 {test 1.33 >= 2.5} 0
+test.run {bigger or equal float and float 3} 1.33 {test 2.5 >= 2.5} 1
+test.run {smaller or equal float and float 1.33} 1.33 {test 1.33 <= 2.5} 1
+test.run {smaller or equal float and float 2.5} 1.33 {test 2.5 <= 1.33} 0
+test.run {smaller or equal float and float 3} 1.33 {test 2.5 <= 2.5} 1
+
+test.run {true and true} 1 {test 1 && 1} 1
+test.run {true and false} 1 {test 1 && 0} 0
+test.run {false and true} 1 {test 0 && 1} 0
+test.run {false and false} 1 {test 0 && 0} 0
+
+test.run {true or true} 1 {test 1 || 1} 1
+test.run {true or false} 1 {test 1 || 0} 1
+test.run {false or true} 1 {test 0 || 1} 1
+test.run {false or false} 1 {test 0 || 0} 0
+
+test.run {true xor true} 1 {test 1 ^ 1} 0
+test.run {true xor false} 1 {test 1 ^ 0} 1
+test.run {false xor true} 1 {test 0 ^ 1} 1
+test.run {false xor false} 1 {test 0 ^ 0} 0
+
+test.run {no not args} 0 {not} {bad not call: 'not', should be 'not obj'}
+test.run {too many not args} 0 {not x y} {bad not call: 'not x y', should be 'not obj'}
+test.run {not true} 1 {not 1} 0
+test.run {not false} 1 {not 0} 1
+
+test.run {no any args} 0 {any} {bad any call: 'any', should be 'any cond...'}
+test.run {any true} 1 {any 1} 1
+test.run {any false} 1 {any 0} 0
+test.run {any true false} 1 {any 1 0} 1
+test.run {any false true} 1 {any 0 1} 1
+test.run {any false true false} 1 {any 0 1 0} 1
+test.run {any false false true} 1 {any 0 0 1} 1
+
+test.run {no all args} 0 {all} {bad all call: 'all', should be 'all cond...'}
+test.run {all true} 1 {all 1} 1
+test.run {all false} 1 {all 0} 0
+test.run {all true false} 1 {all 1 0} 0
+test.run {all false true} 1 {all 0 1} 0
+test.run {all true true} 1 {all 1 1} 1
+test.run {all false true false} 1 {all 0 1 0} 0
+test.run {all false false true} 1 {all 0 0 1} 0
+test.run {all true false true} 1 {all 1 0 1} 0
+test.run {all true true true} 1 {all 1 1 1} 1
+
+test.run {no if args} 0 {if} {bad if call: 'if', should be 'if cond exp else exp'}
+test.run {bad if use 1} 0 {if 1 x y} {bad if call: 'if 1 x y', should be 'if cond exp else exp'}
+test.run {bad if use 2} 0 {if 1 x else} {bad if call: 'if 1 x else', should be 'if cond exp else exp'}
+test.run {bad if use 2} 0 {if 1 x else y z} {bad if call: 'if 1 x else y z', should be 'if cond exp else exp'}
+test.run {if true} 1 {if 1 {calc 3 + 4}} 7
+test.run {if false} 1 {if 0 {calc 3 + 4}} {}
+test.run {if true else} 1 {if 1 {calc 3 + 4} else {calc 3 + 5}} 7
+test.run {if false else} 1 {if 0 {calc 3 + 4} else {calc 3 + 5}} 8
+
+test.run {no switch args} 0 {switch} {bad switch call: 'switch', should be 'switch obj val exp val exp...'}
+test.run {too few switch args 1} 0 {switch 1} {bad switch call: 'switch 1', should be 'switch obj val exp val exp...'}
+test.run {too few switch args 2} 0 {switch 1 x} {bad switch call: 'switch 1 x', should be 'switch obj val exp val exp...'}
+test.run {too few switch args 3} 0 {switch 1 x a} {bad switch call: 'switch 1 x a', should be 'switch obj val exp val exp...'}
+test.run {too few switch args 4} 0 {switch 1 x a y} {bad switch call: 'switch 1 x a y', should be 'switch obj val exp val exp...'}
+test.run {not even switch args} 0 {switch 1 x a y b z} {bad switch call: 'switch 1 x a y b z', should be 'switch obj val exp val exp...'}
+test.run {switch value found} 1 {switch [calc 2 + 3] 4 throw 5 {calc 2 + 9} 6 throw} 11
+test.run {switch value found twice} 1 {switch [calc 2 + 3] 4 throw 5 {calc 2 + 9} 5 throw 6 throw} 11
+test.run {switch value not found} 1 {switch [calc 2 + 3] 4 throw 6 throw} {}
+test.run {switch value fallback} 1 {switch [calc 2 + 3] 4 throw 6 throw * {calc 2 + 9}} 11
+test.run {switch value fallback twice} 1 {switch [calc 2 + 3] 4 throw 6 throw * {calc 2 + 9} * throw} 11
+test.run {switch value found and fallback} 1 {switch [calc 2 + 3] 4 throw 5 {calc 2 + 9} 6 throw * {calc 2 + 9}} 11
