@@ -1,0 +1,36 @@
+# this file is part of szl.
+#
+# Copyright (c) 2016 Dima Krasner
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
+source szl_test.szl
+
+test.run {no args} 0 {switch} {bad switch call: 'switch', should be 'switch obj val exp val exp...'}
+test.run {too few args 1} 0 {switch 1} {bad switch call: 'switch 1', should be 'switch obj val exp val exp...'}
+test.run {too few args 2} 0 {switch 1 x} {bad switch call: 'switch 1 x', should be 'switch obj val exp val exp...'}
+test.run {too few args 3} 0 {switch 1 x a} {bad switch call: 'switch 1 x a', should be 'switch obj val exp val exp...'}
+test.run {too few args 4} 0 {switch 1 x a y} {bad switch call: 'switch 1 x a y', should be 'switch obj val exp val exp...'}
+test.run {not even args} 0 {switch 1 x a y b z} {bad switch call: 'switch 1 x a y b z', should be 'switch obj val exp val exp...'}
+test.run {value found} 1 {switch [calc 2 + 3] 4 throw 5 {calc 2 + 9} 6 throw} 11
+test.run {value found twice} 1 {switch [calc 2 + 3] 4 throw 5 {calc 2 + 9} 5 throw 6 throw} 11
+test.run {value not found} 1 {switch [calc 2 + 3] 4 throw 6 throw} {}
+test.run {value fallback} 1 {switch [calc 2 + 3] 4 throw 6 throw * {calc 2 + 9}} 11
+test.run {value fallback twice} 1 {switch [calc 2 + 3] 4 throw 6 throw * {calc 2 + 9} * throw} 11
+test.run {value found and fallback} 1 {switch [calc 2 + 3] 4 throw 5 {calc 2 + 9} 6 throw * {calc 2 + 9}} 11

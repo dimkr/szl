@@ -1,0 +1,32 @@
+# this file is part of szl.
+#
+# Copyright (c) 2016 Dima Krasner
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
+source szl_test.szl
+
+test.run {no args} 0 {if} {bad if call: 'if', should be 'if cond exp else exp'}
+test.run {bad usage 1} 0 {if 1 x y} {bad if call: 'if 1 x y', should be 'if cond exp else exp'}
+test.run {bad usage 2} 0 {if 1 x else} {bad if call: 'if 1 x else', should be 'if cond exp else exp'}
+test.run {bad usage 2} 0 {if 1 x else y z} {bad if call: 'if 1 x else y z', should be 'if cond exp else exp'}
+test.run {if true} 1 {if 1 {calc 3 + 4}} 7
+test.run {if false} 1 {if 0 {calc 3 + 4}} {}
+test.run {if true else} 1 {if 1 {calc 3 + 4} else {calc 3 + 5}} 7
+test.run {if false else} 1 {if 0 {calc 3 + 4} else {calc 3 + 5}} 8
