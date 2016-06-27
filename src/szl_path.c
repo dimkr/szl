@@ -58,10 +58,10 @@ enum szl_res szl_path_proc_exists(struct szl_interp *interp,
 
 int szl_init_path(struct szl_interp *interp)
 {
-	return (szl_new_const(interp,
-	                      "path.sep",
-	                      "/",
-	                      1) &&
+	return (szl_new_const_str(interp,
+	                          "path.sep",
+	                          "/",
+	                          1) &&
 	        szl_new_proc(interp,
 	                     "path.exists",
 	                     2,

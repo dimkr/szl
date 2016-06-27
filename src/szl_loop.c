@@ -321,8 +321,8 @@ int szl_init_loop(struct szl_interp *interp)
 	                      NULL)) &&
 	        (szl_new_proc(interp,
 	                      "for",
-	                      4,
-	                      4,
+	                      -1,
+	                      -1,
 	                      "for names list exp",
 	                      szl_loop_proc_for,
 	                      NULL,

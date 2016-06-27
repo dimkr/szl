@@ -47,10 +47,11 @@ enum szl_res szl_env_proc_get(struct szl_interp *interp,
 
 int szl_init_env(struct szl_interp *interp)
 {
-	return (szl_new_const(interp,
-	                      "env.ver",
-	                      SZL_VERSION,
-	                      sizeof(SZL_VERSION) - 1) &&
+	return (szl_new_const_str(interp,
+	                          "env.ver",
+	                          SZL_VERSION,
+	                          sizeof(SZL_VERSION) - 1) &&
+	        szl_new_const_int(interp, "env.intmax", INT_MAX) &&
 	        szl_new_proc(interp,
 	                     "env.get",
 	                     2,

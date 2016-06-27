@@ -80,6 +80,14 @@ enum szl_res szl_obj_proc_eval(struct szl_interp *interp,
 	return szl_run(interp, s, len);
 }
 
+static
+enum szl_res szl_obj_proc_echo(struct szl_interp *interp,
+                               const int objc,
+                               struct szl_obj **objv)
+{
+	return szl_set_result(interp, szl_obj_ref(objv[1]));
+}
+
 int szl_init_obj(struct szl_interp *interp)
 {
 	return ((szl_new_proc(interp,
@@ -104,6 +112,14 @@ int szl_init_obj(struct szl_interp *interp)
 	                      2,
 	                      "eval exp",
 	                      szl_obj_proc_eval,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "echo",
+	                      2,
+	                      2,
+	                      "echo obj",
+	                      szl_obj_proc_echo,
 	                      NULL,
 	                      NULL)));
 }

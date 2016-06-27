@@ -126,7 +126,7 @@ enum szl_res szl_zlib_proc_deflate(struct szl_interp *interp,
 	const char *in;
 	size_t len;
 
-	if ((objc == 3) && (!szl_obj_int(interp, objv[2], &level)))
+	if ((objc == 3) && !szl_obj_int(interp, objv[2], &level))
 		return SZL_ERR;
 
 	in = szl_obj_str(interp, objv[1], &len);
@@ -237,7 +237,7 @@ enum szl_res szl_zlib_proc_gzip(struct szl_interp *interp,
 	size_t len;
 
 	if ((objc == 3) && (!szl_obj_int(interp, objv[2], &level)))
-		return szl_usage(interp, objv[0]);
+		return SZL_ERR;
 
 	in = szl_obj_str(interp, objv[1], &len);
 	if (!in || !len)
@@ -255,11 +255,11 @@ enum szl_res szl_zlib_proc_gunzip(struct szl_interp *interp,
 	szl_int bufsiz = DEF_DECOMPRESS_BUFSIZ;
 	size_t len;
 
-	if ((objc == 3) &&
-	    ((!szl_obj_int(interp, objv[2], &bufsiz)) ||
-	     (bufsiz < 0) ||
-	     (bufsiz > LONG_MAX)))
-		return szl_usage(interp, objv[0]);
+
+	/* although the buffer can be up to LONG_MAX bytes, we want to limit it to
+	 * INT_MAX because we create a string object later */
+	if ((objc == 3) && !szl_obj_int(interp, objv[2], &bufsiz))
+		return SZL_ERR;
 
 	in = szl_obj_str(interp, objv[1], &len);
 	if (!in)

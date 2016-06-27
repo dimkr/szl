@@ -20,24 +20,28 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-include ../Makefile.common
-
-CFLAGS += -I../src
-
-SCRIPTS = $(wildcard test_*.szl)
-TESTS = $(SCRIPTS:.szl=)
-
-VALGRIND = valgrind --leak-check=full --show-reachable=yes --error-exitcode=1
-
-all: $(TESTS)
-	cd ../src; $(MAKE) clean
-
-../src/szlsh:
-	cd ../src; STATIC_ALL=1 $(MAKE)
-
-%: %.szl ../src/szlsh
-	@echo $$i
-	../src/szlsh $< || exit 1
-	$(VALGRIND) ../src/szlsh $< || exit 1
-
-clean:
+proc test.run {
+	try {
+		if $2 {
+			local output [eval $3]
+			if [test $output != $4] {
+				throw [str.format {expected '{}', got '{}'} $4 $output]
+			}
+		} else {
+			try {
+				eval $3
+				throw {bad test implementation}
+			} except {
+				local error $_
+				if [test $error != $4] {
+					throw [str.format {expected exception '{}', got '{}'} $4 $error]
+				}
+			}
+		}
+	} except {
+		$stderr write [str.format {fail: {}: {}} $1 $_]
+		$stderr write $newline
+		exit 1
+	}
+	puts [str.format {ok: {}} $1]
+}

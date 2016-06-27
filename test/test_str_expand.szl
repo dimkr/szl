@@ -20,24 +20,21 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-include ../Makefile.common
+source szl_test.szl
 
-CFLAGS += -I../src
+test.run {no expansion} 1 {str.expand abcd} {abcd}
+test.run {no expansion with whitespace} 1 {str.expand { ab	cd }} { ab	cd }
 
-SCRIPTS = $(wildcard test_*.szl)
-TESTS = $(SCRIPTS:.szl=)
+test.run {escape sequence} 1 {str.expand \\\t\\} {\	\}
+test.run {multiple escape sequences} 1 {str.expand \\\t\t\t\\} {\			\}
+test.run {multiple escape sequences with whitespace} 1 {str.expand { \\\t \t \t\\ }} { \	 	 	\ }
+test.run {bad escape sequence} 0 {str.expand \f} {bad escape sequence: \f}
 
-VALGRIND = valgrind --leak-check=full --show-reachable=yes --error-exitcode=1
-
-all: $(TESTS)
-	cd ../src; $(MAKE) clean
-
-../src/szlsh:
-	cd ../src; STATIC_ALL=1 $(MAKE)
-
-%: %.szl ../src/szlsh
-	@echo $$i
-	../src/szlsh $< || exit 1
-	$(VALGRIND) ../src/szlsh $< || exit 1
-
-clean:
+test.run {hex escape} 1 {str.expand \x61} {a}
+test.run {multiple hex escape} 1 {str.expand \x61\x62\x63} {abc}
+test.run {multiple hex escape with whitespace} 1 {str.expand {	\x61\t\x62\t\x63	}} {	a	b	c	}
+test.run {bad hex escape 0} 0 {str.expand \xfg} {bad hex digit: g}
+test.run {bad hex escape 1} 0 {str.expand \xgf} {bad hex digit: g}
+test.run {bad hex escape 2} 0 {str.expand \xgg} {bad hex digit: g}
+test.run {bad hex escape 3} 0 {str.expand {\xg }} {bad hex digit: g}
+test.run {bad hex escape 4} 0 {str.expand \xg} {bad hex escape}

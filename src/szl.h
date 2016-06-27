@@ -476,21 +476,35 @@ struct szl_obj *szl_new_proc(struct szl_interp *interp,
                              void *priv);
 
 /**
- * @fn int szl_new_const(struct szl_interp *interp,
- *                       const char *name,
- *                       const char *val,
- *                       const int len)
- * @brief Defines a new constant, in the global scope
+ * @fn int szl_new_const_str(struct szl_interp *interp,
+ *                           const char *name,
+ *                           const char *val,
+ *                           const int len)
+ * @brief Defines a new string constant, in the global scope
  * @param interp [in,out] An interpreter
  * @param name [in] The constant name
  * @param val [in] The constant value
  * @param len [in] The value length
  * @return 1 or 0
  */
-int szl_new_const(struct szl_interp *interp,
-                  const char *name,
-                  const char *val,
-                  const int len);
+int szl_new_const_str(struct szl_interp *interp,
+                      const char *name,
+                      const char *val,
+                      const int len);
+
+/**
+ * @fn int int szl_new_const_int(struct szl_interp *interp,
+ *                               const char *name,
+ *                               const szl_int val)
+ * @brief Defines a new integer constant, in the global scope
+ * @param interp [in,out] An interpreter
+ * @param name [in] The constant name
+ * @param val [in] The constant value
+ * @return 1 or 0
+ */
+int szl_new_const_int(struct szl_interp *interp,
+                      const char *name,
+                      const szl_int val);
 
 /**
  * @def szl_empty

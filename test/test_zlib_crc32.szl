@@ -20,24 +20,18 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-include ../Makefile.common
+load zlib
+source szl_test.szl
 
-CFLAGS += -I../src
+test.run {no args} 0 {zlib.crc32} {bad zlib.crc32 call: 'zlib.crc32', should be 'zlib.crc32 str ?init?'}
+test.run {too many args} 0 {zlib.crc32 x 0 0} {bad zlib.crc32 call: 'zlib.crc32 x 0 0', should be 'zlib.crc32 str ?init?'}
 
-SCRIPTS = $(wildcard test_*.szl)
-TESTS = $(SCRIPTS:.szl=)
+test.run {positive crc32} 1 {zlib.crc32 z} {1657960367}
+# zlib.crc32 returns an unsigned value
+test.run {negative crc32} 1 {zlib.crc32 x} {2363233923}
 
-VALGRIND = valgrind --leak-check=full --show-reachable=yes --error-exitcode=1
+test.run {with init} 1 {zlib.crc32 x 9} {4110462503}
+# the float value should be rounded
+test.run {with float init} 1 {zlib.crc32 x 9.5} {4110462503}
+test.run {with str init} 0 {zlib.crc32 x a} {bad int: a}
 
-all: $(TESTS)
-	cd ../src; $(MAKE) clean
-
-../src/szlsh:
-	cd ../src; STATIC_ALL=1 $(MAKE)
-
-%: %.szl ../src/szlsh
-	@echo $$i
-	../src/szlsh $< || exit 1
-	$(VALGRIND) ../src/szlsh $< || exit 1
-
-clean:

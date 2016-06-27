@@ -24,6 +24,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #include "szl.h"
 
@@ -228,26 +229,49 @@ enum szl_res szl_str_proc_expand(struct szl_interp *interp,
 					break;
 
 				case 'x':
-					if ((i + 3 > end) ||
-					    !(((s[i + 2] >= '0') && (s[i + 2] <= '9')) ||
-					      ((s[i + 2] >= 'a') && (s[i + 2] <= 'f')) ||
-					      ((s[i + 2] >= 'A') && (s[i + 2] <= 'F'))) ||
-					    !(((s[i + 3] >= '0') && (s[i + 3] <= '9')) ||
-					      ((s[i + 3] >= 'a') && (s[i + 3] <= 'f')) ||
-					      ((s[i + 3] >= 'A') && (s[i + 3] <= 'F')))) {
+					if (i + 3 > end) {
 						free(s2);
 						szl_set_result_str(interp, "bad hex escape", -1);
 						return SZL_ERR;
 					}
 
-					s2[out] = ((s[i + 2] - '0') << 4) | (s[i + 3] - '0');
+					if ((s[i + 2] >= '0') && (s[i + 2] <= '9'))
+						s2[out] = ((s[i + 2] - '0') << 4);
+					else if ((s[i + 2] >= 'a') && (s[i + 2] <= 'f'))
+						s2[out] = ((s[i + 2] - 'a' + 10) << 4);
+					else if ((s[i + 2] >= 'A') && (s[i + 2] <= 'F'))
+						s2[out] = ((s[i + 2] - 'A' + 10) << 4);
+					else {
+						free(s2);
+						szl_set_result_fmt(interp,
+						                   "bad hex digit: %c",
+						                   s[i + 2]);
+						return SZL_ERR;
+					}
+
+					if ((s[i + 3] >= '0') && (s[i + 3] <= '9'))
+						s2[out] |= s[i + 3] - '0';
+					else if ((s[i + 3] >= 'a') && (s[i + 3] <= 'f'))
+						s2[out] |= s[i + 3] - 'a' + 10;
+					else if ((s[i + 3] >= 'A') && (s[i + 3] <= 'F'))
+						s2[out] |= s[i + 3] - 'A' + 10;
+					else {
+						free(s2);
+						szl_set_result_fmt(interp,
+						                   "bad hex digit: %c",
+						                   s[i + 3]);
+						return SZL_ERR;
+					}
+
 					i += 4;
 					break;
 
 				default:
-					s2[out] = s[i];
-					++i;
-					break;
+					free(s2);
+					szl_set_result_fmt(interp,
+					                   "bad escape sequence: \\%c",
+					                   s[i + 1]);
+					return SZL_ERR;
 			}
 
 			++out;
@@ -282,6 +306,10 @@ enum szl_res szl_str_proc_format(struct szl_interp *interp,
 	fmt = szl_obj_str(interp, objv[1], &flen);
 	if (!fmt)
 		return SZL_ERR;
+	if (!flen) {
+		szl_set_result_str(interp, "empty fmt", -1);
+		return SZL_ERR;
+	}
 
 	str = szl_new_empty();
 	if (!str)
@@ -301,7 +329,7 @@ enum szl_res szl_str_proc_format(struct szl_interp *interp,
 		}
 		else if (i == objc) {
 			szl_obj_unref(str);
-			szl_set_result_fmt(interp, "bad fmt: %s", fmt);
+			szl_set_result_fmt(interp, "too few args for fmt: %s", fmt);
 			return SZL_ERR;
 		}
 
@@ -444,18 +472,18 @@ int szl_init_str(struct szl_interp *interp)
 	                      NULL,
 	                      NULL)) &&
 	        (szl_new_proc(interp,
-	                      "ltrim",
+	                      "str.ltrim",
 	                      2,
 	                      2,
-	                      "ltrim str",
+	                      "str.ltrim str",
 	                      szl_str_proc_ltrim,
 	                      NULL,
 	                      NULL)) &&
 	        (szl_new_proc(interp,
-	                      "rtrim",
+	                      "str.rtrim",
 	                      2,
 	                      2,
-	                      "rtrim str",
+	                      "str.rtrim str",
 	                      szl_str_proc_rtrim,
 	                      NULL,
 	                      NULL)) &&

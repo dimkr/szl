@@ -764,6 +764,11 @@ Environment
 +$env.ver+::
 	The +szl+ version.
 
++$env.intmax+::
+	The maximum value of a C 'int', on the hardware architecture +szl+ runs on.
+	This value is useful as an upper limit for input sanity checks (for example,
+	the maximum size of a file specified by the user).
+
 Extensions
 ~~~~~~~~~~
 tls

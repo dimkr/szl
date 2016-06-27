@@ -23,11 +23,11 @@
 all: .src .doc
 install: all
 
-.src:
-	cd src; $(MAKE)
-
 .test:
 	cd test; $(MAKE)
+
+.src: .test
+	cd src; $(MAKE)
 
 .doc:
 	cd doc; $(MAKE)

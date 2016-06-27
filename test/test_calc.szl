@@ -1,0 +1,54 @@
+# this file is part of szl.
+#
+# Copyright (c) 2016 Dima Krasner
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
+source szl_test.szl
+
+test.run {calc one arg} 0 {calc 1} {bad calc call: 'calc 1', should be 'calc m op n'}
+test.run {calc 2 args} 0 {calc 1 2} {bad calc call: 'calc 1 2', should be 'calc m op n'}
+test.run {calc arg plus} 0 {calc 1 +} {bad calc call: 'calc 1 +', should be 'calc m op n'}
+test.run {calc 3 args} 0 {calc 1 2 3} {bad calc call: 'calc 1 2 3', should be 'calc m op n'}
+test.run {calc 4 args} 0 {calc 1 + 3 4} {bad calc call: 'calc 1 + 3 4', should be 'calc m op n'}
+
+test.run {calc int plus string} 0 {calc 1 + a} {bad float: a}
+test.run {calc string plus int} 0 {calc a + 1} {bad float: a}
+
+test.run {calc int plus int} 1 {calc 1 + 4} 5
+test.run {calc float plus float} 1 {calc 1.5 + 4.33} 5.83
+test.run {calc int plus float} 1 {calc 1 + 4.33} 5.33
+test.run {calc float plus int} 1 {calc 4.33 + 1} 5.33
+
+test.run {calc int minus int} 1 {calc 4 - 1} 3
+test.run {calc float minus float} 1 {calc 4.33 - 1.5} 2.83
+test.run {calc int minus float} 1 {calc 4.33 - 1} 3.33
+test.run {calc float minus int} 1 {calc 4 - 1.5} 2.5
+
+test.run {calc int mul int} 1 {calc 2 * 4} 8
+test.run {calc float mul float} 1 {calc 1.5 * 4.5} 6.75
+test.run {calc int mul float} 1 {calc 2 * 4.33} 8.66
+test.run {calc float mul int} 1 {calc 4.33 * 2} 8.66
+test.run {calc int mul zero} 1 {calc 2 * 0.0} 0
+
+test.run {calc int div int} 1 {calc 8 / 4} 2
+test.run {calc float div float} 1 {calc 6.75 / 4.5} 1.5
+test.run {calc int div float} 1 {calc 8.66 / 4.33} 2
+test.run {calc float div int} 1 {calc 8.66 / 2} 4.33
+test.run {calc int div zero} 0 {calc 2 / 0.0} {division by 0}

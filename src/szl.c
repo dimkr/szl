@@ -458,10 +458,26 @@ struct szl_obj *szl_new_proc(struct szl_interp *interp,
 	return obj;
 }
 
-int szl_new_const(struct szl_interp *interp,
-                  const char *name,
-                  const char *val,
-                  const int len)
+int szl_new_const_int(struct szl_interp *interp,
+                      const char *name,
+                      const szl_int val)
+{
+	struct szl_obj *obj;
+	int ret;
+
+	obj = szl_new_int(val);
+	if (!obj)
+		return 0;
+
+	ret = szl_local(interp, interp->global, name, obj);
+	szl_obj_unref(obj);
+	return ret;
+}
+
+int szl_new_const_str(struct szl_interp *interp,
+                      const char *name,
+                      const char *val,
+                      const int len)
 {
 	struct szl_obj *obj;
 	int ret;
@@ -658,7 +674,7 @@ char *szl_obj_str(struct szl_interp *interp, struct szl_obj *obj, size_t *len)
 {
 	struct szl_obj *obj2, *space;
 	szl_int i;
-	int rlen;
+	int rlen, j;
 
 	/* cast the object, if needed */
 	if (!(obj->type & SZL_TYPE_STR) && !obj->s) {
@@ -683,8 +699,18 @@ char *szl_obj_str(struct szl_interp *interp, struct szl_obj *obj, size_t *len)
 
 			if ((szl_double)i == obj->d)
 				rlen = asprintf(&obj->s, SZL_INT_FMT, obj->i);
-			else
+			else {
 				rlen = asprintf(&obj->s, SZL_DOUBLE_FMT, obj->d);
+				if (rlen > 0) {
+					for (j = rlen - 1; j >= 0; --j) {
+						if (obj->s[j] == '0')
+							--rlen;
+						else
+							break;
+					}
+					obj->s[rlen] = '\0';
+				}
+			}
 		}
 		else
 			rlen = asprintf(&obj->s, SZL_INT_FMT, obj->i);
@@ -892,7 +918,7 @@ int szl_obj_eq(struct szl_interp *interp,
 		return 0;
 
 	*eq = 0;
-	if ((alen == blen) || (strcmp(as, bs) == 0))
+	if ((alen == blen) && (strcmp(as, bs) == 0))
 		*eq = 1;
 
 	return 1;

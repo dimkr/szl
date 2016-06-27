@@ -38,6 +38,7 @@ int main(int argc, char *argv[])
 	FILE *strm;
 	const char *s;
 	size_t len;
+	szl_int status;
 	enum szl_res res = SZL_ERR;
 
 	interp = szl_interp_new();
@@ -60,7 +61,11 @@ int main(int argc, char *argv[])
 			}
 	}
 
-	if (res != SZL_EXIT) {
+	if (res == SZL_EXIT) {
+		if (!szl_obj_int(interp, interp->last, &status) ||
+		    (status != EXIT_SUCCESS))
+			res = SZL_ERR;
+	} else {
 		s = szl_obj_str(interp, interp->last, &len);
 		strm = res == SZL_ERR ? stderr : stdout;
 		if (s && len && (fwrite(s, 1, len, strm) > 0))

@@ -20,24 +20,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-include ../Makefile.common
+source szl_test.szl
 
-CFLAGS += -I../src
-
-SCRIPTS = $(wildcard test_*.szl)
-TESTS = $(SCRIPTS:.szl=)
-
-VALGRIND = valgrind --leak-check=full --show-reachable=yes --error-exitcode=1
-
-all: $(TESTS)
-	cd ../src; $(MAKE) clean
-
-../src/szlsh:
-	cd ../src; STATIC_ALL=1 $(MAKE)
-
-%: %.szl ../src/szlsh
-	@echo $$i
-	../src/szlsh $< || exit 1
-	$(VALGRIND) ../src/szlsh $< || exit 1
-
-clean:
+test.run {no string} 0 {str.length} {bad str.length call: 'str.length', should be 'str.length str'}
+test.run {empty string} 1 {str.length {}} 0
+test.run {1-length string} 1 {str.length x} 1
+test.run {one space} 1 {str.length { }} 1
+test.run {string with spaces} 1 {str.length {x  y}} 4
+test.run {string with tabs} 1 {str.length {x		y}} 4
+test.run int 1 {str.length [calc 100 * 10]} 4
+test.run double 1 {str.length [calc 100.5 * 300]} [str.length 30150]
