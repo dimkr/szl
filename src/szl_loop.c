@@ -141,7 +141,18 @@ enum szl_res szl_loop_map(struct szl_interp *interp,
 	enum szl_res res, resi;
 
 	if (!szl_obj_list(interp, objv[1], &names, &nnames) || !nnames)
+		return szl_usage(interp, objv[0]);
+
+	if (!szl_obj_list(interp, objv[2], &toks, &ntoks))
 		return SZL_ERR;
+
+	if (ntoks % nnames != 0) {
+		szl_set_result_fmt(interp, "bad number of values", -1);
+		return SZL_ERR;
+	}
+
+	if (!ntoks)
+		return SZL_OK;
 
 	exp = szl_obj_strdup(interp, objv[3], &elen);
 	if (!exp || !elen)
@@ -150,18 +161,6 @@ enum szl_res szl_loop_map(struct szl_interp *interp,
 	if (!szl_parse_block(interp, &body, exp, elen)) {
 		free(exp);
 		return SZL_ERR;
-	}
-
-	if (!szl_obj_list(interp, objv[2], &toks, &ntoks)) {
-		szl_free_block(&body);
-		free(exp);
-		return SZL_ERR;
-	}
-
-	if (ntoks % nnames != 0) {
-		szl_free_block(&body);
-		free(exp);
-		return szl_usage(interp, objv[0]);
 	}
 
 	if (keep) {
@@ -177,7 +176,7 @@ enum szl_res szl_loop_map(struct szl_interp *interp,
 		for (j = 0; j < nnames; ++j) {
 			name = szl_obj_str(interp, names[j], &nlen);
 			if (!name || !nlen) {
-				if (keep)
+				if (obj)
 					szl_obj_unref(obj);
 				szl_free_block(&body);
 				free(exp);
@@ -186,7 +185,7 @@ enum szl_res szl_loop_map(struct szl_interp *interp,
 
 			resi = szl_local(interp, interp->current, name, toks[i + j]);
 			if (!resi) {
-				if (keep)
+				if (obj)
 					szl_obj_unref(obj);
 				szl_free_block(&body);
 				free(exp);
@@ -202,7 +201,7 @@ enum szl_res szl_loop_map(struct szl_interp *interp,
 			break;
 
 		if (res == SZL_RET) {
-			if (keep)
+			if (obj)
 				szl_obj_unref(obj);
 			szl_free_block(&body);
 			free(exp);
@@ -210,17 +209,16 @@ enum szl_res szl_loop_map(struct szl_interp *interp,
 		}
 
 		if (res != SZL_OK) {
-			if (keep)
+			if (obj)
 				szl_obj_unref(obj);
 			szl_free_block(&body);
 			free(exp);
 			return res;
 		}
 
-		if (keep) {
+		if (obj) {
 			if (!szl_lappend(interp, obj, interp->last)) {
-				if (keep)
-					szl_obj_unref(obj);
+				szl_obj_unref(obj);
 				szl_free_block(&body);
 				free(exp);
 				return SZL_ERR;
@@ -231,7 +229,7 @@ enum szl_res szl_loop_map(struct szl_interp *interp,
 	szl_free_block(&body);
 	free(exp);
 
-	if (keep)
+	if (obj)
 		return szl_set_result(interp, obj);
 
 	szl_empty_result(interp);
@@ -321,8 +319,8 @@ int szl_init_loop(struct szl_interp *interp)
 	                      NULL)) &&
 	        (szl_new_proc(interp,
 	                      "for",
-	                      -1,
-	                      -1,
+	                      4,
+	                      4,
 	                      "for names list exp",
 	                      szl_loop_proc_for,
 	                      NULL,

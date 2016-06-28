@@ -52,8 +52,8 @@ test.run {different int and int 3} 1 {test 2 != 1} 1
 test.run {different int and int 4} 1 {test 1 != 2} 1
 test.run {bigger int and int 1} 1 {test 2 > 1} 1
 test.run {bigger int and int 2} 1 {test 1 > 2} 0
-test.run {smaller int and int 1} 1 {test 1 < 2} 0
-test.run {smaller int and int 2} 1 {test 2 < 1} 1
+test.run {smaller int and int 1} 1 {test 1 < 2} 1
+test.run {smaller int and int 2} 1 {test 2 < 1} 0
 test.run {bigger or equal int and int 1} 1 {test 2 >= 1} 1
 test.run {bigger or equal int and int 2} 1 {test 1 >= 2} 0
 test.run {bigger or equal int and int 3} 1 {test 2 >= 2} 1
@@ -69,8 +69,8 @@ test.run {different float and float 3} 1 {test 2.5 != 1.33} 1
 test.run {different float and float 4} 1 {test 1.33 != 2.5} 1
 test.run {bigger float and float 1} 1 {test 2.5 > 1.33} 1
 test.run {bigger float and float 2} 1 {test 1.33 > 2.5} 0
-test.run {smaller float and float 1} 1 {test 1.33 < 2.5} 0
-test.run {smaller float and float 2} 1 {test 2.5 < 1.33} 1
+test.run {smaller float and float 1} 1 {test 1.33 < 2.5} 1
+test.run {smaller float and float 2} 1 {test 2.5 < 1.33} 0
 test.run {bigger or equal float and float 1.33} 1.33 {test 2.5 >= 1.33} 1
 test.run {bigger or equal float and float 2.5} 1.33 {test 1.33 >= 2.5} 0
 test.run {bigger or equal float and float 3} 1.33 {test 2.5 >= 2.5} 1

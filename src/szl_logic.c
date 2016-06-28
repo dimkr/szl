@@ -29,6 +29,22 @@
 #define SZL_SWITCH_DEFAULT "*"
 
 static
+enum szl_res szl_logic_proc_true(struct szl_interp *interp,
+                                  const int objc,
+                                  struct szl_obj **objv)
+{
+	return szl_set_result_bool(interp, 1);
+}
+
+static
+enum szl_res szl_logic_proc_false(struct szl_interp *interp,
+                                  const int objc,
+                                  struct szl_obj **objv)
+{
+	return szl_set_result_bool(interp, 0);
+}
+
+static
 enum szl_res szl_logic_proc_test(struct szl_interp *interp,
                                  const int objc,
                                  struct szl_obj **objv)
@@ -65,7 +81,7 @@ enum szl_res szl_logic_proc_test(struct szl_interp *interp,
 		    !szl_obj_double(interp, objv[3], &n))
 			return SZL_ERR;
 
-		return szl_set_result_bool(interp, (m > n));
+		return szl_set_result_bool(interp, (m < n));
 	}
 	else if (strcmp(">=", op) == 0) {
 		if (!szl_obj_double(interp, objv[1], &m) ||
@@ -224,6 +240,22 @@ enum szl_res szl_logic_proc_switch(struct szl_interp *interp,
 int szl_init_logic(struct szl_interp *interp)
 {
 	return ((szl_new_proc(interp,
+	                      "true",
+	                      1,
+	                      1,
+	                      "true",
+	                      szl_logic_proc_true,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "false",
+	                      1,
+	                      1,
+	                      "false",
+	                      szl_logic_proc_false,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
 	                      "test",
 	                      4,
 	                      4,

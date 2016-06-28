@@ -518,6 +518,15 @@ for {a b} {1 2 3 4 5 6 7 8} {
 +continue+::
 	Stops the execution of a loop body and continues to the next iteration.
 
++true+::
+	Returns '1'.
+
++false+::
+	Returns '0'.
+
+[TIP]
+Use 'true' as the condition of infinite 'do' loop.
+
 +exit+ '?obj?'::
 	Stops the execution of the script and optionally, changes its return value.
 
