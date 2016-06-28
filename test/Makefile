@@ -29,8 +29,13 @@ TESTS = $(SCRIPTS:.szl=)
 
 VALGRIND = valgrind --leak-check=full --show-reachable=yes --error-exitcode=1
 
+# in static builds, we want to build just once
+ifeq ($(STATIC_ALL),1)
+all: $(TESTS)
+else
 all: $(TESTS)
 	cd ../src; $(MAKE) clean
+endif
 
 ../src/szlsh:
 	cd ../src; STATIC_ALL=1 $(MAKE)
