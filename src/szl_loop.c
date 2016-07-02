@@ -23,6 +23,7 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "szl.h"
 
@@ -31,47 +32,42 @@ static const char szl_loop_inc[] = {
 };
 
 static
-enum szl_res szl_loop_proc_while(struct szl_interp *interp,
-                                 const int objc,
-                                 struct szl_obj **objv)
+enum szl_res szl_loop_check(struct szl_interp *interp,
+                            const char *cond,
+                            int *b)
+{
+	struct szl_obj *val;
+	enum szl_res res;
+
+	res = szl_eval(interp, &val, cond);
+	if (res == SZL_OK) {
+		*b = szl_obj_isfalse(val);
+		szl_obj_unref(val);
+	}
+	else if (val)
+		szl_set_result(interp, val);
+
+	return res;
+}
+
+static
+enum szl_res szl_loop_do_while(struct szl_interp *interp,
+                               const char *cond,
+                               char *body,
+                               const size_t blen)
 {
 	struct szl_block block;
-	struct szl_obj *val;
-	const char *cond;
-	char *body;
-	size_t blen;
 	enum szl_res res;
 	int isfalse;
 
-	cond = szl_obj_str(interp, objv[1], NULL);
-	if (!cond)
+	if (!szl_parse_block(interp, &block, body, blen))
 		return SZL_ERR;
-
-	body = szl_obj_strdup(interp, objv[2], &blen);
-	if (!body)
-		return SZL_ERR;
-
-	if (!szl_parse_block(interp, &block, body, blen)) {
-		free(body);
-		return SZL_ERR;
-	}
 
 	do {
-		res = szl_eval(interp, &val, cond);
-		if (res != SZL_OK) {
-			if (val)
-				szl_set_result(interp, val);
+		res = szl_loop_check(interp, cond, &isfalse);
+		if ((res != SZL_OK) || isfalse) {
 			szl_free_block(&block);
-			free(body);
 			return res;
-		}
-
-		isfalse = szl_obj_isfalse(val);
-		szl_obj_unref(val);
-		if (isfalse) {
-			szl_free_block(&block);
-			free(body);
-			return SZL_OK;
 		}
 
 		/* we pass the block return value */
@@ -81,12 +77,10 @@ enum szl_res szl_loop_proc_while(struct szl_interp *interp,
 			case SZL_EXIT:
 			case SZL_RET:
 				szl_free_block(&block);
-				free(body);
 				return res;
 
 			/* do not propagate SZL_BREAK */
 			case SZL_BREAK:
-				free(body);
 				szl_free_block(&block);
 				return SZL_OK;
 
@@ -96,8 +90,64 @@ enum szl_res szl_loop_proc_while(struct szl_interp *interp,
 	} while (1);
 
 	szl_free_block(&block);
-	free(body);
 	return SZL_ERR;
+}
+
+static
+enum szl_res szl_loop_proc_while(struct szl_interp *interp,
+                                 const int objc,
+                                 struct szl_obj **objv)
+{
+	const char *cond;
+	char *body;
+	size_t blen;
+	int isfalse;
+	enum szl_res res;
+
+	cond = szl_obj_str(interp, objv[1], NULL);
+	if (!cond)
+		return SZL_ERR;
+
+	body = szl_obj_strdup(interp, objv[2], &blen);
+	if (!body)
+		return SZL_ERR;
+
+	res = szl_loop_check(interp, cond, &isfalse);
+	if ((res == SZL_OK) && !isfalse)
+		res = szl_loop_do_while(interp, cond, body, blen);
+
+	free(body);
+	return res;
+}
+
+static
+enum szl_res szl_loop_proc_do(struct szl_interp *interp,
+                              const int objc,
+                              struct szl_obj **objv)
+{
+	const char *cond, *s;
+	char *body;
+	size_t blen;
+	enum szl_res res;
+
+	s = szl_obj_str(interp, objv[2], NULL);
+	if (!s)
+		return SZL_ERR;
+
+	if (strcmp(s, "while") != 0)
+		return szl_usage(interp, objv[0]);
+
+	cond = szl_obj_str(interp, objv[3], NULL);
+	if (!cond)
+		return SZL_ERR;
+
+	body = szl_obj_strdup(interp, objv[1], &blen);
+	if (!body)
+		return SZL_ERR;
+
+	res = szl_loop_do_while(interp, cond, body, blen);
+	free(body);
+	return res;
 }
 
 static
@@ -294,6 +344,14 @@ int szl_init_loop(struct szl_interp *interp)
 	                      NULL,
 	                      NULL)) &&
 	        (szl_new_proc(interp,
+	                      "do",
+	                      4,
+	                      4,
+	                      "do exp while cond",
+	                      szl_loop_proc_do,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
 	                      "break",
 	                      1,
 	                      1,
@@ -340,8 +398,5 @@ int szl_init_loop(struct szl_interp *interp)
 	                      "range ?start? end",
 	                      szl_loop_proc_range,
 	                      NULL,
-	                      NULL)) &&
-	        (szl_run(interp,
-	                 szl_loop_inc,
-	                 sizeof(szl_loop_inc) - 1) == SZL_OK));
+	                      NULL)));
 }
