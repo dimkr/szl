@@ -51,4 +51,13 @@ test.run {calc int div int} 1 {calc 8 / 4} 2
 test.run {calc float div float} 1 {calc 6.75 / 4.5} 1.5
 test.run {calc int div float} 1 {calc 8.66 / 4.33} 2
 test.run {calc float div int} 1 {calc 8.66 / 2} 4.33
-test.run {calc int div zero} 0 {calc 2 / 0.0} {division by 0}
+test.run {calc int div zero 1} 0 {calc 2 / 0.0} {division by 0}
+test.run {calc int div zero 2} 0 {calc 2 / 0} {division by 0}
+
+test.run {calc int mod int 1} 1 {calc 8 % 4} 0
+test.run {calc int mod int 2} 1 {calc 7 % 4} 3
+test.run {calc float mod float} 1 {calc 7.0 % 4.0} 3
+test.run {calc int mod float} 1 {calc 7 % 4.0} 3
+test.run {calc float mod int} 1 {calc 7.0 % 4} 3
+test.run {calc int mod zero 1} 0 {calc 7 / 0.0} {division by 0}
+test.run {calc int mod zero 2} 0 {calc 7 / 0} {division by 0}

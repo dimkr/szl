@@ -23,6 +23,7 @@
  */
 
 #include <string.h>
+#include <math.h>
 
 #include "szl.h"
 
@@ -73,6 +74,17 @@ enum szl_res szl_math_proc_calc(struct szl_interp *interp,
 			return szl_set_result_double(interp, md / nd);
 
 		return szl_set_result_int(interp, mi / ni);
+	}
+	else if (strcmp("%", op) == 0) {
+		if (nd == 0) {
+			szl_set_result_str(interp, "division by 0", -1);
+			return SZL_ERR;
+		}
+
+		if ((md != (szl_double)mi) || (nd != (szl_double)ni))
+			return szl_set_result_double(interp, fmod(md, nd));
+
+		return szl_set_result_int(interp, mi % ni);
 	}
 
 	return szl_usage(interp, objv[0]);

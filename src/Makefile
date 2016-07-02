@@ -204,9 +204,6 @@ szl_io.o: szl_io.c szl_io.inc szl_conf.h
 szl_dir.o: szl_dir.c szl_dir.inc szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-szl_loop.o: szl_loop.c szl_loop.inc szl_conf.h
-	$(CC) -c -o $@ $< $(CFLAGS)
-
 szl_path.o: szl_path.c szl_path.inc szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS)
 

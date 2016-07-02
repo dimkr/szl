@@ -254,7 +254,7 @@ variable:
 
 --------------------------------------
 proc print_argument_count {
-	puts "received $# arguments"
+	puts [str.format {received {} arguments} $#]
 }
 
 print_argument_count a b c
@@ -265,7 +265,7 @@ variable:
 
 --------------------------------------
 proc print_statement {
-	puts "invoked with arguments: $@"
+	puts [str.format {invoked with arguments: {}} $@]
 }
 
 print_statement a b {c d} e f {g h}
@@ -281,14 +281,14 @@ The return value of a procedure is either:
 For example, the following functions are identical, functionality-wise:
 --------------------------------------
 proc foo {
-	puts "before check"
+	puts {before check}
 	test 1 == 2
 }
 
 proc bar {
-	puts "before check"
+	puts {before check}
 	return [test 1 == 2]
-	puts "after check"
+	puts {after check}
 }
 --------------------------------------
 
@@ -329,10 +329,22 @@ Builtin Procedures
 ~~~~~~~~~~~~~~~~~~
 Objects
 ^^^^^^^
++echo+ 'obj'::
+	Returns 'obj'.
+
+--------------------------------------
+test [echo 5] == 5
+--------------------------------------
+
 Variables
 +++++++++
 +local+ 'name val'::
-	Creates a new variable in local scope.
+	Creates a new variable in the local scope.
+
+[TIP]
+'local' returns the variable value, which is useful for one-liners (for example,
+when one wishes to create a new variable and pass its value to another
+procedure).
 
 +export+ 'name ?val?'::
 	Creates a local variable in the calling scope. If no value is specified, the
@@ -347,18 +359,6 @@ proc check_if_bigger_than_ten {
 
 check_if_bigger_than_ten 12
 --------------------------------------
-
-+echo+ 'obj'::
-	Returns 'obj'.
-
---------------------------------------
-test [echo 5] == 5
---------------------------------------
-
-[TIP]
-'local' returns the variable value, which is useful for one-liners (for example,
-when one wishes to create a new variable and pass its value to another
-procedure).
 
 +global+ 'name val'::
 	Similar to 'local', but creates the new variable in the global scope. The
@@ -406,6 +406,10 @@ puts [str.expand {this is a\n\tmulti-line strin\x67}]
 	Receives a format string and replaces all occurrences of '{}' with their
 	values.
 
+--------------------------------------
+puts [str.format {the length of "{}" is {}} abcd [str.length abcd]]
+--------------------------------------
+
 +str.rtrim+ 'str'::
 	Removes whitespace at the end of a string.
 
@@ -423,23 +427,52 @@ List Operations
 +list.range+ 'list start end'::
 	Returns the items in a list, between zero-based indices 'start' and 'end'.
 
+--------------------------------------
+local fruits {apple orange pear}
+puts [str.format {the first two fruits are: {}} [list.range $fruits 0 1]]
+--------------------------------------
+
 +list.append+ 'name item'::
-	Appends an object to a list. If the list is not empty, the item is prefixed
-	with a space. If the item is an empty string or contains spaces, it is
-	wrapped with braces.
+	Appends an object to a list.
+
+--------------------------------------
+local fruits {apple orange}
+list.append fruits pear
+puts $fruits
+--------------------------------------
 
 +list.join+ 'delim list'::
 	Joins the items of a list to form a string.
 
+--------------------------------------
+puts [str.format {three fruits: {}} [list.join , {apple orange pear}]]
+--------------------------------------
+
 +list.extend+ 'name list'::
 	Adds all items in a list to an existing list.
+
+--------------------------------------
+local fruits {apple orange}
+list.extend fruits {pear banana}
+puts $fruits
+--------------------------------------
 
 +list.zip+ 'list list...'::
 	Returns a list of lists, each containing the 'n'-th elements of given lists
 	of the same length.
 
+--------------------------------------
+for pair [list.zip {apple orange pear} {red orange green}] {
+	puts [str.format {{}s are {}} [list.index $pair 0] [list.index $pair 1]]
+}
+--------------------------------------
+
 +list.sum+ 'list list...'::
 	Returns a list containing the items of given lists.
+
+--------------------------------------
+local fruits [list.sum {apple orange} pear]
+--------------------------------------
 
 +list.reverse+ 'list'::
 	Returns all items in a list, in reverse order.
@@ -451,16 +484,33 @@ List Operations
 	Returns a list of integers in a given range. The maximum is non-inclusive.
 	If no minimum is specified, the range starts at '0'.
 
+--------------------------------------
+for i [range 1 11] {puts $i}
+--------------------------------------
+
 Arithmetic and Logical Operations
 +++++++++++++++++++++++++++++++++
 +calc+ 'm op n'::
 	Performs an arithmetic operation on two objects. The operation may be '+',
-	'-', '*' or '/'.
+	'-', '*', '/' or '%'.
+
++true+::
+	Returns '1'.
+
++false+::
+	Returns '0'.
+
+[TIP]
+Use 'true' as the condition of infinite 'do' loop.
 
 +test+ 'obj op obj'::
 	Compares two objects and returns '1' if the specified condition is true,
 	otherwise '0'. The comparison operation may be '==', '!=', '<', '>', '\<=',
 	'>=', '&&', '||' or '^'.
+
+--------------------------------------
+if [test [test [calc 1 + 1] == 2] && [test [calc 2 + 2] == 4]] {puts yes}
+--------------------------------------
 
 +not+ 'cond'::
 	Returns '0' if a condition is true, otherwise '1'.
@@ -494,13 +544,13 @@ Flow Control
 
 --------------------------------------
 switch [calc 1 + 2] 2 {
-	puts "it is 2"
+	puts {it is 2}
 } 3 {
-	puts "it is 3"
+	puts {it is 3}
 } 4 {
-	puts "it is 4"
+	puts {it is 4}
 } * {
-	puts "unknown result"
+	puts {unknown result}
 }
 --------------------------------------
 
@@ -529,7 +579,7 @@ usage (since the block return values are collected in a new list).
 
 --------------------------------------
 for {a b} {1 2 3 4 5 6 7 8} {
-	puts "a is $a and b is $b"
+	puts [str.format {a is {} and b is {}} $a $b]
 }
 --------------------------------------
 
@@ -539,17 +589,8 @@ for {a b} {1 2 3 4 5 6 7 8} {
 +continue+::
 	Stops the execution of a loop body and continues to the next iteration.
 
-+true+::
-	Returns '1'.
-
-+false+::
-	Returns '0'.
-
-[TIP]
-Use 'true' as the condition of infinite 'do' loop.
-
 +exit+ '?obj?'::
-	Stops the execution of the script and optionally, changes its return value.
+	Stops the execution of the script and optionally, sets its return value.
 
 +sleep+ 'sec'::
 	Suspends the script execution for a given time, specified in seconds. The
@@ -573,7 +614,7 @@ Exceptions
 try {
 	puts
 } except {
-	puts "Caught an error: $_"
+	puts [str.format {caught an error: {}} $_]
 } finally {
 	puts {Always executed}
 }
@@ -586,6 +627,14 @@ Any set of statements can be wrapped with a 'try' block without a matching
 +throw+ '?msg?'::
 	Triggers an error condition and optionally specifies an explanation. The
 	error condition may be caught by a 'try' call.
+
+--------------------------------------
+try {
+	throw {some error description}
+} except {
+	puts [str.format {caught an error: {}} $_]
+}
+--------------------------------------
 
 Interpreters
 ++++++++++++
@@ -1074,7 +1123,7 @@ try {
 	.
 	.
 } except {
-	puts "an error has occurred: $_"
+	puts [str.format {an error has occurred: {}} $_]
 }
 --------------------------------------
 instead of boolean return values and a pyramid of nested checks, e.g.:
@@ -1086,13 +1135,13 @@ if {[f 1 2 3]} {
 			.
 			.
 		} else {
-			puts "h failed"
+			puts {h failed}
 		}
 	} else {
-		puts "g failed"
+		puts {g failed}
 	}
 } else {
-	puts "f failed"
+	puts {f failed}
 }
 --------------------------------------
 This is highly beneficial, for several reasons:
@@ -1165,7 +1214,7 @@ discarded to free its local variables.
 
 Booleans
 ^^^^^^^^
-+szl+ has no "real" boolean type. Insead, '""', '"0"' and '0' are treated as
++szl+ has no "real" boolean type. Insead, '{}', '"0"' and '0' are treated as
 false and everything else is treated as true. Procedures that return boolean
 values return the integers '1' and '0'.
 
@@ -1173,8 +1222,8 @@ Builtin Objects
 ~~~~~~~~~~~~~~~
 Each +szl+ interpreter creates four singletons at initialization time:
 
-1. '""'
-2. '" "'
+1. '{}'
+2. '{ }'
 3. '0'
 4. '1'
 
