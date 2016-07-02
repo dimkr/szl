@@ -34,8 +34,8 @@ enum szl_res szl_exc_proc_try(struct szl_interp *interp,
 	struct szl_obj *obj;
 	const char *try = NULL, *except = NULL, *finally = NULL;
 	const char *s;
-	size_t tlen, elen = 0;
-	enum szl_res res, eres = SZL_OK, flen, fres;
+	size_t tlen, elen = 0, flen;
+	enum szl_res res, eres = SZL_OK, fres;
 
 	switch (objc) {
 		case 6:
