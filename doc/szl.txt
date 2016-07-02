@@ -500,9 +500,6 @@ Arithmetic and Logical Operations
 +false+::
 	Returns '0'.
 
-[TIP]
-Use 'true' as the condition of infinite 'do' loop.
-
 +test+ 'obj op obj'::
 	Compares two objects and returns '1' if the specified condition is true,
 	otherwise '0'. The comparison operation may be '==', '!=', '<', '>', '\<=',
@@ -1117,6 +1114,9 @@ Every action has its pleasures and its price.
     that input in a variable. This way, the string representation of the object
     is split only once.
 11. Use 'switch' instead of nested 'if' calls.
+12. Use '1' the condition of infinite 'while' or 'do' loops. The evaluation of
+    '[true]' is slower than the evaluation of '1', due to the extra procedure
+    call involved.
 
 Error Handling
 ~~~~~~~~~~~~~~
