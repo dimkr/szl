@@ -48,21 +48,50 @@ enum szl_res szl_obj_proc_local(struct szl_interp *interp,
                                 struct szl_obj **objv)
 {
 	const char *name;
-	int resi;
 
 	name = szl_obj_str(interp, objv[1], NULL);
 	if (!name)
 		return SZL_ERR;
 
-	szl_obj_ref(interp->caller);
-	resi = szl_local(interp, interp->caller, name, objv[2]);
-	szl_obj_unref(interp->caller);
-
 	/* see the comment in szl_obj_proc_set() */
-	if (resi)
+	if (szl_local(interp, interp->current->caller, name, objv[2]))
 		return szl_set_result(interp, szl_obj_ref(objv[2]));
 
 	return SZL_ERR;
+}
+
+static
+enum szl_res szl_obj_proc_export(struct szl_interp *interp,
+                                const int objc,
+                                struct szl_obj **objv)
+{
+	struct szl_obj *val;
+	const char *name;
+	int resi, ref = 0;
+
+	name = szl_obj_str(interp, objv[1], NULL);
+	if (!name)
+		return SZL_ERR;
+
+	if (objc == 2) {
+		val = szl_get(interp, name);
+		if (!val)
+			return SZL_ERR;
+		ref = 1;
+	}
+	else
+		val = objv[2];
+
+	if (!interp->current->caller->caller) {
+		szl_set_result_str(interp, "cannot export from global scope", -1);
+		return SZL_ERR;
+	}
+
+	resi = szl_local(interp, interp->current->caller->caller, name, val);
+	if (ref)
+		szl_obj_unref(val);
+
+	return resi ? SZL_OK : SZL_ERR;
 }
 
 static
@@ -104,6 +133,14 @@ int szl_init_obj(struct szl_interp *interp)
 	                      3,
 	                      "local name val",
 	                      szl_obj_proc_local,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "export",
+	                      2,
+	                      3,
+	                      "export name ?val?",
+	                      szl_obj_proc_export,
 	                      NULL,
 	                      NULL)) &&
 	        (szl_new_proc(interp,

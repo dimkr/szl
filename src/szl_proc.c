@@ -133,7 +133,7 @@ enum szl_res szl_proc_proc_exec(struct szl_interp *interp,
 	}
 
 	resi = szl_local(interp,
-	                 interp->caller,
+	                 interp->current->caller,
 	                 SZL_EXIT_CODE_OBJ_NAME,
 	                 exit_code);
 	szl_obj_unref(exit_code);

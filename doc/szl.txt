@@ -334,6 +334,20 @@ Variables
 +local+ 'name val'::
 	Creates a new variable in local scope.
 
++export+ 'name ?val?'::
+	Creates a local variable in the calling scope. If no value is specified, the
+	value of the local variable with the same name is used as fallback.
+
+--------------------------------------
+proc check_if_bigger_than_ten {
+	local bigger 0
+	if [test $1 > 10] {export bigger 1}
+	puts $bigger
+}
+
+check_if_bigger_than_ten 12
+--------------------------------------
+
 [TIP]
 'local' returns the variable value, which is useful for one-liners (for example,
 when one wishes to create a new variable and pass its value to another

@@ -119,6 +119,7 @@ int szl_copy_locals(struct szl_interp *interp,
 
 SZL_STATIC
 struct szl_obj *szl_new_call(struct szl_interp *interp,
+                             struct szl_obj *caller,
                              const char *exp,
                              const size_t len,
                              const int copy_locals)
@@ -133,6 +134,9 @@ struct szl_obj *szl_new_call(struct szl_interp *interp,
 		szl_obj_unref(obj);
 		return NULL;
 	}
+
+	if (caller)
+		obj->caller = szl_obj_ref(caller);
 
 	obj->type |= SZL_TYPE_CALL;
 	return obj;
@@ -201,7 +205,7 @@ struct szl_interp *szl_interp_new(void)
 	 * does not increase the reference count if the name is empty */
 	szl_obj_ref(interp->global);
 
-	interp->current = szl_new_call(interp, NULL, 0, 0);
+	interp->current = szl_new_call(interp, NULL, NULL, 0, 0);
 	if (!interp->current) {
 		szl_obj_unref(interp->global);
 		szl_obj_unref(interp->one);
@@ -211,7 +215,7 @@ struct szl_interp *szl_interp_new(void)
 		free(interp);
 		return NULL;
 	}
-	interp->caller = szl_obj_ref(interp->current);
+	interp->current->caller = szl_obj_ref(interp->current);
 
 	interp->exts = NULL;
 	interp->nexts = 0;
@@ -255,7 +259,7 @@ void szl_interp_free(struct szl_interp *interp)
 
 	/* both should be interp->global once all code execution stops */
 	szl_obj_unref(interp->current);
-	szl_obj_unref(interp->caller);
+	szl_obj_unref(interp->current->caller);
 
 	szl_obj_unref(interp->last);
 	szl_obj_unref(interp->global);
@@ -308,6 +312,9 @@ void szl_obj_unref(struct szl_obj *obj)
 			free(obj->l);
 		}
 
+		if (obj->caller)
+			szl_obj_unref(obj->caller);
+
 		free(obj);
 	}
 }
@@ -337,6 +344,7 @@ struct szl_obj *szl_new_str_noalloc(char *s, const size_t len)
 	obj->del = NULL;
 	obj->locals = NULL;
 	obj->nlocals = 0;
+	obj->caller = NULL;
 	obj->refc = 1;
 
 	return obj;
@@ -387,6 +395,7 @@ struct szl_obj *szl_new_int(const szl_int i)
 	obj->del = NULL;
 	obj->locals = NULL;
 	obj->nlocals = 0;
+	obj->caller = NULL;
 	obj->refc = 1;
 
 	return obj;
@@ -408,6 +417,7 @@ struct szl_obj *szl_new_double(const szl_double d)
 	obj->del = NULL;
 	obj->locals = NULL;
 	obj->nlocals = 0;
+	obj->caller = NULL;
 	obj->refc = 1;
 
 	return obj;
@@ -454,6 +464,7 @@ struct szl_obj *szl_new_proc(struct szl_interp *interp,
 	obj->priv = priv;
 	obj->locals = NULL;
 	obj->nlocals = 0;
+	obj->caller = NULL;
 
 	return obj;
 }
@@ -1072,12 +1083,14 @@ struct szl_obj *szl_get(struct szl_interp *interp, const char *name)
 		local = szl_get_byhash(interp, interp->current, hash);
 
 		/* then, fall back to the caller's */
-		if ((!local) && (interp->current != interp->caller))
-			local = szl_get_byhash(interp, interp->caller, hash);
+		if (!local &&
+		   interp->current->caller &&
+		   (interp->current != interp->current->caller))
+			local = szl_get_byhash(interp, interp->current->caller, hash);
 
 		/* finally, try the global frame */
 		if ((!local) &&
-			(interp->global != interp->caller) &&
+			(interp->global != interp->current->caller) &&
 			(interp->global != interp->current))
 			local = szl_get_byhash(interp, interp->global, hash);
 	}
@@ -1337,7 +1350,7 @@ int szl_split(struct szl_interp *interp, char *s, char ***argv, int *argc)
 SZL_STATIC
 enum szl_res szl_run_line(struct szl_interp *interp, struct szl_obj *exp)
 {
-	struct szl_obj *call, **argv, **objv, *prev_caller;
+	struct szl_obj *call, **argv, **objv;
 	const char *s, *proc;
 	enum szl_res res;
 	size_t i, j, len, plen, argc;
@@ -1371,7 +1384,7 @@ enum szl_res szl_run_line(struct szl_interp *interp, struct szl_obj *exp)
 	if (!s)
 		return SZL_ERR;
 
-	call = szl_new_call(interp, s, len, 1);
+	call = szl_new_call(interp, interp->current, s, len, 1);
 	if (!call)
 		return SZL_ERR;
 
@@ -1399,8 +1412,6 @@ enum szl_res szl_run_line(struct szl_interp *interp, struct szl_obj *exp)
 	}
 
 	/* set the current function, so evaluation of refers to the right frame */
-	prev_caller = szl_obj_ref(interp->caller);
-	interp->caller = szl_obj_ref(interp->current);
 	interp->current = call;
 	++interp->level;
 
@@ -1421,10 +1432,7 @@ enum szl_res szl_run_line(struct szl_interp *interp, struct szl_obj *exp)
 			szl_obj_unref(objv[j]);
 
 		--interp->level;
-		interp->current = interp->caller;
-		szl_obj_unref(interp->caller);
-		interp->caller = prev_caller;
-		szl_obj_unref(prev_caller);
+		interp->current = call->caller;
 
 		szl_obj_unref(call);
 		free(objv);
@@ -1436,10 +1444,7 @@ enum szl_res szl_run_line(struct szl_interp *interp, struct szl_obj *exp)
 	res = szl_call(interp, argc, objv);
 
 	--interp->level;
-	interp->current = interp->caller;
-	szl_obj_unref(interp->caller);
-	interp->caller = prev_caller;
-	szl_obj_unref(prev_caller);
+	interp->current = call->caller;
 
 	for (i = 0; i < argc; ++i)
 		szl_obj_unref(objv[i]);

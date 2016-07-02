@@ -198,7 +198,7 @@ enum szl_type {
 	SZL_TYPE_DOUBLE = 1 << 3, /**< Floating-point number */
 	SZL_TYPE_BOOL   = 1 << 4, /**< Boolean value */
 	SZL_TYPE_LIST   = 1 << 5, /**< List */
-	SZL_TYPE_PROC   = 1 << 6, /**< Procedure */
+	SZL_TYPE_PROC   = 1 << 6, /**< Procedure  */
 	SZL_TYPE_CALL   = 1 << 7 /**< Procedure call */
 };
 
@@ -242,6 +242,7 @@ struct szl_obj {
 	const char *help; /**< A usage message shown if the number of arguments is below @ref min_argc or above @ref max_argc */
 	struct szl_local **locals; /**< Local procedure variables */
 	size_t nlocals; /**< The number of elements in @ref locals */
+	struct szl_obj *caller; /**< The calling procedure */
 };
 
 /**
@@ -271,7 +272,6 @@ struct szl_interp {
 	struct szl_obj *global; /**< The frame of statements executed in the global scope, outside of a procedure */
 
 	struct szl_obj *current; /**< The currently running procedure */
-	struct szl_obj *caller; /**< The procedure that called current */
 	unsigned int level; /**< The current nesting level, up to @ref SZL_MAX_NESTING */
 
 	struct szl_ext *exts; /**< Loaded extensions */
