@@ -303,17 +303,6 @@ struct szl_block {
 typedef int (*szl_ext_init)(struct szl_interp *);
 
 /**
- * @def SZL_STATIC
- * A "decorator" for static functions, used to make them visible from a tests
- * module
- */
-#	ifdef SZL_TEST
-#		define SZL_STATIC
-#	else
-#		define SZL_STATIC  static
-#	endif
-
-/**
  * @}
  *
  * @defgroup util Utilities

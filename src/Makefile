@@ -22,10 +22,24 @@
 
 include ../Makefile.common
 
-SZL_VERSION = "0.1 $(shell git rev-parse HEAD | cut -c 1-8)"
+CC ?= cc
+AR ?= ar
+CFLAGS ?= -O2 -pipe
+LIBS ?=
+LDFLAGS ?= -Wl,-s
 
+CFLAGS += -std=gnu99 \
+          -Wall \
+          -pedantic \
+          -D_GNU_SOURCE \
+          -DSZL_VERSION=\"$(SZL_VERSION)\"
 LDFLAGS += -L.
-CFLAGS += -DSZL_VERSION=\"$(SZL_VERSION)\"
+LIBS += -lm -ldl
+
+ZLIB_CFLAGS = $(shell pkg-config --cflags zlib)
+ZLIB_LIBS = $(shell pkg-config --libs zlib)
+
+SZL_VERSION = "0.1 $(shell git rev-parse HEAD | cut -c 1-8)"
 
 OPENSSL_CFLAGS = $(shell pkg-config --cflags openssl)
 OPENSSL_LIBS = $(shell pkg-config --libs openssl)
@@ -153,6 +167,9 @@ EXTERNAL_EXT_LIBS = $(EXTERNAL_EXT_SRCS:.c=.so)
 TEMPLATES = $(wildcard *.in)
 SCRIPTS = $(wildcard *.szl)
 GENERATED = $(TEMPLATES:.in=) $(SCRIPTS:.szl=.inc) szl_builtin.c
+
+SRCS = $(wildcard *.c)
+OBJECTS = $(SRCS:.c=.o)
 
 all: $(PROGS) $(EXTERNAL_EXT_LIBS)
 

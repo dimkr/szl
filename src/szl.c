@@ -38,10 +38,10 @@
 extern char *szl_builtin_exts[];
 extern enum szl_res szl_init_builtin_exts(struct szl_interp *interp);
 
-SZL_STATIC
+static
 enum szl_res szl_run_line(struct szl_interp *, struct szl_obj *);
 
-SZL_STATIC
+static
 struct szl_local *szl_get_byhash(struct szl_interp *interp,
                                  struct szl_obj *proc,
                                  const szl_hash hash)
@@ -56,7 +56,7 @@ struct szl_local *szl_get_byhash(struct szl_interp *interp,
 	return NULL;
 }
 
-SZL_STATIC
+static
 int szl_local_by_hash(struct szl_interp *interp,
                       const szl_hash hash,
                       struct szl_obj *obj,
@@ -95,7 +95,7 @@ int szl_local_by_hash(struct szl_interp *interp,
 	return 1;
 }
 
-SZL_STATIC
+static
 int szl_copy_locals(struct szl_interp *interp,
                     struct szl_obj *caller,
                     struct szl_obj *current)
@@ -117,7 +117,7 @@ int szl_copy_locals(struct szl_interp *interp,
 	return 1;
 }
 
-SZL_STATIC
+static
 struct szl_obj *szl_new_call(struct szl_interp *interp,
                              struct szl_obj *caller,
                              const char *exp,
@@ -232,7 +232,7 @@ struct szl_interp *szl_interp_new(void)
 	return interp;
 }
 
-SZL_STATIC
+static
 void szl_unload_ext(struct szl_ext *ext)
 {
 	unsigned int i;
@@ -1065,7 +1065,7 @@ enum szl_res szl_usage(struct szl_interp *interp, struct szl_obj *proc)
 	return SZL_ERR;
 }
 
-SZL_STATIC
+static
 szl_hash szl_hash_name(struct szl_interp *interp, const char *name)
 {
 	return crc32(interp->init, (const Bytef *)name, (uInt)strlen(name));
@@ -1110,7 +1110,7 @@ int szl_local(struct szl_interp *interp,
 	return szl_local_by_hash(interp, szl_hash_name(interp, name), obj, proc);
 }
 
-SZL_STATIC
+static
 enum szl_res szl_call(struct szl_interp *interp,
                       const int objc,
                       struct szl_obj **objv)
@@ -1140,13 +1140,13 @@ int szl_isspace(const char ch)
 	return ((ch == ' ') || (ch == '\t') || (ch == '\n') || (ch == '\r'));
 }
 
-SZL_STATIC
+static
 void szl_ltrim(char *s, char **start)
 {
 	for (*start = s; szl_isspace(*start[0]); ++*start);
 }
 
-SZL_STATIC
+static
 void szl_trim(char *s, char **start, char **end)
 {
 	size_t len;
@@ -1241,7 +1241,7 @@ enum szl_res szl_eval(struct szl_interp *interp,
 	return res;
 }
 
-SZL_STATIC
+static
 char *szl_get_next_token(struct szl_interp *interp, char *s)
 {
 	char *pos;
@@ -1347,7 +1347,7 @@ int szl_split(struct szl_interp *interp, char *s, char ***argv, int *argc)
 	return 1;
 }
 
-SZL_STATIC
+static
 enum szl_res szl_run_line(struct szl_interp *interp, struct szl_obj *exp)
 {
 	struct szl_obj *call, **argv, **objv;
@@ -1463,7 +1463,7 @@ enum szl_res szl_run_line(struct szl_interp *interp, struct szl_obj *exp)
 	return res;
 }
 
-SZL_STATIC
+static
 char **szl_split_lines(struct szl_interp *interp,
                        char *s,
                        const size_t len,
