@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-source szl_test.szl
+load test
 
 test.run {no args} 0 {if} {bad if call: 'if', should be 'if cond exp else exp'}
 test.run {bad usage 1} 0 {if 1 x y} {bad if call: 'if 1 x y', should be 'if cond exp else exp'}

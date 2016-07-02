@@ -21,7 +21,7 @@
 # THE SOFTWARE.
 
 load ed25519
-source szl_test.szl
+load test
 
 test.run {too many keypair args} 0 {ed25519.keypair a} {bad ed25519.keypair call: 'ed25519.keypair a', should be 'ed25519.keypair'}
 test.run {keypair length} 1 {list.length [ed25519.keypair]} 2

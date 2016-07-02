@@ -60,6 +60,7 @@ ifeq ($(STATIC_ALL), 1)
 	STATIC_TLS = 1
 	STATIC_ZLIB = 1
 	STATIC_DICT = 1
+	STATIC_TEST = 1
 	STATIC_FFI = 1
 	STATIC_CURL = 1
 	STATIC_ARCHIVE = 1
@@ -90,6 +91,12 @@ ifeq ($(STATIC_DICT), 1)
 	BUILTIN_EXT_NAMES += dict
 else
 	EXTERNAL_EXT_NAMES += dict
+endif
+
+ifeq ($(STATIC_TEST), 1)
+	BUILTIN_EXT_NAMES += test
+else
+	EXTERNAL_EXT_NAMES += test
 endif
 
 ifeq ($(STATIC_FFI), 1)
@@ -229,6 +236,9 @@ szl_zlib.o: szl_zlib.c szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS) $(ZLIB_CFLAGS)
 
 szl_dict.o: szl_dict.c szl_dict.inc szl_conf.h
+	$(CC) -c -o $@ $< $(CFLAGS)
+
+szl_test.o: szl_test.c szl_test.inc szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 szl_tls.o: szl_tls.c szl_conf.h

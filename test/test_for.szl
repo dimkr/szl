@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-source szl_test.szl
+load test
 
 test.run {no args} 0 for {bad for call: 'for', should be 'for names list exp'}
 test.run {one arg} 0 {for a} {bad for call: 'for a', should be 'for names list exp'}

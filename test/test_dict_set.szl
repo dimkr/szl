@@ -21,7 +21,7 @@
 # THE SOFTWARE.
 
 load dict
-source szl_test.szl
+load test
 
 test.run {one item} 1 {
 	local d [dict.new]

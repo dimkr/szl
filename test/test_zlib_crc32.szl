@@ -21,7 +21,7 @@
 # THE SOFTWARE.
 
 load zlib
-source szl_test.szl
+load test
 
 test.run {no args} 0 {zlib.crc32} {bad zlib.crc32 call: 'zlib.crc32', should be 'zlib.crc32 str ?init?'}
 test.run {too many args} 0 {zlib.crc32 x 0 0} {bad zlib.crc32 call: 'zlib.crc32 x 0 0', should be 'zlib.crc32 str ?init?'}

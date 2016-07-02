@@ -905,6 +905,14 @@ arrays on top of lists and 'zlib.crc32'.
 	Returns the dictionary value associated with a key, or throws an exception
 	if the key is missing.
 
+test
+^^^^
+The 'test' extension provides test helpers.
+
++test.run+ 'desc throws exp result'::
+	Runs 'exp' and compares its result or the error it throws (depending on the
+	'throws' flag) to 'result'.
+
 ffi
 ^^^
 The 'ffi' extension is a +szl+ wrapper for

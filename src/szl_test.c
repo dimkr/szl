@@ -5,8 +5,8 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without redictiction, including without limitation the rights
- * to use, copy, modify, merge, publish, didictibute, sublicense, and/or sell
+ * in the Software without retestiction, including without limitation the rights
+ * to use, copy, modify, merge, publish, ditestibute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
@@ -24,13 +24,13 @@
 
 #include "szl.h"
 
-static const char szl_dict_inc[] = {
-#include "szl_dict.inc"
+static const char szl_test_inc[] = {
+#include "szl_test.inc"
 };
 
-int szl_init_dict(struct szl_interp *interp)
+int szl_init_test(struct szl_interp *interp)
 {
 	return (szl_run(interp,
-	                szl_dict_inc,
-	                sizeof(szl_dict_inc) - 1) == SZL_OK) ? 1 : 0;
+	                szl_test_inc,
+	                sizeof(szl_test_inc) - 1) == SZL_OK) ? 1 : 0;
 }

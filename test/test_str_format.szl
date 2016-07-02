@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-source szl_test.szl
+load test
 
 test.run {no format} 0 {str.format} {bad str.format call: 'str.format', should be 'str.format fmt obj...'}
 test.run {empty format} 0 {str.format {} x y} {empty fmt}

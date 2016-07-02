@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-source szl_test.szl
+load test
 
 test.run {no args} 0 {do} {bad do call: 'do', should be 'do exp while cond'}
 test.run {one arg} 0 {do x} {bad do call: 'do x', should be 'do exp while cond'}

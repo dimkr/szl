@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-source szl_test.szl
+load test
 
 test.run {calc one arg} 0 {calc 1} {bad calc call: 'calc 1', should be 'calc m op n'}
 test.run {calc 2 args} 0 {calc 1 2} {bad calc call: 'calc 1 2', should be 'calc m op n'}

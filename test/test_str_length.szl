@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-source szl_test.szl
+load test
 
 test.run {no string} 0 {str.length} {bad str.length call: 'str.length', should be 'str.length str'}
 test.run {empty string} 1 {str.length {}} 0

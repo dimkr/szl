@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-source szl_test.szl
+load test
 
 test.run {no args} 0 {switch} {bad switch call: 'switch', should be 'switch obj val exp val exp...'}
 test.run {too few args 1} 0 {switch 1} {bad switch call: 'switch 1', should be 'switch obj val exp val exp...'}

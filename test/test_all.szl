@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-source szl_test.szl
+load test
 
 test.run {no args} 0 {all} {bad all call: 'all', should be 'all cond...'}
 test.run {true} 1 {all 1} 1

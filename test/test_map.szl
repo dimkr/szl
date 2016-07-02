@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-source szl_test.szl
+load test
 
 test.run {no args} 0 map {bad map call: 'map', should be 'map names list exp'}
 test.run {one arg} 0 {map a} {bad map call: 'map a', should be 'map names list exp'}

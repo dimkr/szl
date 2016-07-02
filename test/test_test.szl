@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-source szl_test.szl
+load test
 
 test.run {no test args} 0 {test} {bad test call: 'test', should be 'test obj op obj'}
 test.run {too few test args 1} 0 {test 1} {bad test call: 'test 1', should be 'test obj op obj'}

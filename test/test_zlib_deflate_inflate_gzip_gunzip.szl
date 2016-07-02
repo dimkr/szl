@@ -21,7 +21,7 @@
 # THE SOFTWARE.
 
 load zlib
-source szl_test.szl
+load test
 
 local bad_size [str.format {buffer size must be between 0 and {}} $env.intmax]
 
