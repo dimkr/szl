@@ -27,10 +27,6 @@
 
 #include "szl.h"
 
-static const char szl_loop_inc[] = {
-#include "szl_loop.inc"
-};
-
 static
 enum szl_res szl_loop_check(struct szl_interp *interp,
                             const char *cond,
