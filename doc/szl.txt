@@ -348,6 +348,13 @@ proc check_if_bigger_than_ten {
 check_if_bigger_than_ten 12
 --------------------------------------
 
++echo+ 'obj'::
+	Returns 'obj'.
+
+--------------------------------------
+test [echo 5] == 5
+--------------------------------------
+
 [TIP]
 'local' returns the variable value, which is useful for one-liners (for example,
 when one wishes to create a new variable and pass its value to another
