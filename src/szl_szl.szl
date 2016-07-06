@@ -25,8 +25,18 @@ load linenoise
 proc szl.shell {
 	local interp [szl.interp]
 
+	local obrace [str.expand \x7b]
+	local cbrace [str.expand \x7d]
+	local obracket [str.expand \x5b]
+	local cbracket [str.expand \x5d]
+
 	while 1 {
 		local exp [linenoise.read {>>> }]
+
+		while {[test [test [str.count $exp $obrace] != [str.count $exp $cbrace]] || [test [str.count $exp $obracket] != [str.count $exp $cbracket]]]} {
+			str.append exp [linenoise.read {... }]
+		}
+
 		if $exp {
 			try {
 				$interp eval $exp

@@ -48,6 +48,70 @@ enum szl_res szl_str_proc_length(struct szl_interp *interp,
 }
 
 static
+enum szl_res szl_str_proc_in(struct szl_interp *interp,
+                             const int objc,
+                             struct szl_obj **objv)
+{
+	const char *s, *sub;
+	size_t len;
+
+	s = szl_obj_str(interp, objv[1], NULL);
+	if (!s)
+		return SZL_ERR;
+
+	sub = szl_obj_str(interp, objv[2], &len);
+	if (!sub)
+		return SZL_ERR;
+
+	if (!len) {
+		szl_set_result_str(interp, "empty substr", -1);
+		return SZL_ERR;
+	}
+
+	return szl_set_result_bool(interp, strstr(s, sub) ? 1 : 0);
+}
+
+static
+enum szl_res szl_str_proc_count(struct szl_interp *interp,
+                                const int objc,
+                                struct szl_obj **objv)
+{
+	const char *s, *sub, *pos, *oc, *end;
+	size_t ls, lsub;
+	szl_int n;
+
+	s = szl_obj_str(interp, objv[1], &ls);
+	if (!s)
+		return SZL_ERR;
+
+	sub = szl_obj_str(interp, objv[2], &lsub);
+	if (!sub)
+		return SZL_ERR;
+
+	if (!lsub) {
+		szl_set_result_str(interp, "empty substr", -1);
+		return SZL_ERR;
+	}
+
+	n = 0;
+	if (ls) {
+		pos = s;
+		end = s + ls;
+
+		do {
+			oc = strstr(pos, sub);
+			if (!oc)
+				break;
+
+			pos = oc + lsub;
+			++n;
+		} while (pos < end);
+	}
+
+	return szl_set_result_int(interp, n);
+}
+
+static
 enum szl_res szl_str_proc_range(struct szl_interp *interp,
                                 const int objc,
                                 struct szl_obj **objv)
@@ -217,6 +281,15 @@ enum szl_res szl_str_proc_expand(struct szl_interp *interp,
 					s2[out] = '\r';
 					i += 2;
 					break;
+
+				case '[':
+					s2[out] = '[';
+					i += 2;
+					break;
+
+				case ']':
+					s2[out] = ']';
+					i += 2;
 
 				case '{':
 					s2[out] = '{';
@@ -421,6 +494,22 @@ int szl_init_str(struct szl_interp *interp)
 	                      2,
 	                      "str.length str",
 	                      szl_str_proc_length,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "str.in",
+	                      3,
+	                      3,
+	                      "str.in str sub",
+	                      szl_str_proc_in,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "str.count",
+	                      3,
+	                      3,
+	                      "str.count str sub",
+	                      szl_str_proc_count,
 	                      NULL,
 	                      NULL)) &&
 	        (szl_new_proc(interp,

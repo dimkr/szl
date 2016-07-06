@@ -207,11 +207,11 @@ local sum [calc [str.length {hello world}] - 3]
 
 Special Characters
 ~~~~~~~~~~~~~~~~~~
-Special characters such as braces can be used in object declarations, using a
-backslash ('\') and 'str.expand':
+Special characters such as line breaks can be used in object declarations, using
+a backslash ('\') and 'str.expand':
 
 --------------------------------------
-local braces [str.expand \{\}]
+local tabs [str.expand \t\t]
 --------------------------------------
 
 Formatting Strings
@@ -374,6 +374,9 @@ String Operations
 +str.length+ 'str'::
 	Returns the length of a string.
 
++str.count+ 'str sub'::
+	Returns the number of occurrences of 'sub' in 'str'.
+
 +str.range+ 'str start end'::
 	Returns the characters in a string, between zero-based indices 'start' and
 	'end'.
@@ -395,8 +398,8 @@ String Operations
 'str.join' is the most efficient way to concatenate more than two strings.
 
 +str.expand+ 'str'::
-	Expands escape sequences in a string: '\0', '\\', '\n', '\t', '\r', '\{',
-	'\}' and hexadecimal numbers in '\x' notation (e.g. '\xff').
+	Expands escape sequences in a string: '\0', '\\', '\n', '\t', '\r' and
+	hexadecimal numbers in '\x' notation (e.g. '\xff').
 
 --------------------------------------
 puts [str.expand {this is a\n\tmulti-line strin\x67}]
@@ -491,7 +494,7 @@ for i [range 1 11] {puts $i}
 Arithmetic and Logical Operations
 +++++++++++++++++++++++++++++++++
 +calc+ 'm op n'::
-	Performs an arithmetic operation on two objects. The operation may be '+',
+	Performs an arithmetic operation on two numbers. The operation may be '+',
 	'-', '*', '/' or '%'.
 
 +true+::
@@ -527,6 +530,10 @@ Procedures
 	Stops the execution of a procedure and sets its return value. If no return
 	value is specified, the procedure returns an empty string.
 
++stack+ '?lim?'::
+	Returns all statements or only the bottom 'lim' statements, in the stack of
+	procedure calls that lead to the the 'stack' call.
+
 +load+ 'name'::
 	Loads a 'szl' extension, to make additional procedures available.
 
@@ -559,9 +566,8 @@ switch [calc 1 + 2] 2 {
 	the loop body.
 
 +map+ 'names list exp'::
-	For each series of tokens in a list of white-space delimited tokens, runs a
-	block with local variables that specify the token values and returns a list
-	of the block return values.
+	For each series of items in a list, runs a block with local variables that
+	specify the items and returns a list of the block return values.
 
 --------------------------------------
 puts [map {a b} {1 1 1 2 1 3 1 4} {calc $a + $b}]
@@ -590,8 +596,8 @@ for {a b} {1 2 3 4 5 6 7 8} {
 	Stops the execution of the script and optionally, sets its return value.
 
 +sleep+ 'sec'::
-	Suspends the script execution for a given time, specified in seconds. The
-	interval may be a floating-point number (e.g. '4.5').
+	Suspends the script execution for a given interval, specified in seconds.
+	The interval may be a floating-point number (e.g. '4.5').
 
 +eval+ 'exp'::
 	Evaluates a +szl+ expression in the current scope.

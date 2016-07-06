@@ -215,7 +215,7 @@ struct szl_interp *szl_interp_new(void)
 		free(interp);
 		return NULL;
 	}
-	interp->current->caller = szl_obj_ref(interp->current);
+	interp->current->caller = NULL;
 
 	interp->exts = NULL;
 	interp->nexts = 0;
@@ -259,7 +259,6 @@ void szl_interp_free(struct szl_interp *interp)
 
 	/* both should be interp->global once all code execution stops */
 	szl_obj_unref(interp->current);
-	szl_obj_unref(interp->current->caller);
 
 	szl_obj_unref(interp->last);
 	szl_obj_unref(interp->global);
@@ -1280,7 +1279,7 @@ char *szl_get_next_token(struct szl_interp *interp, char *s)
 	}
 
 	if (szl_isspace(s[0])) {
-		for (pos = s; szl_isspace(pos[0]); ++pos);
+		for (pos = s + 1; szl_isspace(pos[0]); ++pos);
 		if (pos[0] != '\0') {
 			/* terminate the previous token */
 			s[0] = '\0';

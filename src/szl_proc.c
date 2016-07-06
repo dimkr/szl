@@ -264,6 +264,41 @@ enum szl_res szl_proc_proc_return(struct szl_interp *interp,
 	return SZL_RET;
 }
 
+static
+enum szl_res szl_proc_proc_stack(struct szl_interp *interp,
+                                 const int objc,
+                                 struct szl_obj **objv)
+{
+	struct szl_obj *stack, *call;
+	szl_int lim = SZL_INT_MAX, i;
+
+	if (objc == 2) {
+		if (!szl_obj_int(interp, objv[1], &lim))
+			return SZL_ERR;
+
+		if (lim <= 0) {
+			szl_set_result_fmt(interp, "bad limit: "SZL_INT_FMT, lim);
+			return SZL_ERR;
+		}
+	}
+
+	stack = szl_new_empty();
+	if (!stack)
+		return SZL_ERR;
+
+	call = interp->current;
+	for (i = 0; call && (i < lim); ++i) {
+		if (!szl_lappend(interp, stack, call)) {
+			szl_obj_unref(stack);
+			return SZL_ERR;
+		}
+
+		call = call->caller;
+	}
+
+	return szl_set_result(interp, stack);
+}
+
 int szl_init_proc(struct szl_interp *interp)
 {
 	return ((szl_new_proc(interp,
@@ -296,6 +331,14 @@ int szl_init_proc(struct szl_interp *interp)
 	                      2,
 	                      "return ?obj?",
 	                      szl_proc_proc_return,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "stack",
+	                      1,
+	                      2,
+	                      "stack ?lim?",
+	                      szl_proc_proc_stack,
 	                      NULL,
 	                      NULL)));
 }
