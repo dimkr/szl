@@ -30,6 +30,7 @@
 #ifndef _SZL_H_INCLUDED
 #	define _SZL_H_INCLUDED
 
+#	include <stdio.h>
 #	include <stdint.h>
 #	include <inttypes.h>
 #	include <sys/types.h>
@@ -70,6 +71,16 @@
  * The maximum number of digits of the maximum number of procedure arguments
  */
 #	define SZL_MAX_OBJC_DIGITS sizeof("12") - 1
+
+/**
+ * @def SZL_STREAM_BUFSIZ
+ * The internal buffer size of binary streams
+ */
+#	if BUFSIZ > 64 * 1024
+#		define SZL_STREAM_BUFSIZ BUFSIZ
+#	else
+#		define SZL_STREAM_BUFSIZ 64 * 1024
+#	endif
 
 /**
  * @}
@@ -780,6 +791,7 @@ struct szl_stream_ops {
 	void (*close)(void *); /**< Closes the stream */
 	struct szl_stream *(*accept)(void *); /**< Optional, accepts a client */
 	szl_int (*handle)(void *); /**< Returns the underlying file descriptor */
+	ssize_t (*size)(void *); /**< Returns the total amount of incoming bytes */
 };
 
 /**

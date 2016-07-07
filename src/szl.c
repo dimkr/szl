@@ -1764,6 +1764,80 @@ enum szl_res szl_stream_read(struct szl_interp *interp,
 }
 
 static
+enum szl_res szl_stream_read_all(struct szl_interp *interp,
+                                 struct szl_stream *strm)
+{
+	struct szl_obj *obj;
+	unsigned char *buf, *nbuf;
+	ssize_t len = SZL_STREAM_BUFSIZ, tot, more;
+
+	if (!strm->ops->read) {
+		szl_set_result_str(interp, "read from unsupported stream", -1);
+		return SZL_ERR;
+	}
+
+	if (strm->closed)
+		return SZL_OK;
+
+	/* if we know the amount of pending data, we'd like to enhance efficiency by
+	 * allocating a sufficient buffer in first place, so we allocate memory only
+	 * once */
+	if (strm->ops->size) {
+		len = strm->ops->size(strm->priv);
+		if (len < 0)
+			return SZL_ERR;
+		else if (len == 0)
+			return SZL_OK;
+	}
+
+	buf = (unsigned char *)malloc(len + 1);
+	if (!buf)
+		return SZL_ERR;
+
+	tot = strm->ops->read(strm->priv, buf, len);
+	if (tot > 0) {
+		/* if we don't know whether there's more data to read, read more data in
+		 * SZL_STREAM_BUFSIZ-byte chunks until the read() callback returns 0 */
+		if (!strm->ops->size) {
+			do {
+				len += SZL_STREAM_BUFSIZ;
+				nbuf = (unsigned char *)realloc(buf, len);
+				if (!nbuf) {
+					free(buf);
+					return SZL_ERR;
+				}
+				buf = nbuf;
+
+				more = strm->ops->read(strm->priv,
+				                       buf + tot,
+				                       SZL_STREAM_BUFSIZ);
+				if (more < 0) {
+					free(buf);
+					return SZL_ERR;
+				}
+				else if (more)
+					tot += more;
+				else
+					break;
+			} while (1);
+		}
+
+		/* wrap the buffer with a string object */
+		buf[tot] = '\0';
+		obj = szl_new_str_noalloc((char *)buf, (size_t)tot);
+		if (!obj) {
+			free(buf);
+			return SZL_ERR;
+		}
+
+		return szl_set_result(interp, obj);
+	}
+
+	free(buf);
+	return (tot < 0) ? SZL_ERR : SZL_OK;
+}
+
+static
 enum szl_res szl_stream_write(struct szl_interp *interp,
                               struct szl_stream *strm,
                               const unsigned char *buf,
@@ -1906,6 +1980,8 @@ enum szl_res szl_stream_proc(struct szl_interp *interp,
 		}
 	}
 	else if (objc == 2) {
+		if (strcmp("read", op) == 0)
+			return szl_stream_read_all(interp, strm);
 		if (strcmp("flush", op) == 0)
 			return szl_stream_flush(interp, strm);
 		else if (strcmp("close", op) == 0) {

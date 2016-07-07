@@ -38,13 +38,17 @@ ssize_t szl_null_write(void *priv, const unsigned char *buf, const size_t len)
 	return (ssize_t)len;
 }
 
-static const struct szl_stream_ops szl_null_ops = {
-	szl_null_read,
-	szl_null_write,
-	NULL,
-	NULL,
-	NULL,
-	NULL
+static
+ssize_t szl_null_size(void *priv)
+{
+	return 0;
+}
+
+static
+const struct szl_stream_ops szl_null_ops = {
+	.read = szl_null_read,
+	.write = szl_null_write,
+	.size = szl_null_size
 };
 
 static

@@ -25,14 +25,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "szl.h"
-
-#if BUFSIZ > 64 * 1024
-#	define SZL_BINARY_FILE_BUFSIZ BUFSIZ
-#else
-#	define SZL_BINARY_FILE_BUFSIZ 64 * 1024
-#endif
 
 static const char szl_io_inc[] = {
 #include "szl_io.inc"
@@ -92,23 +89,36 @@ szl_int szl_file_handle(void *priv)
 	return (szl_int)fileno((FILE *)priv);
 }
 
-static const struct szl_stream_ops szl_file_ops = {
-	szl_file_read,
-	szl_file_write,
-	szl_file_flush,
-	szl_file_close,
-	NULL,
-	szl_file_handle
+static
+ssize_t szl_file_size(void *priv)
+{
+	struct stat stbuf;
+
+	if ((fstat(fileno((FILE *)priv), &stbuf) < 0) ||
+	    (stbuf.st_size > SSIZE_MAX))
+		return -1;
+
+	return (ssize_t)stbuf.st_size;
+}
+
+static
+const struct szl_stream_ops szl_file_ops = {
+	.read = szl_file_read,
+	.write = szl_file_write,
+	.flush = szl_file_flush,
+	.close = szl_file_close,
+	.handle = szl_file_handle,
+	.size = szl_file_size
 };
 
 static
 int szl_io_enable_buffering(struct szl_stream *strm, FILE *fp)
 {
-	strm->buf = malloc(SZL_BINARY_FILE_BUFSIZ);
+	strm->buf = malloc(SZL_STREAM_BUFSIZ);
 	if (!strm->buf)
 		return 0;
 
-	if (setvbuf(fp, strm->buf, _IOFBF, SZL_BINARY_FILE_BUFSIZ) != 0) {
+	if (setvbuf(fp, strm->buf, _IOFBF, SZL_STREAM_BUFSIZ) != 0) {
 		free(strm->buf);
 		strm->buf = NULL;
 		return 0;

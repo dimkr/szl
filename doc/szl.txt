@@ -731,8 +731,8 @@ By default, file operations (reading, writing) are line-buffered.
 Always specify 'b' in 'mode' when reading or writing binary files. This makes
 file access more efficient: fully buffered and not line buffered.
 
-+$file+ 'read len'::
-	Reads a given amount of bytes from a file.
++$file+ 'read ?len?'::
+	Reads a given amount of bytes from a file or its entire contents.
 
 +$file+ 'write str'::
 	Writes a string to a file.
@@ -757,7 +757,7 @@ implicit 'close' call is redundant and trivial file operations can be
 implemented as one-liners:
 
 --------------------------------------
-local content [[open /etc/hosts r] read 512]
+local content [[open /etc/hosts r] read]
 --------------------------------------
 
 File Handle Operations

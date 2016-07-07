@@ -117,45 +117,38 @@ struct szl_stream *szl_socket_accept(void *priv)
 }
 
 static
-szl_int szl_socket_fileno(void *priv)
+szl_int szl_socket_handle(void *priv)
 {
 	return (szl_int)(intptr_t)priv;
 }
 
-static const struct szl_stream_ops szl_stream_server_ops = {
-	NULL,
-	NULL,
-	NULL,
-	szl_socket_close,
-	szl_socket_accept,
-	szl_socket_fileno
+static
+const struct szl_stream_ops szl_stream_server_ops = {
+	.close = szl_socket_close,
+	.accept = szl_socket_accept,
+	.handle = szl_socket_handle
 };
 
-static const struct szl_stream_ops szl_stream_client_ops = {
-	szl_socket_read,
-	szl_socket_write,
-	NULL,
-	szl_socket_close,
-	NULL,
-	szl_socket_fileno
+static
+const struct szl_stream_ops szl_stream_client_ops = {
+	.read = szl_socket_read,
+	.write = szl_socket_write,
+	.close = szl_socket_close,
+	.handle = szl_socket_handle
 };
 
-static const struct szl_stream_ops szl_dgram_server_ops = {
-	szl_socket_read,
-	NULL,
-	NULL,
-	szl_socket_close,
-	NULL,
-	szl_socket_fileno
+static
+const struct szl_stream_ops szl_dgram_server_ops = {
+	.read = szl_socket_read,
+	.close = szl_socket_close,
+	.handle = szl_socket_handle
 };
 
-static const struct szl_stream_ops szl_dgram_client_ops = {
-	NULL,
-	szl_socket_write,
-	NULL,
-	szl_socket_close,
-	NULL,
-	szl_socket_fileno
+static
+const struct szl_stream_ops szl_dgram_client_ops = {
+	.write = szl_socket_write,
+	.close = szl_socket_close,
+	.handle = szl_socket_handle
 };
 
 static

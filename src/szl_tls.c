@@ -31,42 +31,44 @@
 
 static SSL_CTX *szl_tls_ctx = NULL;
 
-static ssize_t szl_tls_read(void *priv, unsigned char *buf, const size_t len)
+static
+ssize_t szl_tls_read(void *priv, unsigned char *buf, const size_t len)
 {
     return (ssize_t)SSL_read((SSL *)priv, buf, (int)len);
 }
 
-static ssize_t szl_tls_write(void *priv,
-                             const unsigned char *buf,
-                             const size_t len)
+static
+ssize_t szl_tls_write(void *priv, const unsigned char *buf, const size_t len)
 {
     return (ssize_t)SSL_write((SSL *)priv, buf, (int)len);
 }
 
-static void szl_tls_close(void *priv)
+static
+void szl_tls_close(void *priv)
 {
 	SSL_free((SSL *)priv);
 }
 
-static szl_int szl_tls_fileno(void *priv)
+static
+szl_int szl_tls_handle(void *priv)
 {
 	return (szl_int)SSL_get_fd((SSL *)priv);
 }
 
-static const struct szl_stream_ops szl_tls_ops = {
-	szl_tls_read,
-	szl_tls_write,
-	NULL,
-	szl_tls_close,
-	NULL,
-	szl_tls_fileno
+static
+const struct szl_stream_ops szl_tls_ops = {
+	.read = szl_tls_read,
+	.write = szl_tls_write,
+	.close = szl_tls_close,
+	.handle = szl_tls_handle
 };
 
-static enum szl_res szl_tls_new(struct szl_interp *interp,
-                                const int fd,
-                                const int server,
-                                const char *cert,
-                                const char *priv)
+static
+enum szl_res szl_tls_new(struct szl_interp *interp,
+                         const int fd,
+                         const int server,
+                         const char *cert,
+                         const char *priv)
 {
 	struct szl_obj *obj;
 	struct szl_stream *strm;
