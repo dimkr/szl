@@ -239,13 +239,13 @@ int szl_socket_new_server(const char *host, const char *service, const int type)
 		return -1;
 	}
 
-	freeaddrinfo(res);
-
 	if (bind(fd, res->ai_addr, res->ai_addrlen) < 0) {
 		close(fd);
+		freeaddrinfo(res);
 		return -1;
 	}
 
+	freeaddrinfo(res);
 	return fd;
 }
 
