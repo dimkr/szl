@@ -25,7 +25,7 @@ load test
 
 local bad_size [str.format {buffer size must be between 0 and {}} $env.intmax]
 
-for {comp decomp raw_buf} {zlib.deflate zlib.inflate \xcb\x48\xcd\xc9\xc9\x07\x00 zlib.gzip zlib.gunzip \x1f\x8b\x08\x00\xb6\x80qW\x00\x03\xcbH\xcd\xc9\xc9\x07\x00\x86\xa6\x106\x05\x00\x00\x00} {
+for {comp decomp raw_buf} {zlib.deflate zlib.inflate \xcb\x48\xcd\xc9\xc9\x07\x00 zlib.gzip zlib.gunzip \x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x03\xcbH\xcd\xc9\xc9\x07\x00\x86\xa6\x106\x05\x00\x00\x00} {
 	local buf [str.expand $raw_buf]
 
 	test.run [str.format {no {} args} $decomp] 0 $decomp [str.format {bad {} call: '{}', should be '{} str ?bufsiz?'} $decomp $decomp $decomp]

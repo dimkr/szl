@@ -1212,6 +1212,7 @@ types:
 5. List
 6. Procedure
 7. Procedure call
+8. Hash
 
 Most +szl+ objects start their lifetime as strings. When a string is passed to a
 procedure that performs a numeric operation, a numeric representation is added
@@ -1225,6 +1226,11 @@ object, which holds local variables. When a procedure is invoked more than once
 (e.g. inside a 'for' block), the list representation of the statement is
 preserved to eliminate parsing overhead, while the procedure call object is
 discarded to free its local variables.
+
+Objects gain a hash representation during comparison or lookup of local
+variables (which is done by hash). This way, the lookup of objects (i.e. the
+procedure object associated with the name of a procedure called inside the body
+of a loop) is more efficient.
 
 Booleans
 ^^^^^^^^

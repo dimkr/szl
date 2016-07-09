@@ -74,7 +74,7 @@ enum szl_res szl_obj_proc_export(struct szl_interp *interp,
 		return SZL_ERR;
 
 	if (objc == 2) {
-		val = szl_get(interp, name);
+		val = szl_get(interp, objv[1]);
 		if (!val)
 			return SZL_ERR;
 		ref = 1;

@@ -51,19 +51,8 @@ enum szl_res szl_list_proc_append(struct szl_interp *interp,
                                   struct szl_obj **objv)
 {
 	struct szl_obj *list;
-	const char *name;
-	size_t len;
 
-	name = szl_obj_str(interp, objv[1], &len);
-	if (!name)
-		return SZL_ERR;
-
-	if (!len) {
-		szl_set_result_str(interp, "empty list name", -1);
-		return SZL_ERR;
-	}
-
-	list = szl_get(interp, name);
+	list = szl_get(interp, objv[1]);
 	if (!list || !szl_lappend(interp, list, objv[2])) {
 		szl_obj_unref(list);
 		return SZL_ERR;
@@ -78,18 +67,13 @@ enum szl_res szl_list_proc_extend(struct szl_interp *interp,
                                   const int objc,
                                   struct szl_obj **objv)
 {
-	const char *name;
 	struct szl_obj *list, **items;
 	size_t len, n, i;
-
-	name = szl_obj_str(interp, objv[1], &len);
-	if (!name || !len)
-		return SZL_ERR;
 
 	if (!szl_obj_len(interp, objv[2], &len))
 		return SZL_ERR;
 
-	list = szl_get(interp, name);
+	list = szl_get(interp, objv[1]);
 	if (!list)
 		return SZL_ERR;
 

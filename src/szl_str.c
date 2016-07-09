@@ -141,16 +141,11 @@ enum szl_res szl_str_proc_append(struct szl_interp *interp,
                                  struct szl_obj **objv)
 {
 	struct szl_obj *obj;
-	const char *name;
 	const char *s;
 	size_t len;
 	enum szl_res res = SZL_OK;
 
-	name = szl_obj_str(interp, objv[1], NULL);
-	if (!name)
-		return SZL_ERR;
-
-	obj = szl_get(interp, name);
+	obj = szl_get(interp, objv[1]);
 	if (!obj)
 		return SZL_ERR;
 

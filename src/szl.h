@@ -210,7 +210,8 @@ enum szl_type {
 	SZL_TYPE_BOOL   = 1 << 4, /**< Boolean value */
 	SZL_TYPE_LIST   = 1 << 5, /**< List */
 	SZL_TYPE_PROC   = 1 << 6, /**< Procedure  */
-	SZL_TYPE_CALL   = 1 << 7 /**< Procedure call */
+	SZL_TYPE_CALL   = 1 << 7, /**< Procedure call */
+	SZL_TYPE_HASH   = 1 << 8 /**< String hash */
 };
 
 struct szl_obj;
@@ -244,6 +245,7 @@ struct szl_obj {
 	szl_double d; /**< SZL_TYPE_DOUBLE representation */
 	struct szl_obj **l; /**< SZL_TYPE_LIST representation: an array of references */
 	size_t n; /**< The number of items in l */
+	szl_hash hash; /**< SZL_TYPE_HASH representation */
 
 	szl_proc proc; /**< C procedure implementation */
 	void *priv; /**< Private data used by proc */
@@ -736,6 +738,20 @@ int szl_obj_list(struct szl_interp *interp,
                  size_t *objc);
 
 /**
+ * @fn int szl_obj_hash(struct szl_interp *interp,
+ *                      struct szl_obj *obj,
+ *                      szl_hash *hash)
+ * @brief Returns the hash of an object's string representation
+ * @param interp [in,out] An interpreter
+ * @param obj [in,out] The object
+ * @param hash [out] The hash
+ * @return 1 or 0
+ */
+int szl_obj_hash(struct szl_interp *interp,
+                 struct szl_obj *obj,
+                 szl_hash *hash);
+
+/**
  * @fn int szl_obj_istrue(struct szl_obj *obj)
  * @brief Returns the truth value of an object
  * @param obj [in,out] The object
@@ -945,13 +961,21 @@ enum szl_res szl_usage(struct szl_interp *interp, struct szl_obj *proc);
  */
 
 /**
- * @fn struct szl_obj *szl_get(struct szl_interp *interp, const char *name)
+ * @fn struct szl_obj *szl_get(struct szl_interp *interp, struct szl_obj *name)
  * @brief Searches for an object by name and returns a new reference to it
  * @param interp [in,out] An interpreter
- * @param name [in] The object name
+ * @param name [in,out] The object name
  * @return A new reference to the object or NULL
  */
-struct szl_obj *szl_get(struct szl_interp *interp, const char *name);
+struct szl_obj *szl_get(struct szl_interp *interp, struct szl_obj *name);
+
+/**
+ * @fn struct szl_obj *szl_get_byname(struct szl_interp *interp,
+ *                                    const char *name)
+ * @brief Same as @ref szl_get, but accepts a C string instead of a string
+ *        object
+ */
+struct szl_obj *szl_get_byname(struct szl_interp *interp, const char *name);
 
 /**
  * @fn int szl_local(struct szl_interp *interp,
