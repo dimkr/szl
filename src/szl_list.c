@@ -168,6 +168,26 @@ enum szl_res szl_list_proc_range(struct szl_interp *interp,
 }
 
 static
+enum szl_res szl_list_proc_in(struct szl_interp *interp,
+                              const int objc,
+                              struct szl_obj **objv)
+{
+	struct szl_obj **items;
+	size_t n, i;
+	int found = 0;
+
+	if (!szl_obj_list(interp, objv[1], &items, &n))
+		return SZL_ERR;
+
+	for (i = 0; !found && (i < n); ++i) {
+		if (!szl_obj_eq(interp, items[i], objv[2], &found))
+			return SZL_ERR;
+	}
+
+	return szl_set_result_bool(interp, (szl_int)found);
+}
+
+static
 enum szl_res szl_list_proc_reverse(struct szl_interp *interp,
                                    const int objc,
                                    struct szl_obj **objv)
@@ -346,6 +366,14 @@ int szl_init_list(struct szl_interp *interp)
 	                      4,
 	                      "list.range list start end",
 	                      szl_list_proc_range,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "list.in",
+	                      3,
+	                      3,
+	                      "list.in list item",
+	                      szl_list_proc_in,
 	                      NULL,
 	                      NULL)) &&
 	        (szl_new_proc(interp,

@@ -381,6 +381,9 @@ String Operations
 	Returns the characters in a string, between zero-based indices 'start' and
 	'end'.
 
++str.in+ 'str sub'::
+	Returns '1' if 'sub' is a substring of 'str', otherwise '0'.
+
 +str.tail+ 'str ?count?'::
 	Returns the last characters of a string. If the number of characters is not
 	specified, the default is '1'.
@@ -433,6 +436,15 @@ List Operations
 --------------------------------------
 local fruits {apple orange pear}
 puts [str.format {the first two fruits are: {}} [list.range $fruits 0 1]]
+--------------------------------------
+
++list.in+ 'list item'::
+	Returns '1' if 'item' is an item of 'list', otherwise '0'.
+
+--------------------------------------
+local fruits {apple orange pear}
+puts [list.in $fruits orange]
+puts [list.in $fruits melon]
 --------------------------------------
 
 +list.append+ 'name item'::
