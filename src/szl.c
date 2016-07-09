@@ -1465,10 +1465,9 @@ enum szl_res szl_run_line(struct szl_interp *interp, struct szl_obj *exp)
 	for (i = 1; i < argc; ++i) {
 		s = szl_obj_str(interp, argv[i], NULL);
 		if (s) {
-			if (szl_eval(interp, &objv[i], s) == SZL_OK)
+			res = szl_eval(interp, &objv[i], s);
+			if (res == SZL_OK)
 				continue;
-
-			szl_set_result_fmt(interp, "bad arg: %s", s);
 		}
 
 		for (j = 0; j < i; ++j)
@@ -1479,7 +1478,7 @@ enum szl_res szl_run_line(struct szl_interp *interp, struct szl_obj *exp)
 
 		szl_obj_unref(call);
 		free(objv);
-		return SZL_ERR;
+		return res;
 	}
 
 	/* call objv[0] */
