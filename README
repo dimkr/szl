@@ -14,7 +14,7 @@ syntax and a rich standard library that includes bindings for
 permissively-licensed libraries.
 
 szl can be used both as a standalone (either interactive or non-interactive)
-interpreter or embedded into other projects, as a library.
+interpreter or as part of other projects, via the libszl library.
    __________________________________________________
   /                                                  \
   | szl 0.1 6f1e278e58cc9742c31bef959ab3afe9b8aa7c65 |
