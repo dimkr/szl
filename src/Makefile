@@ -60,7 +60,7 @@ LIBSZL_DEPS =
 SZLSH_LIBS =
 
 STATIC_LIB = libszl.a
-STATIC_LIBS = $(STATIC_LIB) liblinenoise.a libed25519.a
+STATIC_LIBS = $(STATIC_LIB) liblinenoise.a libed25519.a liblzfse.a
 SHARED_LIB = libszl.so
 PROGS = szlsh
 
@@ -80,6 +80,7 @@ ifeq ($(STATIC_ALL), 1)
 	STATIC_ARCHIVE = 1
 	STATIC_LINENOISE = 1
 	STATIC_ED25519 = 1
+	STATIC_LZFSE = 1
 else
 	SZL_LIB = $(SHARED_LIB)
 endif
@@ -151,6 +152,14 @@ ifeq ($(STATIC_ED25519), 1)
 	LIBSZL_LIBS += -led25519
 else
 	EXTERNAL_EXT_NAMES += ed25519
+endif
+
+ifeq ($(STATIC_LZFSE), 1)
+	BUILTIN_EXT_NAMES += lzfse
+	LIBSZL_DEPS += liblzfse.a
+	LIBSZL_LIBS += -llzfse
+else
+	EXTERNAL_EXT_NAMES += lzfse
 endif
 
 ifeq ($(STATIC_ALL), 1)
@@ -308,6 +317,18 @@ libed25519.a: ed25519/src/add_scalar.o \
 
 szl_ed25519.so: szl_ed25519.o libed25519.a $(SZL_LIB)
 	$(CC) -o $@ $< $(LDFLAGS) -shared $(EXT_LIBS) -led25519
+
+liblzfse.a: lzfse/src/lzfse_decode.o \
+            lzfse/src/lzfse_decode_base.o \
+            lzfse/src/lzfse_encode.o \
+            lzfse/src/lzfse_encode_base.o \
+            lzfse/src/lzfse_fse.o \
+            lzfse/src/lzvn_decode_base.o \
+            lzfse/src/lzvn_encode_base.o
+	$(AR) rcs $@ $^
+
+szl_lzfse.so: szl_lzfse.o liblzfse.a $(SZL_LIB)
+	$(CC) -o $@ $< $(LDFLAGS) -shared $(EXT_LIBS) -llzfse
 
 install: all
 	$(INSTALL) -D -m 755 szlsh $(DESTDIR)/$(BIN_DIR)/szlsh

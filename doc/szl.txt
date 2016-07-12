@@ -865,19 +865,10 @@ Environment
 
 Extensions
 ~~~~~~~~~~
-tls
-^^^
-The 'tls' extension implements secure, Transport Layer Security (TLS) wrapped
-TCP sockets, through http://www.openssl.org/[OpenSSL] or a compatible library
-such as http://www.libressl.org/[LibreSSL].
-
-+tls.connect+ 'handle'::
-+tls.accept+ 'handle cert priv'::
-	Performs TLS handshake via an existing, connected socket and returns a new
-	stream.
-
+Compression
+^^^^^^^^^^^
 zlib
-^^^^
+++++
 The 'zlib' extension is a +szl+ wrapper for http://zlib.net/[zlib], a general
 purpose data compression library.
 
@@ -904,6 +895,38 @@ purpose data compression library.
 	default, *small* buffer size of 64K which guarantees lower memory
 	footprint at the cost of speed. It is *highly recommended* to use a bigger
 	size, on systems without a severe memory constraint.
+
+lzfse
++++++
+The 'lzfse' extension is a +szl+ wrapper for
+https://github.com/lzfse/lzfse/[lzfse], a data compression library.
+
++lzfse.compress+ 'str'::
+	Compresses a buffer.
+
++lzfse.decompress+ 'str'::
+	Decompresses a buffer.
+
+Network
+^^^^^^^
+tls
++++
+The 'tls' extension implements secure, Transport Layer Security (TLS) wrapped
+TCP sockets, through http://www.openssl.org/[OpenSSL] or a compatible library
+such as http://www.libressl.org/[LibreSSL].
+
++tls.connect+ 'handle'::
++tls.accept+ 'handle cert priv'::
+	Performs TLS handshake via an existing, connected socket and returns a new
+	stream.
+
+curl
+++++
+The 'curl' extension implements file download via multiple protocols, through
+https://curl.haxx.se/[cURL].
+
++curl.get+ 'url path...'::
+	Downloads multiple files in parallel.
 
 dict
 ^^^^
@@ -1048,14 +1071,6 @@ Functions
 +$func+ 'ret ?arg...?'::
 	Calls a C function. The return value and argument objects must be specified
 	by address (e.g. '$obj address').
-
-curl
-^^^^
-The 'curl' extension implements file download via multiple protocols, through
-https://curl.haxx.se/[cURL].
-
-+curl.get+ 'url path...'::
-	Downloads multiple files in parallel.
 
 archive
 ^^^^^^^

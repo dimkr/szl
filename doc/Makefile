@@ -44,6 +44,12 @@ install: all
 	$(INSTALL) -m 644 ../README $(DESTDIR)/$(DOC_DIR)/szl/README
 	$(INSTALL) -m 644 ../AUTHORS $(DESTDIR)/$(DOC_DIR)/szl/AUTHORS
 	$(INSTALL) -m 644 ../COPYING $(DESTDIR)/$(DOC_DIR)/szl/COPYING
+	$(INSTALL) -m 644 ../src/lzfse/LICENSE \
+	                  $(DESTDIR)/$(DOC_DIR)/szl/LICENSE.lzfse
+	$(INSTALL) -m 644 ../src/ed25519/license.txt \
+	                  $(DESTDIR)/$(DOC_DIR)/szl/license.txt.ed25519
+	$(INSTALL) -m 644 ../src/linenoise/LICENSE \
+	                  $(DESTDIR)/$(DOC_DIR)/szl/LICENSE.linenoise
 
 clean:
 	rm -rf $(GENERATED)

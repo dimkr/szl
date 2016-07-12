@@ -4,3 +4,6 @@
 [submodule "src/ed25519"]
 	path = src/ed25519
 	url = https://github.com/orlp/ed25519
+[submodule "src/lzfse"]
+	path = src/lzfse
+	url = https://github.com/lzfse/lzfse/
