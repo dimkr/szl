@@ -937,10 +937,10 @@ The 'http' extension is a high-level interface for sending HTTP requests, mostly
 useful for working with REST APIs.
 
 +http.get+ 'host port tls url params'::
-	Sends a 'GET' request of 'url' to 'host:port', with 'params'. If 'tls' is
-	true, the request is sent over HTTPS. 'params' should be a dictionary that
-	maps parameter names to their values. The return value is a list of two
-	items: the HTTP status code and the response body.
+	Sends a 'GET' request to 'host:port/url' with 'params'. If 'tls' is true,
+	the request is sent over HTTPS. 'params' should be a dictionary that maps
+	parameter names to their values. The return value is a list of two items:
+	the HTTP status code and the response body.
 
 --------------------------------------
 load http
