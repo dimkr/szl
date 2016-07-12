@@ -64,7 +64,7 @@
  * @def SZL_MAX_PROC_OBJC
  * The maximum number of procedure arguments
  */
-#	define SZL_MAX_PROC_OBJC 12
+#	define SZL_MAX_PROC_OBJC 36
 
 /**
  * @def SZL_MAX_OBJC_DIGITS
@@ -607,16 +607,19 @@ int szl_lappend(struct szl_interp *interp,
 /**
  * @fn int szl_lappend_str(struct szl_interp *interp,
  *                         struct szl_obj *list,
- *                         const char *s)
+ *                         const char *s,
+ *                         const int len)
  * @brief Appends a string to a list object
  * @param interp [in,out] An interpreter
  * @param list [in,out] The list object
  * @param s [in] The string
+ * @param len [in] The string length or -1
  * @return 1 or 0
  */
 int szl_lappend_str(struct szl_interp *interp,
                     struct szl_obj *list,
-                    const char *s);
+                    const char *s,
+                    const int len);
 
 /**
  * @fn int szl_lappend_int(struct szl_interp *interp,

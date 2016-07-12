@@ -169,7 +169,7 @@ enum szl_res szl_str_proc_split(struct szl_interp *interp,
                                 struct szl_obj **objv)
 {
 	struct szl_obj *list;
-	char *s, *delim, *tok, *pos;
+	char *s, *delim, *tok, *next;
 	size_t slen, dlen;
 
 	s = szl_obj_str(interp, objv[1], &slen);
@@ -183,6 +183,9 @@ enum szl_res szl_str_proc_split(struct szl_interp *interp,
 	if (!dlen)
 		return szl_usage(interp, objv[0]);
 
+	if (dlen > (INT_MAX - 1))
+		return SZL_ERR;
+
 	if (!slen)
 		return SZL_OK;
 
@@ -190,15 +193,27 @@ enum szl_res szl_str_proc_split(struct szl_interp *interp,
 	if (!list)
 		return SZL_ERR;
 
-	tok = strtok_r(s, delim, &pos);
-	while (tok) {
-		if (!szl_lappend_str(interp, list, tok)) {
-			szl_obj_unref(list);
-			return SZL_ERR;
+	tok = s;
+	next = strstr(s, delim);
+	do {
+		if (next) {
+			next += dlen;
+			if (!szl_lappend_str(interp, list, tok, (next - tok) - dlen)) {
+				szl_obj_unref(list);
+				return SZL_ERR;
+			}
+		}
+		else {
+			if (!szl_lappend_str(interp, list, tok, slen - (tok - s))) {
+				szl_obj_unref(list);
+				return SZL_ERR;
+			}
+			break;
 		}
 
-		tok = strtok_r(NULL, delim, &pos);
-	}
+		tok = next;
+		next = strstr(next, delim);
+	} while (1);
 
 	return szl_set_result(interp, list);
 }

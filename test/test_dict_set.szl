@@ -27,24 +27,24 @@ test.run {one item} 1 {
 	local d [dict.new]
 	dict.set d x y
 	echo $d
-} {2363233923 y}
+} {2363233923 y x}
 
 test.run {two items} 1 {
 	local d [dict.new]
 	dict.set d a b
 	dict.set d x y
 	echo $d
-} {3904355907 b 2363233923 y}
+} {3904355907 b a 2363233923 y x}
 
 test.run {item with whitespace} 1 {
 	local d [dict.new]
 	dict.set d a {x y}
 	echo $d
-} {3904355907 {x y}}
+} {3904355907 {x y} a}
 
 test.run {two items with whitespace} 1 {
 	local d [dict.new]
 	dict.set d a {x y}
 	dict.set d b {1 2}
 	echo $d
-} {3904355907 {x y} 1908338681 {1 2}}
+} {3904355907 {x y} a 1908338681 {1 2} b}

@@ -23,19 +23,29 @@
 load zlib
 
 proc dict.new {
-	if [test $# != 0] {throw {bad dict.new usage: dict.new}}
-	return {}
+	local d {}
+	for {k v} $@ {dict.set d $k $v}
+	return $d
 }
 
 proc dict.set {
-	if [test $# != 3] {throw {bad dict.set usage: dict.set name k v}}
 	list.append $1 [zlib.crc32 $2]
 	list.append $1 $3
+	list.append $1 $2
+}
+
+proc dict.items {
+	local i {}
+	for {key value name} $1 {
+		list.append i $name
+		list.append i $value
+	}
+	return $i
 }
 
 proc dict.get {
-	if [test $# != 2] {throw {bad dict.get usage: dict.get dict k}}
 	local hash [zlib.crc32 $2]
-	for {key value} $1 {if [test $key == $hash] {return $value}}
+	for {key value name} $1 {if [test $key == $hash] {return $value}}
+	if [test $# == 3] {return $3}
 	throw [str.format {missing key: {}} $2]
 }

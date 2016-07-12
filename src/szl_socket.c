@@ -445,7 +445,7 @@ enum szl_res szl_socket_proc_select(struct szl_interp *interp,
 			return SZL_ERR;
 		}
 
-		if (!szl_lappend_str(interp, obj, l)) {
+		if (!szl_lappend_str(interp, obj, l, -1)) {
 			szl_obj_unref(obj);
 			for (j = 0; j < 3; ++j)
 				szl_obj_unref(fdl[j]);

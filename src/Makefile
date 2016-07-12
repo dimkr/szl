@@ -81,6 +81,7 @@ ifeq ($(STATIC_ALL), 1)
 	STATIC_LINENOISE = 1
 	STATIC_ED25519 = 1
 	STATIC_LZFSE = 1
+	STATIC_HTTP = 1
 else
 	SZL_LIB = $(SHARED_LIB)
 endif
@@ -160,6 +161,12 @@ ifeq ($(STATIC_LZFSE), 1)
 	LIBSZL_LIBS += -llzfse
 else
 	EXTERNAL_EXT_NAMES += lzfse
+endif
+
+ifeq ($(STATIC_HTTP), 1)
+	BUILTIN_EXT_NAMES += http
+else
+	EXTERNAL_EXT_NAMES += http
 endif
 
 ifeq ($(STATIC_ALL), 1)
@@ -265,6 +272,9 @@ szl_dict.o: szl_dict.c szl_dict.inc szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 szl_test.o: szl_test.c szl_test.inc szl_conf.h
+	$(CC) -c -o $@ $< $(CFLAGS)
+
+szl_http.o: szl_http.c szl_http.inc szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 szl_tls.o: szl_tls.c szl_conf.h

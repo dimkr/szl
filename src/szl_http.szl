@@ -1,0 +1,89 @@
+# this file is part of szl.
+#
+# Copyright (c) 2016 Dima Krasner
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
+load dict
+load tls
+load zlib
+load curl
+
+global http.meth_delim [str.expand \r\n\r\n]
+global http.hdr_newline [str.expand \r\n]
+global http.hdr_delim {: }
+global http.get_fmt [str.expand {GET {}?{} HTTP/1.1\nHost: {}\r\nAccept-Encoding: gzip\r\nConnection: close\r\n\r\n}]
+global http.post_fmt [str.expand {POST {} HTTP/1.1\nHost: {}\r\nContent-Length: {}\r\nAccept-Encoding: gzip\r\nContent-Encoding: gzip\r\nConnection: close\r\n\r\n{}}]
+global http.codes [dict.new 200 ok 301 {moved permanently} 400 {bad request} 401 unauthorized 403 forbidden 404 {not found} 405 {bad method} 408 timeout 500 {internal error}]
+
+proc http.request {
+	local s [socket stream.client $1 $2]
+	try {
+		if $3 {
+			local t [tls.connect [$s handle]]
+			export t
+		} else {
+			local t $s
+			export t
+		}
+
+		try {
+			# send the request
+			$t write $4
+
+			# receive the reply and separate headers from the body
+			local resp [str.split [$t read] $http.meth_delim]
+
+			# split the headers by \r\n
+			local hdr_lines [str.split [list.index $resp 0] $http.hdr_newline]
+
+			# create a dictionary that maps each header to its value
+			local hdrs [dict.new]
+			for h [list.range $hdr_lines 1 [calc [list.length $hdr_lines] - 1]] {
+				local p [str.split $h $http.hdr_delim]
+				dict.set hdrs [list.index $p 0] [list.index $p 1]
+			}
+
+			# extract the HTTP status code
+			local out [list.index [list.index $hdr_lines 0] 1]
+
+			# append the response body to the result
+			if [test [dict.get $hdrs {Content-Encoding} {}] == gzip] {
+				list.append out [zlib.gunzip [list.index $resp 1]]
+			} else {
+				list.append out [list.index $resp 1]
+			}
+
+			return $out
+		} finally {
+			$t close
+		}
+	} finally {
+		$s close
+	}
+}
+
+proc http.get {
+	http.request $1 $2 $3 [str.format $http.get_fmt $4 [list.join & [map {k v} [dict.items $5] {str.format {{}={}} $k [curl.encode $v]}]] $1]
+}
+
+proc http.post {
+	local cont [zlib.gzip [list.join & [map {k v} [dict.items $5] {str.format {{}={}} $k [curl.encode $v]}]]]
+	http.request $1 $2 $3 [str.format $http.post_fmt $4 $1 [str.length $cont] $cont]
+}

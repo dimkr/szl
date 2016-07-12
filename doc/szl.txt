@@ -925,23 +925,58 @@ curl
 The 'curl' extension implements file download via multiple protocols, through
 https://curl.haxx.se/[cURL].
 
++curl.encode+ 'str'::
+	URL-encodes a string.
+
 +curl.get+ 'url path...'::
 	Downloads multiple files in parallel.
+
+http
+++++
+The 'http' extension is a high-level interface for sending HTTP requests, mostly
+useful for working with REST APIs.
+
++http.get+ 'host port tls url params'::
+	Sends a 'GET' request of 'url' to 'host:port', with 'params'. If 'tls' is
+	true, the request is sent over HTTPS. 'params' should be a dictionary that
+	maps parameter names to their values. The return value is a list of two
+	items: the HTTP status code and the response body.
+
+--------------------------------------
+load http
+
+local params [dict.new]
+dict.set params a {123 456}
+dict.set params b 789
+
+puts [list.index [http.get httpbin.org 443 1 /get $params] 1]
+--------------------------------------
+
++http.post+ 'host port tls url params'::
+	Similar to 'http.get', but sends a 'POST' request instead.
+
++$http.codes+::
+	A dictionary that maps HTTP status codes (e.g. '200') to their textual
+	representation (e.g. 'ok').
 
 dict
 ^^^^
 The 'dict' extension is a slow, trivial +szl+ implementation of associative
 arrays on top of lists and 'zlib.crc32'.
 
-+dict.new+::
-	Creates an empty dictionary.
++dict.new+ ?k v...?::
+	Creates a new dictionary. If no initial contents are specified, the
+	dictionary will be empty.
+
++dict.items+ 'dict'::
+	Returns a list of all keys and values in a dictionary.
 
 +dict.set+ 'name k v'::
 	Sets the dictionary value associated with a key.
 
-+dict.get+ 'dict k'::
-	Returns the dictionary value associated with a key, or throws an exception
-	if the key is missing.
++dict.get+ 'dict k ?v?'::
+	Returns the dictionary value associated with a key. If the key is missing
+	and no fallback value is specified, an exception is thrown.
 
 test
 ^^^^
@@ -1147,8 +1182,8 @@ Every action has its pleasures and its price.
     that input in a variable. This way, the string representation of the object
     is split only once.
 11. Use 'switch' instead of nested 'if' calls.
-12. Use '1' the condition of infinite 'while' or 'do' loops. The evaluation of
-    '[true]' is slower than the evaluation of '1', due to the extra procedure
+12. Use '1' as the condition of infinite 'while' or 'do' loops. The evaluation
+    of '[true]' is slower than the evaluation of '1', due to the extra procedure
     call involved.
 
 Error Handling

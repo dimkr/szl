@@ -39,6 +39,35 @@
 #define TIMEOUT 180
 
 static
+enum szl_res szl_curl_proc_encode(struct szl_interp *interp,
+                                  const int objc,
+                                  struct szl_obj **objv)
+{
+	const char *s;
+	char *out;
+	size_t len;
+	enum szl_res res;
+
+	s = szl_obj_str(interp, objv[1], &len);
+	if (!s)
+		return SZL_ERR;
+
+	out = curl_easy_escape((CURL *)objv[0]->priv, s, (int)len);
+	if (!out)
+		return SZL_ERR;
+
+	res = szl_set_result_str(interp, out, -1);
+	curl_free(out);
+	return res;
+}
+
+static
+void szl_curl_encode_del(void *priv)
+{
+	curl_easy_cleanup((CURL *)priv);
+}
+
+static
 int szl_curl_net_reachable(void)
 {
 	struct ifaddrs *ifap, *ifa;
@@ -255,12 +284,33 @@ free_arrs:
 
 int szl_init_curl(struct szl_interp *interp)
 {
-	return szl_new_proc(interp,
-	                    "curl.get",
-	                    3,
-	                    -1,
-	                    "curl.get url path...",
-	                    szl_curl_proc_get,
-	                    NULL,
-	                    NULL) ? 1 : 0;
+	CURL *curl;
+
+	curl = curl_easy_init();
+	if (!curl)
+		return 0;
+
+	if (!szl_new_proc(interp,
+	                  "curl.encode",
+	                  2,
+	                  2,
+	                  "curl.encode str",
+	                  szl_curl_proc_encode,
+	                  szl_curl_encode_del,
+	                  curl)) {
+		curl_easy_cleanup(curl);
+		return 0;
+	}
+
+	if (!szl_new_proc(interp,
+	                  "curl.get",
+	                  3,
+	                  -1,
+	                  "curl.get url path...",
+	                  szl_curl_proc_get,
+	                  NULL,
+	                  NULL))
+		return 0;
+
+	return 1;
 }

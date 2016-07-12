@@ -53,7 +53,10 @@ enum szl_res szl_list_proc_append(struct szl_interp *interp,
 	struct szl_obj *list;
 
 	list = szl_get(interp, objv[1]);
-	if (!list || !szl_lappend(interp, list, objv[2])) {
+	if (!list)
+		return SZL_ERR;
+
+	if (!szl_lappend(interp, list, objv[2])) {
 		szl_obj_unref(list);
 		return SZL_ERR;
 	}

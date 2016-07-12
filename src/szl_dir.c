@@ -139,10 +139,10 @@ enum szl_res szl_dir_proc_list(struct szl_interp *interp,
 			     (entp->d_name[2] == '\0')))
 				continue;
 
-			out = szl_lappend_str(interp, names[0], entp->d_name);
+			out = szl_lappend_str(interp, names[0], entp->d_name, -1);
 		}
 		else
-			out = szl_lappend_str(interp, names[1], entp->d_name);
+			out = szl_lappend_str(interp, names[1], entp->d_name, -1);
 
 		if (!out) {
 			szl_obj_unref(obj);
@@ -154,8 +154,8 @@ enum szl_res szl_dir_proc_list(struct szl_interp *interp,
 	} while (1);
 
 	for (i = 0; i < 2; ++i) {
-		s = szl_obj_str(interp, names[i], NULL);
-		if (!s || !szl_lappend_str(interp, obj, s)) {
+		s = szl_obj_str(interp, names[i], &len);
+		if (!s || !szl_lappend_str(interp, obj, s, (int)len)) {
 			szl_obj_unref(obj);
 			szl_obj_unref(names[1]);
 			szl_obj_unref(names[0]);

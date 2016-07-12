@@ -579,12 +579,13 @@ int szl_lappend(struct szl_interp *interp,
 
 int szl_lappend_str(struct szl_interp *interp,
                     struct szl_obj *list,
-                    const char *s)
+                    const char *s,
+                    const int len)
 {
 	struct szl_obj *item;
 	int ret;
 
-	item = szl_new_str(s, -1);
+	item = szl_new_str(s, len);
 	if (!item)
 		return 0;
 
