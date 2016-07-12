@@ -4,14 +4,17 @@
 \__ \/ /| |
 |___/___|_|
 
-
 Overview
 ========
 
 szl is a tiny, embeddable scripting engine inspired by Tcl and shell. It's a
-balanced mix of Tcl and shell: szl combines the simplicity of shell scripting
-with the power of Tcl and a rich standard library that includes bindings for
-popular, permissively-licensed libraries.
+balanced mix of their key features: szl combines the simplicity of shell
+scripting with the power of a dynamic, Tcl-like type system, minimalistic
+syntax and a rich standard library that includes bindings for
+permissively-licensed libraries.
+
+szl can be used both as a standalone (either interactive or non-interactive)
+interpreter or embedded into other projects, as a library.
    __________________________________________________
   /                                                  \
   | szl 0.1 6f1e278e58cc9742c31bef959ab3afe9b8aa7c65 |
@@ -67,6 +70,9 @@ into the interpreter:
 In addition, built-in extensions can be chosen individually, e.g.:
 
   $ STATIC_CURL=1 STATIC_FFI=1 make
+
+To embed szl into other projects, use the API defined in szl.h and link with
+libszl.
 
 Running
 =======
