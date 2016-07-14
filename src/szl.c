@@ -445,7 +445,11 @@ struct szl_obj *szl_new_proc(struct szl_interp *interp,
 	}
 
 	obj->refc = 0;
-	if (name[0] && (!szl_local(interp, interp->global, name, obj))) {
+	if (name[0] && (!szl_local(interp,
+	                           interp->current->caller ?
+	                                  interp->current->caller : interp->current,
+	                           name,
+	                           obj))) {
 		if (del)
 			del(priv);
 		free(obj->s);
@@ -1098,9 +1102,10 @@ szl_hash szl_hash_name(struct szl_interp *interp, const char *name)
 	return crc32(interp->init, (const Bytef *)name, (uInt)strlen(name));
 }
 
+static
 struct szl_obj *szl_get_byhash(struct szl_interp *interp, const szl_hash hash)
 {
-	struct szl_local *local = NULL;
+	struct szl_local *local;
 
 	/* try the current frame's locals first */
 	local = szl_get_in_proc(interp, interp->current, hash);

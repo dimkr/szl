@@ -166,9 +166,9 @@ void szl_ffi_address_del(void *priv)
 	szl_obj_unref((struct szl_obj *)priv);
 }
 
-/* a "subclass" of SZL_INT, which holds a reference to the object the address
- * originates from (i.e. the library a symbol belongs to); this increases
- * safety and simplifies memory management */
+/* a "subclass" of SZL_TYPE_INT, which holds a reference to the object the
+ * address originates from (i.e. the library a symbol belongs to); this
+ * increases safety and simplifies memory management */
 static
 struct szl_obj *szl_ffi_new_address(const szl_int i, struct szl_obj *origin)
 {
