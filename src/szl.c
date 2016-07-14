@@ -590,6 +590,28 @@ int szl_lappend_int(struct szl_interp *interp,
 	return ret;
 }
 
+int szl_sappend(struct szl_interp *interp,
+                struct szl_obj *set,
+                struct szl_obj *item)
+{
+	struct szl_obj **items;
+	size_t n, i;
+	int eq;
+
+	if (!szl_obj_list(interp, set, &items, &n))
+		return 0;
+
+	for (i = 0; i < n; ++i) {
+		if (!szl_obj_eq(interp, items[i], item, &eq))
+			return 0;
+
+		if (eq)
+			return 1;
+	}
+
+	return szl_lappend(interp, set, item);
+}
+
 struct szl_obj *szl_join(struct szl_interp *interp,
                          struct szl_obj *delim,
                          struct szl_obj **objv,

@@ -644,6 +644,21 @@ int szl_lappend_int(struct szl_interp *interp,
                     const szl_int i);
 
 /**
+ * @fn int szl_sappend(struct szl_interp *interp,
+ *                     struct szl_obj *set,
+ *                     struct szl_obj *item);
+ * @brief Appends an object to a unique list object
+ * @param interp [in,out] An interpreter
+ * @param set [in,out] The unique list
+ * @param item [in,out] The object
+ * @return 1 or 0
+ */
+int szl_sappend(struct szl_interp *interp,
+                struct szl_obj *set,
+                struct szl_obj *item);
+
+
+/**
  * @fn struct szl_obj *szl_join(struct szl_interp *interp,
  *                              struct szl_obj *delim,
  *                              struct szl_obj **objv,

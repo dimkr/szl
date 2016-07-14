@@ -129,7 +129,7 @@ enum szl_res szl_obj_proc_list_vars(struct szl_interp *interp,
 		return SZL_ERR;
 
 	for (i = 0; i < proc->nlocals; ++i) {
-		if (!szl_lappend(interp, list, proc->locals[i]->obj)) {
+		if (!szl_sappend(interp, list, proc->locals[i]->obj)) {
 			szl_obj_unref(list);
 			return SZL_ERR;
 		}
