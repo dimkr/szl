@@ -112,7 +112,7 @@ const struct szl_stream_ops szl_file_ops = {
 };
 
 static
-int szl_io_enable_buffering(struct szl_stream *strm, FILE *fp)
+int szl_io_enable_fbf(struct szl_stream *strm, FILE *fp)
 {
 	strm->buf = malloc(SZL_STREAM_BUFSIZ);
 	if (!strm->buf)
@@ -130,7 +130,7 @@ int szl_io_enable_buffering(struct szl_stream *strm, FILE *fp)
 static
 int szl_new_file(struct szl_interp *interp,
                  FILE *fp,
-                 const int binary,
+                 const int bmode,
                  const szl_bool keep)
 {
 	struct szl_obj *obj;
@@ -152,12 +152,13 @@ int szl_new_file(struct szl_interp *interp,
 		return 0;
 	}
 
-	if (binary) {
-		if (!szl_io_enable_buffering(strm, fp)) {
+	if (bmode == _IOFBF) {
+		if (!szl_io_enable_fbf(strm, fp)) {
 			szl_stream_free(strm);
 			return 0;
 		}
-	}
+	} else if (bmode == _IONBF)
+		setbuf(fp, NULL);
 
 	szl_set_result(interp, obj);
 	return 1;
@@ -166,42 +167,66 @@ int szl_new_file(struct szl_interp *interp,
 static
 const char *szl_file_mode(struct szl_interp *interp,
                           const char *mode,
-                          int *binary)
+                          int *bmode)
 {
 	if ((strcmp("r", mode) == 0) ||
 	    (strcmp("w", mode) == 0) ||
 	    (strcmp("a", mode) == 0)) {
-		*binary = 0;
+		*bmode = _IOLBF;
 		return mode;
 	}
 	else if (strcmp("rb", mode) == 0) {
-		*binary = 1;
+		*bmode = _IOFBF;
 		return "r";
 	}
 	else if (strcmp("wb", mode) == 0) {
-		*binary = 1;
+		*bmode = _IOFBF;
 		return "w";
 	}
 	else if (strcmp("ab", mode) == 0) {
-		*binary = 1;
+		*bmode = _IOFBF;
+		return "a";
+	}
+	else if (strcmp("ru", mode) == 0) {
+		*bmode = _IONBF;
+		return "r";
+	}
+	else if (strcmp("wu", mode) == 0) {
+		*bmode = _IONBF;
+		return "w";
+	}
+	else if (strcmp("au", mode) == 0) {
+		*bmode = _IONBF;
 		return "a";
 	}
 	else if ((strcmp("r+", mode) == 0) ||
 	         (strcmp("w+", mode) == 0) ||
 	         (strcmp("a+", mode) == 0)) {
-		*binary = 0;
+		*bmode = _IOLBF;
 		return mode;
 	}
 	else if (strcmp("r+b", mode) == 0) {
-		*binary = 1;
+		*bmode = _IOFBF;
 		return "r+";
 	}
 	else if (strcmp("w+b", mode) == 0) {
-		*binary = 1;
+		*bmode = _IOFBF;
 		return "w+";
 	}
 	else if (strcmp("a+b", mode) == 0) {
-		*binary = 1;
+		*bmode = _IOFBF;
+		return "a+";
+	}
+	else if (strcmp("r+u", mode) == 0) {
+		*bmode = _IONBF;
+		return "r+";
+	}
+	else if (strcmp("w+u", mode) == 0) {
+		*bmode = _IONBF;
+		return "w+";
+	}
+	else if (strcmp("a+u", mode) == 0) {
+		*bmode = _IONBF;
 		return "a+";
 	}
 
@@ -217,7 +242,7 @@ enum szl_res szl_io_proc_open(struct szl_interp *interp,
 	const char *path, *mode, *rmode;
 	FILE *fp;
 	size_t len;
-	int binary;
+	int bmode;
 
 	path = szl_obj_str(interp, objv[1], &len);
 	if (!path || !len)
@@ -227,7 +252,7 @@ enum szl_res szl_io_proc_open(struct szl_interp *interp,
 	if (!mode || !len)
 		return SZL_ERR;
 
-	rmode = szl_file_mode(interp, mode, &binary);
+	rmode = szl_file_mode(interp, mode, &bmode);
 	if (!rmode)
 		return SZL_ERR;
 
@@ -235,7 +260,7 @@ enum szl_res szl_io_proc_open(struct szl_interp *interp,
 	if (!fp)
 		return SZL_ERR;
 
-	if (!szl_new_file(interp, fp, binary, 0)) {
+	if (!szl_new_file(interp, fp, bmode, 0)) {
 		fclose(fp);
 		return SZL_ERR;
 	}
@@ -252,7 +277,7 @@ enum szl_res szl_io_proc_fdopen(struct szl_interp *interp,
 	FILE *fp;
 	szl_int fd;
 	size_t len;
-	int binary;
+	int bmode;
 
 	if ((!szl_obj_int(interp, objv[1], &fd)) || (fd < 0) || (fd > INT_MAX))
 		return SZL_ERR;
@@ -261,7 +286,7 @@ enum szl_res szl_io_proc_fdopen(struct szl_interp *interp,
 	if (!mode || !len)
 		return SZL_ERR;
 
-	rmode = szl_file_mode(interp, mode, &binary);
+	rmode = szl_file_mode(interp, mode, &bmode);
 	if (!rmode)
 		return SZL_ERR;
 
@@ -269,7 +294,7 @@ enum szl_res szl_io_proc_fdopen(struct szl_interp *interp,
 	if (!fp)
 		return SZL_ERR;
 
-	if (!szl_new_file(interp, fp, binary, 0)) {
+	if (!szl_new_file(interp, fp, bmode, 0)) {
 		fclose(fp);
 		return SZL_ERR;
 	}
@@ -316,7 +341,7 @@ int szl_io_wrap_stream(struct szl_interp *interp, FILE *fp, const char *name)
 		return 0;
 	}
 
-	if ((!isatty(fileno(fp)) && !szl_io_enable_buffering(strm, fp)) ||
+	if ((!isatty(fileno(fp)) && !szl_io_enable_fbf(strm, fp)) ||
 	    !szl_local(interp, interp->global, name, obj)) {
 		szl_obj_unref(obj);
 		return 0;

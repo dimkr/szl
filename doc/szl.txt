@@ -739,15 +739,17 @@ File Operations
 +++++++++++++++
 +open+ 'path mode'::
 	Opens a file. 'mode' is 'fputs()'-style: 'r', 'w', 'a', 'r+', 'w+' or 'a+'
-	(see 'man fputs' for the meaning of each mode). In addition, when 'mode' is
-	suffixed with 'b' (e.g. 'w+b'), the file is treated as a binary file.
+	(see 'man fputs' for the meaning of each mode). By default, reading and
+	writing is line-buffered.
 
 [NOTE]
-By default, file operations (reading, writing) are line-buffered.
+'mode' can be suffixed with 'b' to enable full buffering instead of line-based
+buffering, which improves efficiency with binary files.
 
 [TIP]
-Always specify 'b' in 'mode' when reading or writing binary files. This makes
-file access more efficient: fully buffered and not line buffered.
+'mode' can be suffixed with 'u' to disable buffering, which improves efficiency
+when 'read' is called only once (for example, when the entire file is read at
+once).
 
 +$file+ 'read ?len?'::
 	Reads a given amount of bytes from a file or its entire contents.
@@ -756,8 +758,9 @@ file access more efficient: fully buffered and not line buffered.
 	Writes a string to a file.
 
 [NOTE]
-Reading and writing operations on files are buffered. To ensure data passed to
-'write' is flushed to disk immediately, use 'flush'.
+Since writing operations on files may be buffered to improve efficiency, data
+passed to 'write' is not guaranteed to be written to disk immediately. Call
+'flush' after 'write' to flush the buffer to disk.
 
 +$file+ 'flush'::
 	Flushes the output buffer of a file.
