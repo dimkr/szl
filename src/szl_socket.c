@@ -33,9 +33,6 @@
 
 #include "szl.h"
 
-#define _szl_socket_to_int(x) x
-#define _szl_int_to_socket(x) (int)x
-
 #define SZL_SERVER_SOCKET_BACKLOG 5
 
 static
@@ -339,128 +336,6 @@ static
 }
 
 static
-enum szl_res szl_socket_proc_select(struct szl_interp *interp,
-                                    const int objc,
-                                    struct szl_obj **objv)
-{
-	fd_set fds[3];
-	struct szl_obj *fdl[3], *obj, **toks;
-	const char *l;
-	szl_int *fdi;
-	size_t len, n;
-	int nfds = -1, i, j, ready;
-
-	if (!szl_obj_list(interp, objv[1], &toks, &n))
-		return SZL_ERR;
-
-	if (!n)
-		return szl_usage(interp, objv[0]);
-
-	for (i = 0; i < 3; ++i) {
-		fdl[i] = szl_new_empty();
-		if (!fdl[i]) {
-			for (j = 0; j < i; ++j)
-				szl_obj_unref(fdl[j]);
-			return SZL_ERR;
-		}
-	}
-
-	obj = szl_new_empty();
-	if (!obj) {
-		for (j = 0; j < 3; ++j)
-			szl_obj_unref(fdl[j]);
-		return SZL_ERR;
-	}
-
-	fdi = (szl_int *)malloc(sizeof(szl_int) * n);
-	if (!fdi) {
-		szl_obj_unref(obj);
-		for (j = 0; j < 3; ++j)
-			szl_obj_unref(fdl[j]);
-		return SZL_ERR;
-	}
-
-	FD_ZERO(&fds[0]);
-	for (i = 0; i < n; ++i) {
-		if ((!szl_obj_int(interp, toks[i], &fdi[i])) ||
-		    (fdi[i] < 0) ||
-		    (fdi[i] > INT_MAX)) {
-			szl_obj_unref(obj);
-			for (j = 0; j < 3; ++j)
-				szl_obj_unref(fdl[j]);
-			free(fdi);
-			return SZL_ERR;
-		}
-
-		FD_SET(_szl_int_to_socket(fdi[i]), &fds[0]);
-
-		if ((int)fdi[i] > nfds)
-			nfds = (int)fdi[i];
-	}
-
-	memcpy(&fds[1], &fds[0], sizeof(fd_set));
-	memcpy(&fds[2], &fds[0], sizeof(fd_set));
-
-	ready = select(nfds + 1, &fds[0], &fds[1], &fds[2], NULL);
-	if (ready < 0) {
-		szl_obj_unref(obj);
-		for (j = 0; j < 3; ++j)
-			szl_obj_unref(fdl[j]);
-		free(fdi);
-		return SZL_ERR;
-	}
-
-	if (ready) {
-		for (i = 0; i < n; ++i) {
-			if (((FD_ISSET(_szl_int_to_socket(fdi[i]), &fds[0])) &&
-				 (!szl_lappend_int(interp,
-				                   fdl[0],
-				                   _szl_socket_to_int(fdi[i])))) ||
-				((FD_ISSET(_szl_int_to_socket(fdi[i]), &fds[1])) &&
-				 (!szl_lappend_int(interp,
-				                   fdl[1],
-				                   _szl_socket_to_int(fdi[i])))) ||
-				((FD_ISSET(_szl_int_to_socket(fdi[i]), &fds[2])) &&
-				 (!szl_lappend_int(interp,
-				                   fdl[2],
-				                   _szl_socket_to_int(fdi[i]))))) {
-				szl_obj_unref(obj);
-				for (j = 0; j < 3; ++j)
-					szl_obj_unref(fdl[j]);
-				free(fdi);
-				return SZL_ERR;
-			}
-		}
-	}
-
-	free(fdi);
-
-	for (i = 0; i < 3; ++i) {
-		l = szl_obj_str(interp, fdl[i], &len);
-		if (!l) {
-			szl_obj_unref(obj);
-			for (j = 0; j < 3; ++j)
-				szl_obj_unref(fdl[j]);
-			free(fdi);
-			return SZL_ERR;
-		}
-
-		if (!szl_lappend_str(interp, obj, l, -1)) {
-			szl_obj_unref(obj);
-			for (j = 0; j < 3; ++j)
-				szl_obj_unref(fdl[j]);
-			free(fdi);
-			return SZL_ERR;
-		}
-	}
-
-	for (j = 0; j < 3; ++j)
-		szl_obj_unref(fdl[j]);
-
-	return szl_set_result(interp, obj);
-}
-
-static
 enum szl_res szl_socket_proc_issocket(struct szl_interp *interp,
                                       const int objc,
                                       struct szl_obj **objv)
@@ -525,14 +400,6 @@ int szl_init_socket(struct szl_interp *interp)
 	                      4,
 	                      "socket type host service",
 	                      szl_socket_proc_socket,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "select",
-	                      2,
-	                      2,
-	                      "select handles",
-	                      szl_socket_proc_select,
 	                      NULL,
 	                      NULL)) &&
 	        (szl_new_proc(interp,

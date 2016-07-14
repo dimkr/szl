@@ -746,7 +746,7 @@ File Operations
 'mode' can be suffixed with 'b' to enable full buffering instead of line-based
 buffering, which improves efficiency with binary files.
 
-[TIP]
+[NOTE]
 'mode' can be suffixed with 'u' to disable buffering, which improves efficiency
 when 'read' is called only once (for example, when the entire file is read at
 once).
@@ -759,8 +759,8 @@ once).
 
 [NOTE]
 Since writing operations on files may be buffered to improve efficiency, data
-passed to 'write' is not guaranteed to be written to disk immediately. Call
-'flush' after 'write' to flush the buffer to disk.
+passed to 'write' is not guaranteed to be written to disk immediately. To flush
+queued data to disk, call 'flush'.
 
 +$file+ 'flush'::
 	Flushes the output buffer of a file.
@@ -778,7 +778,7 @@ implicit 'close' call is redundant and trivial file operations can be
 implemented as one-liners:
 
 --------------------------------------
-local content [[open /etc/hosts r] read]
+local content [[open /etc/hosts ru] read]
 --------------------------------------
 
 File Handle Operations
@@ -825,10 +825,20 @@ data.
 	Waits for a client to connect to a 'stream.server' socket and returns a new
 	socket.
 
-+select+ 'handles'::
-	Waits until one or more sockets are ready for reading or writing or until an
-	error occurs and returns three lists of file handles: those ready for
-	reading, writing or error handling.
+Socket I/O Multiplexing
++++++++++++++++++++++++
++poll.create+::
+	Creates a new set of polled sockets.
+
++$poll+ 'add handle'::
+	Adds a socket handle to a set.
+
++$poll+ 'remove handle'::
+	Removes a socket handle from a set.
+
++$poll+ 'wait lim'::
+	Waits for up to 'lim' socket events and returns three lists of socket
+	handles: those ready for reading, writing or error handling.
 
 Processes
 ^^^^^^^^^

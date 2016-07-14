@@ -105,6 +105,5 @@ int szl_init_szl(struct szl_interp *interp)
 	                     NULL,
 	                     NULL) &&
 	        (szl_run(interp, szl_szl_inc, sizeof(szl_szl_inc) - 1) == SZL_OK));
-
 }
 
