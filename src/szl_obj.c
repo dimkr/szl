@@ -117,6 +117,43 @@ enum szl_res szl_obj_proc_echo(struct szl_interp *interp,
 	return szl_set_result(interp, szl_obj_ref(objv[1]));
 }
 
+static
+enum szl_res szl_obj_proc_list_vars(struct szl_interp *interp,
+                                    struct szl_obj *proc)
+{
+	struct szl_obj *list;
+	size_t i;
+
+	list = szl_new_empty();
+	if (!list)
+		return SZL_ERR;
+
+	for (i = 0; i < proc->nlocals; ++i) {
+		if (!szl_lappend(interp, list, proc->locals[i]->obj)) {
+			szl_obj_unref(list);
+			return SZL_ERR;
+		}
+	}
+
+	return szl_set_result(interp, list);
+}
+
+static
+enum szl_res szl_obj_proc_locals(struct szl_interp *interp,
+                                 const int objc,
+                                 struct szl_obj **objv)
+{
+	return szl_obj_proc_list_vars(interp, szl_caller(interp));
+}
+
+static
+enum szl_res szl_obj_proc_globals(struct szl_interp *interp,
+                                 const int objc,
+                                 struct szl_obj **objv)
+{
+	return szl_obj_proc_list_vars(interp, interp->global);
+}
+
 int szl_init_obj(struct szl_interp *interp)
 {
 	return ((szl_new_proc(interp,
@@ -157,6 +194,22 @@ int szl_init_obj(struct szl_interp *interp)
 	                      2,
 	                      "echo obj",
 	                      szl_obj_proc_echo,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "locals",
+	                      1,
+	                      1,
+	                      "locals",
+	                      szl_obj_proc_locals,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "globals",
+	                      1,
+	                      1,
+	                      "globals",
+	                      szl_obj_proc_globals,
 	                      NULL,
 	                      NULL)));
 }

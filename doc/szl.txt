@@ -369,6 +369,12 @@ If a procedure uses 'local' to define a local variable with the same name as
 a previously defined global variable, attempts to obtain the variable value from
 within the procedure will refer to the local variable.
 
++locals+::
+	Lists all variables in the local scope.
+
++globals+::
+	Lists all variables in the global scope.
+
 String Operations
 +++++++++++++++++
 +str.length+ 'str'::

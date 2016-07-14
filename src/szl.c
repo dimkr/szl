@@ -184,14 +184,7 @@ struct szl_interp *szl_interp_new(void)
 		return NULL;
 	}
 
-	interp->global = szl_new_proc(interp,
-	                              "",
-	                              -1,
-	                              -1,
-	                              NULL,
-	                              NULL,
-	                              NULL,
-	                              NULL);
+	interp->global = szl_new_call(interp, NULL, NULL, 0, 0);
 	if (!interp->global) {
 		szl_obj_unref(interp->one);
 		szl_obj_unref(interp->zero);
@@ -200,22 +193,9 @@ struct szl_interp *szl_interp_new(void)
 		free(interp);
 		return NULL;
 	}
+	interp->global->caller = NULL;
 
-	/* increase the reference count of the global frame to 1 - szl_new_proc()
-	 * does not increase the reference count if the name is empty */
-	szl_obj_ref(interp->global);
-
-	interp->current = szl_new_call(interp, NULL, NULL, 0, 0);
-	if (!interp->current) {
-		szl_obj_unref(interp->global);
-		szl_obj_unref(interp->one);
-		szl_obj_unref(interp->zero);
-		szl_obj_unref(interp->space);
-		szl_obj_unref(interp->empty);
-		free(interp);
-		return NULL;
-	}
-	interp->current->caller = NULL;
+	interp->current = szl_obj_ref(interp->global);
 
 	interp->exts = NULL;
 	interp->nexts = 0;
@@ -445,11 +425,7 @@ struct szl_obj *szl_new_proc(struct szl_interp *interp,
 	}
 
 	obj->refc = 0;
-	if (name[0] && (!szl_local(interp,
-	                           interp->current->caller ?
-	                                  interp->current->caller : interp->current,
-	                           name,
-	                           obj))) {
+	if (name[0] && (!szl_local(interp, szl_caller(interp), name, obj))) {
 		if (del)
 			del(priv);
 		free(obj->s);

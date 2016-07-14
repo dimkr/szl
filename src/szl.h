@@ -551,6 +551,14 @@ int szl_new_const_int(struct szl_interp *interp,
 #	define szl_last(interp) szl_obj_ref(interp->last)
 
 /**
+ * @def szl_caller
+ * Returns the frame that called the currently running procedure or the global
+ * frame
+ */
+#	define szl_caller(interp) \
+	interp->current->caller ? interp->current->caller : interp->current
+
+/**
  * @}
  *
  * @defgroup obj_ops Object operations
