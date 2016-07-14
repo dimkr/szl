@@ -2005,13 +2005,11 @@ enum szl_res szl_stream_proc(struct szl_interp *interp,
 	szl_int req;
 	size_t len;
 
-	szl_empty_result(interp);
-
-	op = szl_obj_str(interp, objv[1], NULL);
-	if (!op)
-		return SZL_ERR;
-
 	if (objc == 3) {
+		op = szl_obj_str(interp, objv[1], NULL);
+		if (!op)
+			return SZL_ERR;
+
 		if (strcmp("read", op) == 0) {
 			if (!szl_obj_int(interp, objv[2], &req))
 				return SZL_ERR;
@@ -2039,6 +2037,10 @@ enum szl_res szl_stream_proc(struct szl_interp *interp,
 		}
 	}
 	else if (objc == 2) {
+		op = szl_obj_str(interp, objv[1], NULL);
+		if (!op)
+			return SZL_ERR;
+
 		if (strcmp("read", op) == 0)
 			return szl_stream_read_all(interp, strm);
 		if (strcmp("flush", op) == 0)
