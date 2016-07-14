@@ -1668,8 +1668,10 @@ int szl_load(struct szl_interp *interp, const char *name)
 	char **builtin;
 	struct szl_ext *exts;
 	void *handle;
+	struct szl_obj *current = interp->current;
 	szl_ext_init init;
-	unsigned int nexts = interp->nexts + 1;
+	int res;
+	unsigned int nexts = interp->nexts + 1, level = interp->level;
 
 	for (builtin = szl_builtin_exts; *builtin; ++builtin) {
 		if (strcmp(*builtin, name) == 0)
@@ -1705,7 +1707,17 @@ int szl_load(struct szl_interp *interp, const char *name)
 	interp->exts = exts;
 	interp->nexts = nexts;
 
-	if (!init(interp)) {
+	/* run the extension initializer - if it evaluates code or creates
+	 * procedures, do this in the global scope */
+	interp->current = interp->global;
+	interp->level = 0;
+
+	res = init(interp);
+
+	interp->current = current;
+	interp->level = level;
+
+	if (!res) {
 		szl_unload(handle);
 		interp->exts[interp->nexts - 1].handle = NULL;
 		return 0;
