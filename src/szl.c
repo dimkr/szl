@@ -899,7 +899,7 @@ szl_hash jenkins_hash(const unsigned char *buf, const size_t len)
 	size_t i;
 	szl_hash hash = 0;
 
-	for(i = 0; i < len; ++i) {
+	for (i = 0; i < len; ++i) {
 		hash += buf[i] + (hash << 10);
 		hash ^= (hash >> 6);
 	}

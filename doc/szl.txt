@@ -993,12 +993,9 @@ useful for working with REST APIs.
 
 --------------------------------------
 load http
+load dict
 
-local params [dict.new]
-dict.set params a {123 456}
-dict.set params b 789
-
-puts [list.index [http.get httpbin.org 443 1 /get $params] 1]
+puts [list.index [http.get httpbin.org 443 1 /get [dict.new a {123 456} b 789]] 1]
 --------------------------------------
 
 +http.post+ 'host port tls url params'::
@@ -1010,17 +1007,14 @@ puts [list.index [http.get httpbin.org 443 1 /get $params] 1]
 
 dict
 ^^^^
-The 'dict' extension is a slow, trivial +szl+ implementation of associative
+The 'dict' extension is a O(n), trivial +szl+ implementation of associative
 arrays on top of lists.
 
 +dict.new+ ?k v...?::
 	Creates a new dictionary. If no initial contents are specified, the
 	dictionary will be empty.
 
-+dict.items+ 'dict'::
-	Returns a list of all keys and values in a dictionary.
-
-+dict.set+ 'name k v'::
++dict.set+ 'dict k v'::
 	Sets the dictionary value associated with a key.
 
 +dict.get+ 'dict k ?v?'::

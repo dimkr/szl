@@ -268,9 +268,6 @@ szlsh: szlsh.o $(SZL_LIB)
 szl_zlib.o: szl_zlib.c szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS) $(ZLIB_CFLAGS)
 
-szl_dict.o: szl_dict.c szl_dict.inc szl_conf.h
-	$(CC) -c -o $@ $< $(CFLAGS)
-
 szl_test.o: szl_test.c szl_test.inc szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS)
 
