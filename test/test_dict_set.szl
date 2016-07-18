@@ -20,31 +20,30 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-load dict
 load test
 
 test.run {one item} 1 {
 	local d [dict.new]
-	dict.set d x y
+	dict.set $d x y
 	echo $d
 } {x y}
 
 test.run {two items} 1 {
 	local d [dict.new]
-	dict.set d a b
-	dict.set d x y
+	dict.set $d a b
+	dict.set $d x y
 	echo $d
 } {a b x y}
 
 test.run {item with whitespace} 1 {
 	local d [dict.new]
-	dict.set d a {x y}
+	dict.set $d a {x y}
 	echo $d
 } {a {x y}}
 
 test.run {two items with whitespace} 1 {
 	local d [dict.new]
-	dict.set d a {x y}
-	dict.set d b {1 2}
+	dict.set $d a {x y}
+	dict.set $d b {1 2}
 	echo $d
 } {a {x y} b {1 2}}
