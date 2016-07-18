@@ -150,8 +150,6 @@ struct szl_interp *szl_interp_new(void)
 	if (!interp)
 		return NULL;
 
-	interp->init = crc32(0, Z_NULL, 0);
-
 	interp->empty = szl_new_empty();
 	if (!interp->empty) {
 		free(interp);
@@ -894,6 +892,25 @@ int szl_obj_list(struct szl_interp *interp,
 	return 1;
 }
 
+/* Jenkins's one-at-a-time */
+static
+szl_hash jenkins_hash(const unsigned char *buf, const size_t len)
+{
+	size_t i;
+	szl_hash hash = 0;
+
+	for(i = 0; i < len; ++i) {
+		hash += buf[i] + (hash << 10);
+		hash ^= (hash >> 6);
+	}
+
+	hash += (hash << 3);
+	hash ^= (hash >> 11);
+	hash += (hash << 15);
+
+	return hash;
+}
+
 int szl_obj_hash(struct szl_interp *interp,
                  struct szl_obj *obj,
                  szl_hash *hash)
@@ -906,7 +923,7 @@ int szl_obj_hash(struct szl_interp *interp,
 		if (!s)
 			return 0;
 
-		obj->hash = crc32(interp->init, (const Bytef *)s, (uInt)len);
+		obj->hash = jenkins_hash((const unsigned char *)s, len);
 		obj->type |= SZL_TYPE_HASH;
 	}
 
@@ -968,33 +985,27 @@ int szl_obj_eq(struct szl_interp *interp,
 		return 1;
 	}
 
-	if ((a->type & SZL_TYPE_INT) && (b->type & SZL_TYPE_INT)) {
-		*eq = (a->i == b->i);
-		return 1;
-	}
-
-	if ((a->type & SZL_TYPE_DOUBLE) && (b->type & SZL_TYPE_DOUBLE)) {
-		*eq = (a->d == b->d);
-		return 1;
-	}
-
-	as = szl_obj_str(interp, a, &alen);
-	if (!as)
+	if (!szl_obj_hash(interp, a, &ah) || !szl_obj_hash(interp, b, &bh))
 		return 0;
 
-	bs = szl_obj_str(interp, b, &blen);
-	if (!bs)
-		return 0;
-
-	*eq = 0;
-	if (alen == blen) {
-		if (!szl_obj_hash(interp, a, &ah) || !szl_obj_hash(interp, b, &bh))
+	/* if the hashes match, compare the string representations to ensure this is
+	 * not a collision */
+	if (ah == bh) {
+		as = szl_obj_str(interp, a, &alen);
+		if (!as)
 			return 0;
 
-		if (ah == bh)
+		bs = szl_obj_str(interp, b, &blen);
+		if (!bs)
+			return 0;
+
+		if ((alen == blen) || (strcmp(as, bs) == 0)) {
 			*eq = 1;
+			return 1;
+		}
 	}
 
+	*eq = 0;
 	return 1;
 }
 
@@ -1131,7 +1142,7 @@ enum szl_res szl_usage(struct szl_interp *interp, struct szl_obj *proc)
 static
 szl_hash szl_hash_name(struct szl_interp *interp, const char *name)
 {
-	return crc32(interp->init, (const Bytef *)name, (uInt)strlen(name));
+	return jenkins_hash((const unsigned char *)name, strlen(name));
 }
 
 static

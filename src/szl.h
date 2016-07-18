@@ -36,8 +36,6 @@
 #	include <sys/types.h>
 #	include <limits.h>
 
-#	include <zlib.h>
-
 #	include "szl_conf.h"
 
 /**
@@ -183,7 +181,7 @@ typedef unsigned char szl_bool;
  * @typedef szl_hash
  * The type of szl object name hashes
  */
-typedef uLong szl_hash;
+typedef uint32_t szl_hash;
 
 /**
  * @enum szl_res
@@ -280,8 +278,6 @@ struct szl_interp {
 	struct szl_obj *null; /**< The null stream singleton */
 	struct szl_obj *last; /**< The return value of the last statement executed */
 
-	uLong init; /**< The initial CRC32 checksum */
-
 	struct szl_obj *global; /**< The frame of statements executed in the global scope, outside of a procedure */
 
 	struct szl_obj *current; /**< The currently running procedure */
@@ -296,7 +292,7 @@ struct szl_interp {
  * A local variable
  */
 struct szl_local {
-	szl_hash name; /**< The CRC32 hash of the variable name */
+	szl_hash name; /**< The hash of the variable name */
 	struct szl_obj *obj; /**< The variable value */
 };
 

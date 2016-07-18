@@ -55,7 +55,7 @@ LIBARCHIVE_LIBS = $(shell pkg-config --libs libarchive)
 
 EXT_LIBS = -lszl
 LIBSZL_CFLAGS =
-LIBSZL_LIBS = $(ZLIB_LIBS)
+LIBSZL_LIBS =
 LIBSZL_DEPS =
 SZLSH_LIBS =
 
