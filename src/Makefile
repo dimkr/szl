@@ -65,7 +65,7 @@ SHARED_LIB = libszl.so
 PROGS = szlsh
 
 BUILTIN_EXT_NAMES = obj proc str exc socket null logic file dir io list math \
-                    loop ext time env path signal poll timer szl
+                    loop ext time env path signal poll timer dict szl
 EXTERNAL_EXT_NAMES =
 
 # SZL_LIB is the library szlsh and extensions are linked against
@@ -73,7 +73,6 @@ ifeq ($(STATIC_ALL), 1)
 	SZL_LIB = $(STATIC_LIB)
 	STATIC_TLS = 1
 	STATIC_ZLIB = 1
-	STATIC_DICT = 1
 	STATIC_TEST = 1
 	STATIC_FFI = 1
 	STATIC_CURL = 1
@@ -100,13 +99,6 @@ ifeq ($(STATIC_ZLIB), 1)
 	LIBSZL_LIBS += $(ZLIB_LIBS)
 else
 	EXTERNAL_EXT_NAMES += zlib
-endif
-
-# depends on zlib
-ifeq ($(STATIC_DICT), 1)
-	BUILTIN_EXT_NAMES += dict
-else
-	EXTERNAL_EXT_NAMES += dict
 endif
 
 ifeq ($(STATIC_TEST), 1)
@@ -282,9 +274,6 @@ szl_tls.so: szl_tls.o $(SZL_LIB)
 
 szl_zlib.so: szl_zlib.o $(SZL_LIB)
 	$(CC) -o $@ $< $(LDFLAGS) -shared $(EXT_LIBS) $(ZLIB_LIBS)
-
-szl_dict.so: szl_dict.o $(SZL_LIB)
-	$(CC) -o $@ $< $(LDFLAGS) -shared $(EXT_LIBS)
 
 szl_ffi.o: szl_ffi.c szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS) $(LIBFFI_CFLAGS)
