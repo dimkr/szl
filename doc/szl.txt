@@ -831,14 +831,22 @@ in data corruption.
 
 Sockets
 ^^^^^^^
-+socket+ 'type host service'::
-	Creates a new TCP or UDP socket. Client sockets ('stream.client' and
-	'dgram.client') are connected to 'host:service', while server sockets
-	('stream.server' and 'dgram.server') are bound to 'host:service'.
++stream.client+ 'host service'::
+	Creates a new TCP socket and connect to 'host:service'.
+
++dgram.client+ 'host service'::
+	Creates a new UDP socket which sends datagrams to 'host:service'.
+
++dgram.server+ 'host service'::
+	Creates a new UDP socket and listens on 'host:service'.
+
++stream.server+ 'host service ?backlog?'::
+	Creates a new TCP socket, listens on 'host:service' and holds up to
+	'backlog' pending clients (i.e. clients awaiting 'accept'). If 'backlog' is
+	not specified, the default is '5'.
 
 [NOTE]
-In server mode, if 'service' is an empty string, the socket is bound to the
-wildcard address.
+If 'service' is an empty string, the socket is bound to the wildcard address.
 
 [TIP]
 Sockets behave very much like files (e.g. they provide 'read' and 'write').

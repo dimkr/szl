@@ -35,7 +35,7 @@
 
 #include "szl.h"
 
-#define SZL_SERVER_SOCKET_BACKLOG 5
+#define SZL_DEFAULT_SERVER_SOCKET_BACKLOG 5
 
 static
 ssize_t szl_socket_read(struct szl_interp *interp,
@@ -228,30 +228,6 @@ struct szl_stream *szl_socket_new_client(struct szl_interp *interp,
 }
 
 static
-struct szl_stream *szl_socket_new_stream_client(struct szl_interp *interp,
-                                                const char *host,
-                                                const char *service)
-{
-	return szl_socket_new_client(interp,
-	                             host,
-	                             service,
-	                             SOCK_STREAM,
-	                             &szl_stream_client_ops);
-}
-
-static
-struct szl_stream *szl_socket_new_dgram_client(struct szl_interp *interp,
-                                               const char *host,
-                                               const char *service)
-{
-	return szl_socket_new_client(interp,
-	                             host,
-	                             service,
-	                             SOCK_DGRAM,
-	                             &szl_dgram_client_ops);
-}
-
-static
 int szl_socket_new_server(struct szl_interp *interp,
                           const char *host,
                           const char *service,
@@ -297,9 +273,80 @@ int szl_socket_new_server(struct szl_interp *interp,
 }
 
 static
+enum szl_res szl_socket_proc(struct szl_interp *interp,
+                             const int objc,
+                             struct szl_obj **objv,
+                             const char *type,
+                             const int listening,
+                             struct szl_stream *(*cb)(struct szl_interp *,
+                                                      const char *,
+                                                      const char *,
+                                                      const int))
+{
+	struct szl_obj *obj;
+	const char *host, *service;
+	struct szl_stream *strm;
+	szl_int backlog = SZL_DEFAULT_SERVER_SOCKET_BACKLOG;
+	size_t len;
+
+	service = szl_obj_str(interp, objv[2], &len);
+	if (!service || !len)
+		return SZL_ERR;
+
+	host = szl_obj_str(interp, objv[1], &len);
+	if (!host)
+		return SZL_ERR;
+
+	if (listening && (objc == 4) && (!szl_obj_int(interp, objv[3], &backlog)))
+		return SZL_ERR;
+
+	if (!len)
+		host = NULL;
+
+	strm = cb(interp, host, service, backlog);
+	if (!strm)
+		return SZL_ERR;
+
+	obj = szl_new_stream(interp, strm, type);
+	if (!obj) {
+		szl_stream_free(strm);
+		return SZL_ERR;
+	}
+
+	return szl_set_result(interp, obj);
+}
+
+static
+struct szl_stream *szl_socket_new_stream_client(struct szl_interp *interp,
+                                                const char *host,
+                                                const char *service,
+                                                const int backlog)
+{
+	return szl_socket_new_client(interp,
+	                             host,
+	                             service,
+	                             SOCK_STREAM,
+	                             &szl_stream_client_ops);
+}
+
+static
+enum szl_res szl_socket_proc_stream_client(struct szl_interp *interp,
+                                           const int objc,
+                                           struct szl_obj **objv)
+{
+	return szl_socket_proc(interp,
+	                       objc,
+	                       objv,
+	                       "stream.client",
+	                       0,
+	                       szl_socket_new_stream_client);
+}
+
+static
 struct szl_stream *szl_socket_new_stream_server(struct szl_interp *interp,
                                                 const char *host,
-                                                const char *service)
+                                                const char *service,
+                                                const int backlog)
 {
 	struct szl_stream *strm;
 	int fd;
@@ -308,7 +355,7 @@ struct szl_stream *szl_socket_new_stream_server(struct szl_interp *interp,
 	if (fd < 0)
 		return NULL;
 
-	if (listen(fd, SZL_SERVER_SOCKET_BACKLOG) < 0) {
+	if (listen(fd, backlog) < 0) {
 		close(fd);
 		szl_set_result_str(interp, strerror(errno), -1);
 		return NULL;
@@ -322,9 +369,49 @@ struct szl_stream *szl_socket_new_stream_server(struct szl_interp *interp,
 }
 
 static
+enum szl_res szl_socket_proc_stream_server(struct szl_interp *interp,
+                                           const int objc,
+                                           struct szl_obj **objv)
+{
+	return szl_socket_proc(interp,
+	                       objc,
+	                       objv,
+	                       "stream.server",
+	                       1,
+	                       szl_socket_new_stream_server);
+}
+
+static
+struct szl_stream *szl_socket_new_dgram_client(struct szl_interp *interp,
+                                               const char *host,
+                                               const char *service,
+                                               const int backlog)
+{
+	return szl_socket_new_client(interp,
+	                             host,
+	                             service,
+	                             SOCK_DGRAM,
+	                             &szl_dgram_client_ops);
+}
+
+static
+enum szl_res szl_socket_proc_dgram_client(struct szl_interp *interp,
+                                          const int objc,
+                                          struct szl_obj **objv)
+{
+	return szl_socket_proc(interp,
+	                       objc,
+	                       objv,
+	                       "dgram.client",
+	                       0,
+	                       szl_socket_new_dgram_client);
+}
+
+static
 struct szl_stream *szl_socket_new_dgram_server(struct szl_interp *interp,
                                                const char *host,
-                                               const char *service)
+                                               const char *service,
+                                               const int backlog)
 {
 	struct szl_stream *strm;
 	int fd;
@@ -341,51 +428,16 @@ struct szl_stream *szl_socket_new_dgram_server(struct szl_interp *interp,
 }
 
 static
- enum szl_res szl_socket_proc_socket(struct szl_interp *interp,
-                                     const int objc,
-                                     struct szl_obj **objv)
+enum szl_res szl_socket_proc_dgram_server(struct szl_interp *interp,
+                                          const int objc,
+                                          struct szl_obj **objv)
 {
-	struct szl_obj *obj;
-	const char *type, *host, *service;
-	struct szl_stream *strm;
-	size_t len;
-
-	type = szl_obj_str(interp, objv[1], &len);
-	if (!type || !len)
-		return SZL_ERR;
-
-	service = szl_obj_str(interp, objv[3], &len);
-	if (!service || !len)
-		return SZL_ERR;
-
-	host = szl_obj_str(interp, objv[2], &len);
-	if (!host)
-		return SZL_ERR;
-
-	if (!len)
-		host = NULL;
-
-	if (strcmp("stream.client", type) == 0)
-		strm = szl_socket_new_stream_client(interp, host, service);
-	else if (strcmp("stream.server", type) == 0)
-		strm = szl_socket_new_stream_server(interp, host, service);
-	else if (strcmp("dgram.client", type) == 0)
-		strm = szl_socket_new_dgram_client(interp, host, service);
-	else if (strcmp("dgram.server", type) == 0)
-		strm = szl_socket_new_dgram_server(interp, host, service);
-	else
-		return SZL_ERR;
-
-	if (!strm)
-		return SZL_ERR;
-
-	obj = szl_new_stream(interp, strm, type);
-	if (!obj) {
-		szl_stream_free(strm);
-		return SZL_ERR;
-	}
-
-	return szl_set_result(interp, obj);
+	return szl_socket_proc(interp,
+	                       objc,
+	                       objv,
+	                       "dgram.server",
+	                       0,
+	                       szl_socket_new_dgram_server);
 }
 
 static
@@ -448,11 +500,35 @@ enum szl_res szl_socket_proc_socket_fdopen(struct szl_interp *interp,
 int szl_init_socket(struct szl_interp *interp)
 {
 	return ((szl_new_proc(interp,
-	                      "socket",
+	                      "stream.client",
+	                      3,
+	                      3,
+	                      "stream.client host service",
+	                      szl_socket_proc_stream_client,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "dgram.client",
+	                      3,
+	                      3,
+	                      "dgram.client host service",
+	                      szl_socket_proc_dgram_client,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "stream.server",
+	                      3,
 	                      4,
-	                      4,
-	                      "socket type host service",
-	                      szl_socket_proc_socket,
+	                      "stream.server host service ?backlog?",
+	                      szl_socket_proc_stream_server,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "dgram.server",
+	                      3,
+	                      3,
+	                      "dgram.server host service",
+	                      szl_socket_proc_dgram_server,
 	                      NULL,
 	                      NULL)) &&
 	        (szl_new_proc(interp,

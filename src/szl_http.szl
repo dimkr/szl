@@ -63,7 +63,7 @@ proc http.parse {
 }
 
 proc http.request {
-	local s [socket stream.client $1 $2]
+	local s [stream.client $1 $2]
 	try {
 		if $3 {
 			local t [tls.connect [$s handle]]

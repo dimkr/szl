@@ -15,9 +15,9 @@ syntax and programming language features missing in the shell, like exceptions.
 szl comes with a rich standard library that includes bindings for
 permissively-licensed libraries. Therefore, it can run processes, parse text,
 manipulate data structures like dictionaries, operate on binary data, interface
-with C code through scripts, call REST APIs and much more, at a fraction of the
-memory and size footprint of other scripting languages, while achieving
-reasonable efficiency.
+with C code through scripts, multiplex non-blocking I/O, call REST APIs and much
+more, at a fraction of the memory and size footprint of other scripting
+languages, while achieving reasonable efficiency.
 
 szl can be used both as a standalone (either interactive or non-interactive)
 interpreter or as part of other projects, via the libszl library.
