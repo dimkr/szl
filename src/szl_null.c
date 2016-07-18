@@ -27,13 +27,19 @@
 #include "szl.h"
 
 static
-ssize_t szl_null_read(void *priv, unsigned char *buf, const size_t len)
+ssize_t szl_null_read(struct szl_interp *interp,
+                      void *priv,
+                      unsigned char *buf,
+                      const size_t len)
 {
 	return 0;
 }
 
 static
-ssize_t szl_null_write(void *priv, const unsigned char *buf, const size_t len)
+ssize_t szl_null_write(struct szl_interp *interp,
+                       void *priv,
+                       const unsigned char *buf,
+                       const size_t len)
 {
 	return (ssize_t)len;
 }
@@ -68,6 +74,7 @@ enum szl_res szl_null_proc_null(struct szl_interp *interp,
 		strm->closed = 0;
 		strm->priv = NULL;
 		strm->buf = NULL;
+		strm->blocking = 1;
 
 		interp->null = szl_new_stream(interp, strm, "null");
 		if (!interp->null) {

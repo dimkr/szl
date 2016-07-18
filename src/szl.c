@@ -557,6 +557,40 @@ int szl_lappend(struct szl_interp *interp,
 	return 1;
 }
 
+int szl_lset(struct szl_interp *interp,
+             struct szl_obj *list,
+             const szl_int index,
+             struct szl_obj *item)
+{
+	struct szl_obj **l;
+	size_t n;
+
+	if (index < 0) {
+		szl_set_result_fmt(interp, "bad index: "SZL_INT_FMT, index);
+		return 0;
+	}
+
+	if (!szl_obj_list(interp, list, &l, &n))
+		return 0;
+
+	if (index >= n) {
+		szl_set_result_fmt(interp, "bad index: "SZL_INT_FMT, index);
+		return 0;
+	}
+
+	szl_obj_unref(list->l[index]);
+	list->l[index] = szl_obj_ref(item);
+
+	/* mark other representations as expired */
+	if (list->s) {
+		free(list->s);
+		list->s = NULL;
+	}
+	list->type = SZL_TYPE_LIST;
+
+	return 1;
+}
+
 int szl_lappend_str(struct szl_interp *interp,
                     struct szl_obj *list,
                     const char *s,
@@ -1802,7 +1836,7 @@ enum szl_res szl_stream_read(struct szl_interp *interp,
 	if (!buf)
 		return SZL_ERR;
 
-	out = strm->ops->read(strm->priv, buf, len);
+	out = strm->ops->read(interp, strm->priv, buf, len);
 	if (out > 0) {
 		buf[out] = '\0';
 		obj = szl_new_str_noalloc((char *)buf, (size_t)out);
@@ -1853,7 +1887,7 @@ enum szl_res szl_stream_read_all(struct szl_interp *interp,
 	if (!buf)
 		return SZL_ERR;
 
-	tot = strm->ops->read(strm->priv, buf, len);
+	tot = strm->ops->read(interp, strm->priv, buf, len);
 	if (tot > 0) {
 		/* if we don't know whether there's more data to read, read more data in
 		 * SZL_STREAM_BUFSIZ-byte chunks until the read() callback returns 0 */
@@ -1867,7 +1901,8 @@ enum szl_res szl_stream_read_all(struct szl_interp *interp,
 				}
 				buf = nbuf;
 
-				more = strm->ops->read(strm->priv,
+				more = strm->ops->read(interp,
+				                       strm->priv,
 				                       buf + tot,
 				                       SZL_STREAM_BUFSIZ);
 				if (more < 0) {
@@ -1902,6 +1937,8 @@ enum szl_res szl_stream_write(struct szl_interp *interp,
                               const unsigned char *buf,
                               const size_t len)
 {
+	ssize_t out, chunk;
+
 	if (!strm->ops->write) {
 		szl_set_result_str(interp, "write to unsupported stream", -1);
 		return SZL_ERR;
@@ -1912,10 +1949,22 @@ enum szl_res szl_stream_write(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	if (strm->ops->write(strm->priv, buf, len) == (ssize_t)len)
-		return SZL_OK;
+	out = 0;
+	while (out < len) {
+		chunk = strm->ops->write(interp, strm->priv, buf + out, len - out);
+		if (chunk < 0)
+			return SZL_ERR;
 
-	return SZL_ERR;
+		if (!chunk)
+			break;
+
+		out += chunk;
+	}
+
+	if (strm->blocking && (out != len))
+		return SZL_ERR;
+
+	return szl_set_result_int(interp, (szl_int)out);
 }
 
 static
@@ -1967,8 +2016,8 @@ static
 enum szl_res szl_stream_accept(struct szl_interp *interp,
                                struct szl_stream *strm)
 {
-	struct szl_obj *obj;
-	struct szl_stream *client;
+	struct szl_obj *csock, *list;
+	struct szl_stream *cstrm;
 
 	if (!strm->ops->accept) {
 		szl_set_result_str(interp, "accept from unsupported stream", -1);
@@ -1980,17 +2029,59 @@ enum szl_res szl_stream_accept(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	client = strm->ops->accept(strm->priv);
-	if (!client)
+	list = szl_new_empty();
+	if (!list)
 		return SZL_ERR;
 
-	obj = szl_new_stream(interp, client, "stream.client");
-	if (!obj) {
-		szl_stream_free(client);
+	do {
+		if (!strm->ops->accept(interp, strm->priv, &cstrm)) {
+			szl_obj_unref(list);
+			return SZL_ERR;
+		}
+
+		if (!cstrm)
+			break;
+
+		csock = szl_new_stream(interp, cstrm, "stream.client");
+		if (!csock) {
+			szl_stream_free(cstrm);
+			szl_obj_unref(list);
+			return SZL_ERR;
+		}
+
+		if (!szl_lappend(interp, list, csock)) {
+			szl_obj_unref(csock);
+			szl_obj_unref(list);
+			return SZL_ERR;
+		}
+
+		szl_obj_unref(csock);
+	} while (!strm->blocking);
+
+	return szl_set_result(interp, list);
+}
+
+static
+enum szl_res szl_stream_unblock(struct szl_interp *interp,
+                                struct szl_stream *strm)
+{
+	enum szl_res res;
+
+	if (!strm->ops->unblock) {
+		szl_set_result_str(interp, "unblock on unsupported stream", -1);
 		return SZL_ERR;
 	}
 
-	return szl_set_result(interp, obj);
+	if (strm->closed) {
+		szl_set_result_str(interp, "unblock on closed stream", -1);
+		return SZL_ERR;
+	}
+
+	res = strm->ops->unblock(strm->priv);
+	if (res == SZL_OK)
+		strm->blocking = 0;
+
+	return res;
 }
 
 static
@@ -2024,7 +2115,7 @@ enum szl_res szl_stream_proc(struct szl_interp *interp,
 		}
 		else if (strcmp("write", op) == 0) {
 			buf = szl_obj_str(interp, objv[2], &len);
-			if (!buf)
+			if (!buf || (len > SSIZE_MAX))
 				return SZL_ERR;
 
 			if (!len)
@@ -2057,6 +2148,8 @@ enum szl_res szl_stream_proc(struct szl_interp *interp,
 				return SZL_ERR;
 			return szl_set_result(interp, obj);
 		}
+		else if (strcmp("unblock", op) == 0)
+			return szl_stream_unblock(interp, strm);
 	}
 
 	return szl_usage(interp, objv[0]);
@@ -2077,14 +2170,15 @@ struct szl_obj *szl_new_stream(struct szl_interp *interp,
 	struct szl_obj *proc;
 
 	szl_new_obj_name(interp, type, name, sizeof(name), strm->priv);
-	proc = szl_new_proc(interp,
-	                    name,
-	                    1,
-	                    3,
-	                    "strm read|write|flush|handle|close|accept ?len?",
-	                    szl_stream_proc,
-	                    szl_stream_del,
-	                    strm);
+	proc = szl_new_proc(
+	                  interp,
+	                  name,
+	                  1,
+	                  3,
+	                  "strm read|write|flush|handle|close|unblock|accept ?len?",
+	                  szl_stream_proc,
+	                  szl_stream_del,
+	                  strm);
 	if (!proc)
 		return NULL;
 

@@ -738,9 +738,9 @@ Leftover lock files are unlocked automatically, during garbage collection.
 File Operations
 +++++++++++++++
 +open+ 'path mode'::
-	Opens a file. 'mode' is 'fputs()'-style: 'r', 'w', 'a', 'r+', 'w+' or 'a+'
-	(see 'man fputs' for the meaning of each mode). By default, reading and
-	writing is line-buffered.
+	Opens a file and returns a stream object. 'mode' is 'fputs()'-style: 'r',
+	'w', 'a', 'r+', 'w+' or 'a+' (see 'man fputs' for the meaning of each mode).
+	By default, reading and writing is line-buffered.
 
 [NOTE]
 'mode' can be suffixed with 'b' to enable full buffering instead of line-based
@@ -751,25 +751,32 @@ buffering, which improves efficiency with binary files.
 when 'read' is called only once (for example, when the entire file is read at
 once).
 
-+$file+ 'read ?len?'::
-	Reads a given amount of bytes from a file or its entire contents.
++$stream+ 'read ?len?'::
+	Reads a 'len' bytes from a stream, or its entire contents. If the stream is
+	non-blocking and less than 'len' bytes are available for reading without
+	waiting, that will be the number of bytes returned.
 
-+$file+ 'write str'::
-	Writes a string to a file.
++$stream+ 'write str'::
+	Writes a string to a stream. If the stream is non-blocking and only a part
+	of the string could be written without waiting, the procedure will return
+	the number of bytes written.
 
 [NOTE]
 Since writing operations on files may be buffered to improve efficiency, data
 passed to 'write' is not guaranteed to be written to disk immediately. To flush
 queued data to disk, call 'flush'.
 
-+$file+ 'flush'::
++$stream+ 'unblock'::
+	Enables non-blocking operation on a stream.
+
++$stream+ 'flush'::
 	Flushes the output buffer of a file.
 
-+$file+ 'handle'::
++$stream+ 'handle'::
 	Returns an opaque value (an integer) that represents an open file, suitable
-	for 'select'.
+	for 'poll'.
 
-+$file+ 'close'::
++$stream+ 'close'::
 	Closes a file.
 
 [NOTE]

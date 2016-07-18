@@ -25,6 +25,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -36,37 +38,55 @@
 #define SZL_SERVER_SOCKET_BACKLOG 5
 
 static
-ssize_t szl_socket_read(void *priv, unsigned char *buf, const size_t len)
+ssize_t szl_socket_read(struct szl_interp *interp,
+                        void *priv,
+                        unsigned char *buf,
+                        const size_t len)
 {
-	size_t total = 0;
-	ssize_t chunk;
+	ssize_t out;
 
-	do {
-		chunk = recv((int)(intptr_t)priv, buf + total, len - total, 0);
-		if (chunk < 0)
-			return -1;
-		if (chunk == 0)
-			break;
-		total += (ssize_t)chunk;
-	} while (total < len);
+	out = recv((int)(intptr_t)priv, buf, len, 0);
+	if (out < 0) {
+		if ((errno == EAGAIN) || (errno == EWOULDBLOCK))
+			return 0;
 
-	return (ssize_t)total;
+		szl_set_result_str(interp, strerror(errno), -1);
+		return -1;
+	}
+
+	return out;
 }
 
 static
-ssize_t szl_socket_write(void *priv, const unsigned char *buf, const size_t len)
+ssize_t szl_socket_write(struct szl_interp *interp,
+                         void *priv,
+                         const unsigned char *buf,
+                         size_t len)
 {
-	size_t total = 0;
-	ssize_t chunk;
+	ssize_t out;
 
-	do {
-		chunk = send((int)(intptr_t)priv, buf + total, len - total, 0);
-		if (chunk < 0)
-			return -1;
-		total += (ssize_t)chunk;
-	} while (total < len);
+	out = send((int)(intptr_t)priv, buf, len, 0);
+	if (out < 0) {
+		if ((errno == EAGAIN) || (errno == EWOULDBLOCK))
+			return 0;
 
-	return (ssize_t)total;
+		szl_set_result_str(interp, strerror(errno), -1);
+		return -1;
+	}
+
+	return (ssize_t)out;
+}
+
+static
+enum szl_res szl_socket_unblock(void *priv)
+{
+	int fl, fd = (int)(intptr_t)priv;
+
+	fl = fcntl(fd, F_GETFL);
+	if ((fl < 0) || (fcntl(fd, F_SETFL, fl | O_NONBLOCK) < 0))
+		return SZL_ERR;
+
+	return SZL_OK;
 }
 
 static
@@ -90,6 +110,7 @@ struct szl_stream *szl_socket_new(const int fd,
 	strm->keep = 0;
 	strm->closed = 0;
 	strm->buf = NULL;
+	strm->blocking = 1;
 
 	return strm;
 }
@@ -97,20 +118,29 @@ struct szl_stream *szl_socket_new(const int fd,
 static const struct szl_stream_ops szl_stream_client_ops;
 
 static
-struct szl_stream *szl_socket_accept(void *priv)
+int szl_socket_accept(struct szl_interp *interp,
+                      void *priv,
+                      struct szl_stream **strm)
 {
-	struct szl_stream *strm;
 	int fd;
 
 	fd = accept((int)(intptr_t)priv, NULL, NULL);
-	if (fd < 0)
-		return NULL;
+	if (fd < 0) {
+		if ((errno == EAGAIN) || (errno == EWOULDBLOCK)) {
+			*strm = NULL;
+			return 1;
+		}
+	}
+	else {
+		*strm = szl_socket_new(fd, &szl_stream_client_ops);
+		if (*strm)
+			return 1;
 
-	strm = szl_socket_new(fd, &szl_stream_client_ops);
-	if (!strm)
 		close(fd);
+	}
 
-	return strm;
+	szl_set_result_str(interp, strerror(errno), -1);
+	return 0;
 }
 
 static
@@ -123,7 +153,8 @@ static
 const struct szl_stream_ops szl_stream_server_ops = {
 	.close = szl_socket_close,
 	.accept = szl_socket_accept,
-	.handle = szl_socket_handle
+	.handle = szl_socket_handle,
+	.unblock = szl_socket_unblock
 };
 
 static
@@ -131,25 +162,29 @@ const struct szl_stream_ops szl_stream_client_ops = {
 	.read = szl_socket_read,
 	.write = szl_socket_write,
 	.close = szl_socket_close,
-	.handle = szl_socket_handle
+	.handle = szl_socket_handle,
+	.unblock = szl_socket_unblock
 };
 
 static
 const struct szl_stream_ops szl_dgram_server_ops = {
 	.read = szl_socket_read,
 	.close = szl_socket_close,
-	.handle = szl_socket_handle
+	.handle = szl_socket_handle,
+	.unblock = szl_socket_unblock
 };
 
 static
 const struct szl_stream_ops szl_dgram_client_ops = {
 	.write = szl_socket_write,
 	.close = szl_socket_close,
-	.handle = szl_socket_handle
+	.handle = szl_socket_handle,
+	.unblock = szl_socket_unblock
 };
 
 static
-struct szl_stream *szl_socket_new_client(const char *host,
+struct szl_stream *szl_socket_new_client(struct szl_interp *interp,
+                                         const char *host,
                                          const char *service,
                                          const int type,
                                          const struct szl_stream_ops *ops)
@@ -173,12 +208,14 @@ struct szl_stream *szl_socket_new_client(const char *host,
 	fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 	if (fd < 0) {
 		freeaddrinfo(res);
+		szl_set_result_str(interp, strerror(errno), -1);
 		return NULL;
 	}
 
 	if (connect(fd, res->ai_addr, res->ai_addrlen) < 0) {
 		close(fd);
 		freeaddrinfo(res);
+		szl_set_result_str(interp, strerror(errno), -1);
 		return NULL;
 	}
 
@@ -191,32 +228,37 @@ struct szl_stream *szl_socket_new_client(const char *host,
 }
 
 static
-struct szl_stream *szl_socket_new_stream_client(const char *host,
+struct szl_stream *szl_socket_new_stream_client(struct szl_interp *interp,
+                                                const char *host,
                                                 const char *service)
 {
-	return szl_socket_new_client(host,
+	return szl_socket_new_client(interp,
+	                             host,
 	                             service,
 	                             SOCK_STREAM,
 	                             &szl_stream_client_ops);
-
 }
 
 static
-struct szl_stream *szl_socket_new_dgram_client(const char *host,
+struct szl_stream *szl_socket_new_dgram_client(struct szl_interp *interp,
+                                               const char *host,
                                                const char *service)
 {
-	return szl_socket_new_client(host,
+	return szl_socket_new_client(interp,
+	                             host,
 	                             service,
 	                             SOCK_DGRAM,
 	                             &szl_dgram_client_ops);
-
 }
 
 static
-int szl_socket_new_server(const char *host, const char *service, const int type)
+int szl_socket_new_server(struct szl_interp *interp,
+                          const char *host,
+                          const char *service,
+                          const int type)
 {
 	struct addrinfo hints, *res;
-	int fd;
+	int fd, one = 1;
 
 	hints.ai_flags = AI_PASSIVE | AI_ADDRCONFIG;
 	hints.ai_family = AF_UNSPEC;
@@ -233,12 +275,20 @@ int szl_socket_new_server(const char *host, const char *service, const int type)
 	fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 	if (fd < 0) {
 		freeaddrinfo(res);
+		szl_set_result_str(interp, strerror(errno), -1);
+		return -1;
+	}
+
+	if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one)) < 0) {
+		close(fd);
+		freeaddrinfo(res);
 		return -1;
 	}
 
 	if (bind(fd, res->ai_addr, res->ai_addrlen) < 0) {
 		close(fd);
 		freeaddrinfo(res);
+		szl_set_result_str(interp, strerror(errno), -1);
 		return -1;
 	}
 
@@ -247,18 +297,20 @@ int szl_socket_new_server(const char *host, const char *service, const int type)
 }
 
 static
-struct szl_stream *szl_socket_new_stream_server(const char *host,
+struct szl_stream *szl_socket_new_stream_server(struct szl_interp *interp,
+                                                const char *host,
                                                 const char *service)
 {
 	struct szl_stream *strm;
 	int fd;
 
-	fd = szl_socket_new_server(host, service, SOCK_STREAM);
+	fd = szl_socket_new_server(interp, host, service, SOCK_STREAM);
 	if (fd < 0)
 		return NULL;
 
 	if (listen(fd, SZL_SERVER_SOCKET_BACKLOG) < 0) {
 		close(fd);
+		szl_set_result_str(interp, strerror(errno), -1);
 		return NULL;
 	}
 
@@ -270,13 +322,14 @@ struct szl_stream *szl_socket_new_stream_server(const char *host,
 }
 
 static
-struct szl_stream *szl_socket_new_dgram_server(const char *host,
+struct szl_stream *szl_socket_new_dgram_server(struct szl_interp *interp,
+                                               const char *host,
                                                const char *service)
 {
 	struct szl_stream *strm;
 	int fd;
 
-	fd = szl_socket_new_server(host, service, SOCK_DGRAM);
+	fd = szl_socket_new_server(interp, host, service, SOCK_DGRAM);
 	if (fd < 0)
 		return NULL;
 
@@ -313,13 +366,13 @@ static
 		host = NULL;
 
 	if (strcmp("stream.client", type) == 0)
-		strm = szl_socket_new_stream_client(host, service);
+		strm = szl_socket_new_stream_client(interp, host, service);
 	else if (strcmp("stream.server", type) == 0)
-		strm = szl_socket_new_stream_server(host, service);
+		strm = szl_socket_new_stream_server(interp, host, service);
 	else if (strcmp("dgram.client", type) == 0)
-		strm = szl_socket_new_dgram_client(host, service);
+		strm = szl_socket_new_dgram_client(interp, host, service);
 	else if (strcmp("dgram.server", type) == 0)
-		strm = szl_socket_new_dgram_server(host, service);
+		strm = szl_socket_new_dgram_server(interp, host, service);
 	else
 		return SZL_ERR;
 

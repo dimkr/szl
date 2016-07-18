@@ -601,7 +601,7 @@ int szl_append(struct szl_interp *interp,
 /**
  * @fn int szl_lappend(struct szl_interp *interp,
  *                     struct szl_obj *list,
- *                     struct szl_obj *item);
+ *                     struct szl_obj *item)
  * @brief Appends an object to a list object
  * @param interp [in,out] An interpreter
  * @param list [in,out] The list
@@ -611,6 +611,23 @@ int szl_append(struct szl_interp *interp,
 int szl_lappend(struct szl_interp *interp,
                 struct szl_obj *list,
                 struct szl_obj *item);
+
+/**
+ * @fn int szl_lset(struct szl_interp *interp,
+ *                  struct szl_obj *list,
+ *                  const szl_int index,
+ *                  struct szl_obj *item)
+ * @brief Replaces a list item
+ * @param interp [in,out] An interpreter
+ * @param list [in,out] The list
+ * @param index [in] The item index
+ * @param item [in,out] The new value
+ * @return 1 or 0
+ */
+int szl_lset(struct szl_interp *interp,
+             struct szl_obj *list,
+             const szl_int index,
+             struct szl_obj *item);
 
 /**
  * @fn int szl_lappend_str(struct szl_interp *interp,
@@ -823,17 +840,20 @@ struct szl_stream;
  * The underlying, transport-specific implementation of an I/O stream
  */
 struct szl_stream_ops {
-	ssize_t (*read)(void *,
+	ssize_t (*read)(struct szl_interp *,
+	                void *,
 	                unsigned char *,
 	                const size_t); /**< Reads a buffer from the stream */
-	ssize_t (*write)(void *,
+	ssize_t (*write)(struct szl_interp *,
+	                 void *,
 	                 const unsigned char *,
 	                 const size_t); /**< Writes a buffer to the stream */
 	enum szl_res (*flush)(void *); /**< Optional, flushes the output buffer */
 	void (*close)(void *); /**< Closes the stream */
-	struct szl_stream *(*accept)(void *); /**< Optional, accepts a client */
+	int (*accept)(struct szl_interp *, void *, struct szl_stream **); /**< Optional, accepts a client */
 	szl_int (*handle)(void *); /**< Returns the underlying file descriptor */
 	ssize_t (*size)(void *); /**< Returns the total amount of incoming bytes */
+	enum szl_res (*unblock)(void *); /**< Enables non-blocking I/O */
 };
 
 /**
@@ -846,6 +866,7 @@ struct szl_stream {
 	szl_bool closed; /**< A flag set once the stream is closed */
 	void *priv; /**< Private, implementation-specific data */
 	void *buf; /**< A chunked I/O buffer */
+	int blocking; /**< A flag set if the stream becomes non-blocking */
 };
 
 /**

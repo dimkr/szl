@@ -23,6 +23,8 @@
  */
 
 #include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 #include <openssl/ssl.h>
 #include <openssl/err.h>
@@ -32,21 +34,86 @@
 static SSL_CTX *szl_tls_ctx = NULL;
 
 static
-ssize_t szl_tls_read(void *priv, unsigned char *buf, const size_t len)
+ssize_t szl_tls_read(struct szl_interp *interp,
+                     void *priv,
+                     unsigned char *buf,
+                     const size_t len)
 {
-    return (ssize_t)SSL_read((SSL *)priv, buf, (int)len);
+	int out, err;
+
+	out = SSL_read((SSL *)priv, buf, (int)len);
+	if (out > 0)
+		return (ssize_t)out;
+
+	err = SSL_get_error((SSL *)priv, out);
+	switch (err) {
+		case SSL_ERROR_WANT_READ:
+		case SSL_ERROR_WANT_WRITE:
+		case SSL_ERROR_ZERO_RETURN:
+			return 0;
+	}
+
+	szl_set_result_str(interp, ERR_error_string(ERR_get_error(), NULL), -1);
+	return -1;
 }
 
 static
-ssize_t szl_tls_write(void *priv, const unsigned char *buf, const size_t len)
+ssize_t szl_tls_write(struct szl_interp *interp,
+                      void *priv,
+                      const unsigned char *buf,
+                      const size_t len)
 {
-    return (ssize_t)SSL_write((SSL *)priv, buf, (int)len);
+	ssize_t out;
+
+	out = (ssize_t)SSL_write((SSL *)priv, buf, (int)len);
+	if (out < 0) {
+		szl_set_result_str(interp, ERR_error_string(ERR_get_error(), NULL), -1);
+		return -1;
+	}
+
+	return out;
+}
+
+static
+enum szl_res szl_tls_unblock(void *priv)
+{
+	int fl, fd;
+	BIO *rbio, *wbio;
+
+	fd = SSL_get_fd((SSL *)priv);
+	if (fd < 0)
+		return SZL_ERR;
+
+	fl = fcntl(fd, F_GETFL);
+	if ((fl < 0) || (fcntl(fd, F_SETFL, fl | O_NONBLOCK) < 0))
+		return SZL_ERR;
+
+	rbio = SSL_get_rbio((SSL *)priv);
+	if (!rbio)
+		return SZL_ERR;
+
+	BIO_set_nbio(rbio, 1);
+
+	wbio = SSL_get_wbio((SSL *)priv);
+	if (!wbio)
+		return SZL_ERR;
+
+	if (wbio != rbio)
+		BIO_set_nbio(wbio, 1);
+
+	return SZL_OK;
 }
 
 static
 void szl_tls_close(void *priv)
 {
+	int fd;
+
+	fd = SSL_get_fd((SSL *)priv);
+
 	SSL_free((SSL *)priv);
+	if (fd >= 0)
+		close(fd);
 }
 
 static
@@ -60,12 +127,13 @@ const struct szl_stream_ops szl_tls_ops = {
 	.read = szl_tls_read,
 	.write = szl_tls_write,
 	.close = szl_tls_close,
-	.handle = szl_tls_handle
+	.handle = szl_tls_handle,
+	.unblock = szl_tls_unblock
 };
 
 static
 enum szl_res szl_tls_new(struct szl_interp *interp,
-                         const int fd,
+                         int fd,
                          const int server,
                          const char *cert,
                          const char *priv)
@@ -87,7 +155,15 @@ enum szl_res szl_tls_new(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
+	fd = dup(fd);
+	if (fd < 0) {
+		free(strm);
+		szl_set_result_str(interp, strerror(errno), -1);
+		return SZL_ERR;
+	}
+
 	if (SSL_set_fd(ssl, fd) == 0) {
+		close(fd);
 		SSL_free(ssl);
 		free(strm);
 		return SZL_ERR;
@@ -97,24 +173,27 @@ enum szl_res szl_tls_new(struct szl_interp *interp,
 
 	if (server) {
 		if ((SSL_use_certificate_file(ssl, cert, SSL_FILETYPE_PEM) != 1) ||
-		    (SSL_use_PrivateKey_file(ssl, priv, SSL_FILETYPE_PEM) != 1) ||
-		    (SSL_accept(ssl) != 1)) {
+		    (SSL_use_PrivateKey_file(ssl, priv, SSL_FILETYPE_PEM) != 1)) {
+			close(fd);
 			SSL_free(ssl);
 			free(strm);
+			szl_set_result_str(interp,
+			                   ERR_error_string(ERR_get_error(), NULL),
+			                   -1);
 			return SZL_ERR;
 		}
+
+		SSL_set_accept_state(ssl);
 	}
-	else if (SSL_connect(ssl) != 1) {
-		SSL_free(ssl);
-		free(strm);
-		return SZL_ERR;
-	}
+	else
+		SSL_set_connect_state(ssl);
 
 	strm->priv = ssl;
 	strm->ops = &szl_tls_ops;
 	strm->keep = 0;
 	strm->closed = 0;
 	strm->buf = NULL;
+	strm->blocking = 1;
 
 	obj = szl_new_stream(interp, strm, server ? "tls.server" : "tls.client");
 	if (!obj) {

@@ -28,6 +28,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include "szl.h"
 
@@ -36,30 +37,39 @@ static const char szl_io_inc[] = {
 };
 
 static
-ssize_t szl_file_read(void *priv, unsigned char *buf, const size_t len)
+ssize_t szl_file_read(struct szl_interp *interp,
+                      void *priv,
+                      unsigned char *buf,
+                      const size_t len)
 {
 	size_t ret;
 
 	ret = fread(buf, 1, len, (FILE *)priv);
 	if (!ret) {
-		if (ferror((FILE *)priv))
+		if (ferror((FILE *)priv)) {
+			szl_set_result_str(interp, strerror(errno), -1);
 			return -1;
+		}
 	}
 
 	return (ssize_t)ret;
 }
 
 static
-ssize_t szl_file_write(void *priv, const unsigned char *buf, const size_t len)
+ssize_t szl_file_write(struct szl_interp *interp,
+                       void *priv,
+                       const unsigned char *buf,
+                       const size_t len)
 {
-	size_t total = 0;
-	size_t chunk;
+	size_t total = 0, chunk;
 
 	do {
 		chunk = fwrite(buf + total, 1, len - total, (FILE *)priv);
 		if (chunk == 0) {
-			if (ferror((FILE *)priv))
+			if (ferror((FILE *)priv)) {
+				szl_set_result_str(interp, strerror(errno), -1);
 				return -1;
+			}
 			break;
 		}
 		total += chunk;
@@ -145,6 +155,7 @@ int szl_new_file(struct szl_interp *interp,
 	strm->closed = 0;
 	strm->priv = fp;
 	strm->buf = NULL;
+	strm->blocking = 1;
 
 	obj = szl_new_stream(interp, strm, "file");
 	if (!obj) {
@@ -257,8 +268,10 @@ enum szl_res szl_io_proc_open(struct szl_interp *interp,
 		return SZL_ERR;
 
 	fp = fopen(path, rmode);
-	if (!fp)
+	if (!fp) {
+		szl_set_result_str(interp, strerror(errno), -1);
 		return SZL_ERR;
+	}
 
 	if (!szl_new_file(interp, fp, bmode, 0)) {
 		fclose(fp);
@@ -291,8 +304,10 @@ enum szl_res szl_io_proc_fdopen(struct szl_interp *interp,
 		return SZL_ERR;
 
 	fp = fdopen((int)fd, rmode);
-	if (!fp)
+	if (!fp) {
+		szl_set_result_str(interp, strerror(errno), -1);
 		return SZL_ERR;
+	}
 
 	if (!szl_new_file(interp, fp, bmode, 0)) {
 		fclose(fp);
@@ -313,8 +328,10 @@ enum szl_res szl_io_proc_dup(struct szl_interp *interp,
 		return SZL_ERR;
 
 	fd = (szl_int)dup((int)fd);
-	if (fd < 0)
+	if (fd < 0) {
+		szl_set_result_str(interp, strerror(errno), -1);
 		return SZL_ERR;
+	}
 
 	return szl_set_result_int(interp, fd);
 }
@@ -334,6 +351,7 @@ int szl_io_wrap_stream(struct szl_interp *interp, FILE *fp, const char *name)
 	strm->closed = 0;
 	strm->priv = fp;
 	strm->buf = NULL;
+	strm->blocking = 1;
 
 	obj = szl_new_stream(interp, strm, "stream");
 	if (!obj) {
