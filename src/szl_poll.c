@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/epoll.h>
+#include <errno.h>
 
 #include "szl.h"
 
@@ -34,17 +35,47 @@ enum szl_res szl_poll_poll_proc(struct szl_interp *interp,
                                  struct szl_obj **objv)
 {
 	struct epoll_event ev = {0}, *evs;
-	const char *op;
+	const char *op, *evtype;
 	struct szl_obj *list, *r, *w, *e;
 	szl_int fd, n, i, j;
-	int out, efd = (int)(intptr_t)objv[0]->priv;
+	int k, out, efd = (int)(intptr_t)objv[0]->priv;
 
 	op = szl_obj_str(interp, objv[1], NULL);
 	if (!op)
 		return SZL_ERR;
 
-	if (objc == 3) {
-		if (strcmp("add", op) == 0) {
+	if ((objc >= 4) && (strcmp("add", op) == 0)) {
+		if (!szl_obj_int(interp, objv[2], &fd))
+			return SZL_ERR;
+
+		if ((fd < 0) || (fd > INT_MAX)) {
+			szl_set_result_str(interp, "bad fd", -1);
+			return SZL_ERR;
+		}
+
+		ev.events = 0;
+		for (k = 3; k < objc; ++k) {
+			evtype = szl_obj_str(interp, objv[k], NULL);
+			if (!evtype)
+				return SZL_ERR;
+
+			if ((strcmp("in", evtype) == 0) && !(ev.events & EPOLLIN))
+				ev.events |= EPOLLIN;
+			else if ((strcmp("out", evtype) == 0) && !(ev.events & EPOLLOUT))
+				ev.events |= EPOLLOUT;
+			else
+				return szl_usage(interp, objv[0]);
+		}
+
+		ev.data.fd = (int)fd;
+		if ((epoll_ctl(efd, EPOLL_CTL_ADD, (int)fd, &ev) < 0) &&
+			(errno != EEXIST))
+			return SZL_ERR;
+
+		return SZL_OK;
+	}
+	else if (objc == 3) {
+		if (strcmp("remove", op) == 0) {
 			if (!szl_obj_int(interp, objv[2], &fd))
 				return SZL_ERR;
 
@@ -53,22 +84,8 @@ enum szl_res szl_poll_poll_proc(struct szl_interp *interp,
 				return SZL_ERR;
 			}
 
-			ev.events = EPOLLIN | EPOLLOUT;
-			ev.data.fd = (int)fd;
-			if (epoll_ctl(efd, EPOLL_CTL_ADD, (int)fd, &ev) < 0)
-				return SZL_ERR;
-
-			return SZL_OK;
-		} else if (strcmp("remove", op) == 0) {
-			if (!szl_obj_int(interp, objv[2], &fd))
-				return SZL_ERR;
-
-			if ((fd < 0) || (fd > INT_MAX)) {
-				szl_set_result_str(interp, "bad fd", -1);
-				return SZL_ERR;
-			}
-
-			if (epoll_ctl(efd, EPOLL_CTL_DEL, (int)fd, NULL) < 0)
+			if ((epoll_ctl(efd, EPOLL_CTL_DEL, (int)fd, NULL) < 0) &&
+			    (errno != ENOENT))
 				return SZL_ERR;
 
 			return SZL_OK;
@@ -190,8 +207,8 @@ enum szl_res szl_poll_proc_create(struct szl_interp *interp,
 	proc = szl_new_proc(interp,
 	                    name,
 	                    3,
-	                    3,
-	                    "poll add|remove|wait handle|lim",
+	                    5,
+	                    "poll add|remove|wait handle|lim|event...",
 	                    szl_poll_poll_proc,
 	                    szl_poll_poll_del,
 	                    (void *)(intptr_t)fd);

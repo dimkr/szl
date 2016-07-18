@@ -835,17 +835,23 @@ data.
 Socket I/O Multiplexing
 +++++++++++++++++++++++
 +poll.create+::
-	Creates a new set of polled sockets.
+	Creates a new set of polled sockets and timers.
 
-+$poll+ 'add handle'::
-	Adds a socket handle to a set.
++$poll+ 'add handle event...'::
+	Adds a handle to a set and enables monitoring of specific events. Currently
+	supported event types are 'in' (data available for immediate 'read') and
+	'out' (ability to 'write' without waiting).
 
 +$poll+ 'remove handle'::
-	Removes a socket handle from a set.
+	Removes a handle from a set.
 
 +$poll+ 'wait lim'::
-	Waits for up to 'lim' socket events and returns three lists of socket
+	Waits for up to 'lim' socket or timer events and returns three lists of
 	handles: those ready for reading, writing or error handling.
+
++timer+ 'interval'::
+	Creates a non-readable stream, which triggers an 'in' event after 'interval'
+	seconds.
 
 Processes
 ^^^^^^^^^
