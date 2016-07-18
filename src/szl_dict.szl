@@ -20,8 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-load zlib
-
 proc dict.new {
 	local d {}
 	for {k v} $@ {dict.set d $k $v}
@@ -29,23 +27,31 @@ proc dict.new {
 }
 
 proc dict.set {
-	list.append $1 [zlib.crc32 $2]
-	list.append $1 $3
+	local i 0
+
+	for {key value} [get $1] {
+		if [test $key == $2] {
+			list.set $1 [calc $i + 1] $3
+			return
+		}
+		local i [calc $i + 2]
+	}
+
 	list.append $1 $2
+	list.append $1 $3
 }
 
 proc dict.items {
 	local i {}
-	for {key value name} $1 {
-		list.append i $name
+	for {key value} $1 {
+		list.append i $key
 		list.append i $value
 	}
 	return $i
 }
 
 proc dict.get {
-	local hash [zlib.crc32 $2]
-	for {key value name} $1 {if [test $key == $hash] {return $value}}
+	for {key value} $1 {if [test $key == $2] {return $value}}
 	if [test $# == 3] {return $3}
 	throw [str.format {missing key: {}} $2]
 }
