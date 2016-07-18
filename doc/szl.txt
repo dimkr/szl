@@ -477,6 +477,15 @@ puts $fruits
 puts [str.format {three fruits: {}} [list.join , {apple orange pear}]]
 --------------------------------------
 
++list.set+ 'name index item'::
+	Replace a list item.
+
+--------------------------------------
+local fruits {apple orange}
+list.set fruits 1 banana
+puts $fruits
+--------------------------------------
+
 +list.extend+ 'name list'::
 	Adds all items in a list to an existing list.
 

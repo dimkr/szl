@@ -24,6 +24,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "szl.h"
 
@@ -57,6 +58,30 @@ enum szl_res szl_list_proc_append(struct szl_interp *interp,
 		return SZL_ERR;
 
 	if (!szl_lappend(interp, list, objv[2])) {
+		szl_obj_unref(list);
+		return SZL_ERR;
+	}
+
+	szl_obj_unref(list);
+	return SZL_OK;
+}
+
+static
+enum szl_res szl_list_proc_set(struct szl_interp *interp,
+                               const int objc,
+                               struct szl_obj **objv)
+{
+	struct szl_obj *list;
+	szl_int index;
+
+	if (!szl_obj_int(interp, objv[2], &index))
+		return SZL_ERR;
+
+	list = szl_get(interp, objv[1]);
+	if (!list)
+		return SZL_ERR;
+
+	if (!szl_lset(interp, list, index, objv[3])) {
 		szl_obj_unref(list);
 		return SZL_ERR;
 	}
@@ -345,6 +370,14 @@ int szl_init_list(struct szl_interp *interp)
 	                      3,
 	                      "list.append name item",
 	                      szl_list_proc_append,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "list.set",
+	                      4,
+	                      4,
+	                      "list.set name index item",
+	                      szl_list_proc_set,
 	                      NULL,
 	                      NULL)) &&
 	        (szl_new_proc(interp,

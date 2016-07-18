@@ -33,6 +33,7 @@ proc puts {
 	if [test $# != 1] {throw {bad puts usage: puts msg}}
 	$stdout write $1
 	if [test [str.tail $1] != \n] {$stdout write $newline}
+	return {}
 }
 
 proc dup {
