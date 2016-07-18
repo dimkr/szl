@@ -336,6 +336,14 @@ Objects
 test [echo 5] == 5
 --------------------------------------
 
++get+ 'name'::
+	Returns the variable named 'name'.
+
+--------------------------------------
+local a 5
+test [get a] == 5
+--------------------------------------
+
 Variables
 +++++++++
 +local+ 'name val'::

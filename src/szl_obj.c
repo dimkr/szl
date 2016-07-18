@@ -118,6 +118,20 @@ enum szl_res szl_obj_proc_echo(struct szl_interp *interp,
 }
 
 static
+enum szl_res szl_obj_proc_get(struct szl_interp *interp,
+                              const int objc,
+                              struct szl_obj **objv)
+{
+	struct szl_obj *obj;
+
+	obj = szl_get(interp, objv[1]);
+	if (!obj)
+		return SZL_ERR;
+
+	return szl_set_result(interp, obj);
+}
+
+static
 enum szl_res szl_obj_proc_list_vars(struct szl_interp *interp,
                                     struct szl_obj *proc)
 {
@@ -194,6 +208,14 @@ int szl_init_obj(struct szl_interp *interp)
 	                      2,
 	                      "echo obj",
 	                      szl_obj_proc_echo,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "get",
+	                      2,
+	                      2,
+	                      "get name",
+	                      szl_obj_proc_get,
 	                      NULL,
 	                      NULL)) &&
 	        (szl_new_proc(interp,
