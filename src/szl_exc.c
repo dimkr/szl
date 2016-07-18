@@ -114,7 +114,9 @@ enum szl_res szl_exc_proc_throw(struct szl_interp *interp,
                                 const int objc,
                                 struct szl_obj **objv)
 {
-	szl_set_result(interp, szl_obj_ref(objv[1]));
+	if (objc == 2)
+		szl_set_result(interp, szl_obj_ref(objv[1]));
+
 	return SZL_ERR;
 }
 
