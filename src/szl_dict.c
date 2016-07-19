@@ -59,25 +59,13 @@ enum szl_res szl_dict_proc_get(struct szl_interp *interp,
                                const int objc,
                                struct szl_obj **objv)
 {
-	struct szl_obj **items;
-	size_t n, i;
-	int eq;
+	struct szl_obj *v;
 
-	if (!szl_obj_list(interp, objv[1], &items, &n))
+	if (!szl_dget(interp, objv[1], objv[2], &v))
 		return SZL_ERR;
 
-	if (n % 2 == 1) {
-		szl_set_result_str(interp, "bad dict", -1);
-		return SZL_ERR;
-	}
-
-	for (i = 0; i < n; i += 2) {
-		if (!szl_obj_eq(interp, items[i], objv[2], &eq))
-			return SZL_ERR;
-
-		if (eq)
-			return szl_set_result(interp, szl_obj_ref(items[i + 1]));
-	}
+	if (v)
+		return szl_set_result(interp, v);
 
 	if (objc == 4)
 		return szl_set_result(interp, szl_obj_ref(objv[3]));
@@ -90,35 +78,7 @@ enum szl_res szl_dict_proc_set(struct szl_interp *interp,
                                const int objc,
                                struct szl_obj **objv)
 {
-	struct szl_obj **items;
-	size_t n, i;
-	int eq;
-
-	if (!szl_obj_list(interp, objv[1], &items, &n))
-		return SZL_ERR;
-
-	if (n % 2 == 1) {
-		szl_set_result_str(interp, "bad dict", -1);
-		return SZL_ERR;
-	}
-
-	for (i = 0; i < n; i += 2) {
-		if (!szl_obj_eq(interp, items[i], objv[2], &eq))
-			return SZL_ERR;
-
-		if (eq) {
-			if (!szl_lset(interp, objv[1], (szl_int)i + 1, objv[3]))
-				return SZL_ERR;
-
-			return SZL_OK;
-		}
-	}
-
-	if (!szl_lappend(interp, objv[1], objv[2]) ||
-	    !szl_lappend(interp, objv[1], objv[3]))
-		return SZL_ERR;
-
-	return SZL_OK;
+	return szl_dset(interp, objv[1], objv[2], objv[3]) ? SZL_OK : SZL_ERR;
 }
 
 int szl_init_dict(struct szl_interp *interp)

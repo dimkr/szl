@@ -34,7 +34,7 @@ proc szl.shell {
 		local exp [linenoise.read {>>> }]
 
 		while {[test [test [str.count $exp $obrace] != [str.count $exp $cbrace]] || [test [str.count $exp $obracket] != [str.count $exp $cbracket]]]} {
-			str.append exp [linenoise.read {... }]
+			str.append $exp [linenoise.read {... }]
 		}
 
 		if $exp {

@@ -140,27 +140,14 @@ enum szl_res szl_str_proc_append(struct szl_interp *interp,
                                  const int objc,
                                  struct szl_obj **objv)
 {
-	struct szl_obj *obj;
 	const char *s;
 	size_t len;
-	enum szl_res res = SZL_OK;
-
-	obj = szl_get(interp, objv[1]);
-	if (!obj)
-		return SZL_ERR;
 
 	s = szl_obj_str(interp, objv[2], &len);
-	if (s) {
-		if (len) {
-			if (!szl_append(interp, obj, s, len))
-				res = SZL_ERR;
-		}
-	}
-	else
-		res = SZL_ERR;
+	if (!s || (len && !szl_append(interp, objv[1], s, len)))
+		return SZL_ERR;
 
-	szl_obj_unref(obj);
-	return res;
+	return SZL_OK;
 }
 
 static
@@ -534,7 +521,7 @@ int szl_init_str(struct szl_interp *interp)
 	                      "str.append",
 	                      3,
 	                      3,
-	                      "str.append name str",
+	                      "str.append str str",
 	                      szl_str_proc_append,
 	                      NULL,
 	                      NULL)) &&

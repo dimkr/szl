@@ -181,9 +181,8 @@ enum szl_res szl_loop_map(struct szl_interp *interp,
 {
 	struct szl_block body;
 	char *exp;
-	const char *name;
 	struct szl_obj **names, **toks, *obj = NULL;
-	size_t elen, nlen, i, j, ntoks, nnames;
+	size_t elen, i, j, ntoks, nnames;
 	enum szl_res res, resi;
 
 	if (!szl_obj_list(interp, objv[1], &names, &nnames) || !nnames)
@@ -220,16 +219,7 @@ enum szl_res szl_loop_map(struct szl_interp *interp,
 
 	for (i = 0; i <= ntoks - nnames; i += nnames) {
 		for (j = 0; j < nnames; ++j) {
-			name = szl_obj_str(interp, names[j], &nlen);
-			if (!name || !nlen) {
-				if (obj)
-					szl_obj_unref(obj);
-				szl_free_block(&body);
-				free(exp);
-				return SZL_ERR;
-			}
-
-			resi = szl_local(interp, interp->current, name, toks[i + j]);
+			resi = szl_local(interp, interp->current, names[j], toks[i + j]);
 			if (!resi) {
 				if (obj)
 					szl_obj_unref(obj);

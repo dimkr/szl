@@ -16,8 +16,9 @@ shell. It follows five design principles:
    effect, to make the language easier to learn
 2. Minimal syntax is not enough for code clarity; it also has to be *consistent*
    and therefore *predictable*
-- Everything is a string
 - Every statement is a procedure call
+- Everything is an object
+- Every object is a string
 3. Minimal standard library, but comprehensive and useful enough to allow the
    addition of more complex operations
 4. One-liners are first-class citizens and *not* frowned upon
@@ -377,12 +378,6 @@ If a procedure uses 'local' to define a local variable with the same name as
 a previously defined global variable, attempts to obtain the variable value from
 within the procedure will refer to the local variable.
 
-+locals+::
-	Returns a unique list of objects in the local scope.
-
-+globals+::
-	Returns a unique list of objects in the global scope.
-
 String Operations
 +++++++++++++++++
 +str.length+ 'str'::
@@ -461,12 +456,12 @@ puts [list.in $fruits orange]
 puts [list.in $fruits melon]
 --------------------------------------
 
-+list.append+ 'name item'::
++list.append+ 'list item'::
 	Appends an object to a list.
 
 --------------------------------------
 local fruits {apple orange}
-list.append fruits pear
+list.append $fruits pear
 puts $fruits
 --------------------------------------
 
@@ -477,21 +472,21 @@ puts $fruits
 puts [str.format {three fruits: {}} [list.join , {apple orange pear}]]
 --------------------------------------
 
-+list.set+ 'name index item'::
++list.set+ 'list index item'::
 	Replace a list item.
 
 --------------------------------------
 local fruits {apple orange}
-list.set fruits 1 banana
+list.set $fruits 1 banana
 puts $fruits
 --------------------------------------
 
-+list.extend+ 'name list'::
++list.extend+ 'list list'::
 	Adds all items in a list to an existing list.
 
 --------------------------------------
 local fruits {apple orange}
-list.extend fruits {pear banana}
+list.extend $fruits {pear banana}
 puts $fruits
 --------------------------------------
 
@@ -884,17 +879,14 @@ Processes
 	Returns the process ID of the +szl+ interpreter.
 
 +exec+ 'cmd'::
-	Runs a shell command, waits for it to terminate and returns its output. In
-	addition, the process exit code is put in the special variable '?', in the
-	scope of the calling procedure.
+	Runs a shell command, waits for it to terminate and returns its exit code
+	and output.
 
 [TIP]
 'exec' passes 'cmd' to the default shell, so 'cmd' may rely on shell features
 such as redirection (e.g. '2>&1'):
 --------------------------------------
-exec {uname -a 2>&1}
-local os $_
-puts $?
+puts [exec {uname -a 2>&1}]
 --------------------------------------
 
 Signals
@@ -974,7 +966,7 @@ such as http://www.libressl.org/[LibreSSL].
 
 +tls.connect+ 'handle'::
 +tls.accept+ 'handle cert priv'::
-	Performs TLS handshake via an existing, connected socket and returns a new
+	Starts a TLS handshake via an existing, connected socket and returns a new
 	stream.
 
 curl
@@ -1008,6 +1000,14 @@ puts [list.index [http.get httpbin.org 443 1 /get [dict.new a {123 456} b 789]] 
 
 +http.post+ 'host port tls url params'::
 	Similar to 'http.get', but sends a 'POST' request instead.
+
++http.server+ 'host port backlog timeout'::
+	Runs a HTTP server which listens on 'host:port', with a queue of up to
+	'backlog' incoming clients and a timeout of 'timeout' seconds for each
+	connection.
+
++http.tls_server+ 'host port backlog timeout cert priv'::
+	Runs a HTTPS server.
 
 +$http.codes+::
 	A dictionary that maps HTTP status codes (e.g. '200') to their textual

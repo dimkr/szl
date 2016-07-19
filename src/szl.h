@@ -101,12 +101,6 @@
 #	define SZL_OBJV_OBJECT_NAME "@"
 
 /**
- * @def SZL_OBJC_OBJECT_NAME
- * The name of the special object containing the argument count of a procedure
- */
-#	define SZL_OBJC_OBJECT_NAME "#"
-
-/**
  * @def SZL_PREV_RET_OBJ_NAME
  * The name of the special object containing the previously called procedure's
  * return value
@@ -251,8 +245,7 @@ struct szl_obj {
 	int min_argc; /**< The minimum number of arguments to @ref proc or -1 */
 	int max_argc; /**< The maximum number of arguments to @ref proc or -1 */
 	const char *help; /**< A usage message shown if the number of arguments is below @ref min_argc or above @ref max_argc */
-	struct szl_local **locals; /**< Local procedure variables */
-	size_t nlocals; /**< The number of elements in @ref locals */
+	struct szl_obj *locals; /**< Local procedure variables */
 	struct szl_obj *caller; /**< The calling procedure */
 };
 
@@ -275,6 +268,7 @@ struct szl_interp {
 	struct szl_obj *zero; /**< A 0 integer singleton */
 	struct szl_obj *one; /**< A 1 integer singleton */
 	struct szl_obj *space; /**< A space singleton */
+	struct szl_obj *objv_name; /**< The name of the procedure arguments list */
 	struct szl_obj *null; /**< The null stream singleton */
 	struct szl_obj *last; /**< The return value of the last statement executed */
 
@@ -552,7 +546,7 @@ int szl_new_const_int(struct szl_interp *interp,
  * frame
  */
 #	define szl_caller(interp) \
-	interp->current->caller ? interp->current->caller : interp->current
+	(interp->current->caller ? interp->current->caller : interp->current)
 
 /**
  * @}
@@ -575,7 +569,6 @@ int szl_new_const_int(struct szl_interp *interp,
  * @return 1 or 0
  */
 int szl_split(struct szl_interp *interp, char *s, char ***argv, int *argc);
-
 
 /**
  * @fn int szl_append(struct szl_interp *interp,
@@ -657,19 +650,38 @@ int szl_lappend_int(struct szl_interp *interp,
                     const szl_int i);
 
 /**
- * @fn int szl_sappend(struct szl_interp *interp,
- *                     struct szl_obj *set,
- *                     struct szl_obj *item);
- * @brief Appends an object to a unique list object
+ * @fn int szl_dget(struct szl_interp *interp,
+ *                  struct szl_obj *dict,
+ *                  struct szl_obj *k,
+ *                  struct szl_obj **v)
+ * @brief Fetches a dictionary item by its key
  * @param interp [in,out] An interpreter
- * @param set [in,out] The unique list
- * @param item [in,out] The object
+ * @param dict [in,out] The dictionary object
+ * @param k [in,out] The key
+ * @param v [out] The value
  * @return 1 or 0
  */
-int szl_sappend(struct szl_interp *interp,
-                struct szl_obj *set,
-                struct szl_obj *item);
+int szl_dget(struct szl_interp *interp,
+             struct szl_obj *dict,
+             struct szl_obj *k,
+             struct szl_obj **v);
 
+/**
+ * @fn int szl_dset(struct szl_interp *interp,
+ *                  struct szl_obj *dict,
+ *                  struct szl_obj *k,
+ *                  struct szl_obj *v)
+ * @brief Sets a dictionary item
+ * @param interp [in,out] An interpreter
+ * @param dict [in,out] The dictionary object
+ * @param k [in,out] The key
+ * @param v [in,out] The value
+ * @return 1 or 0
+ */
+int szl_dset(struct szl_interp *interp,
+             struct szl_obj *dict,
+             struct szl_obj *k,
+             struct szl_obj *v);
 
 /**
  * @fn struct szl_obj *szl_join(struct szl_interp *interp,
@@ -777,6 +789,23 @@ int szl_obj_list(struct szl_interp *interp,
                  size_t *objc);
 
 /**
+ * @fn int szl_obj_dict(struct szl_interp *interp,
+ *                      struct szl_obj *obj,
+ *                      struct szl_obj ***objv,
+ *                      size_t *objc)
+ * @brief Returns the dictionary representation of an object
+ * @param interp [in,out] An interpreter
+ * @param obj [in,out] The object
+ * @param objv [out] An array of dictionary keys and values
+ * @param objc [out] The number of dictionary keys and values
+ * @return 1 or 0
+ */
+int szl_obj_dict(struct szl_interp *interp,
+                 struct szl_obj *obj,
+                 struct szl_obj ***objv,
+                 size_t *objc);
+
+/**
  * @fn int szl_obj_hash(struct szl_interp *interp,
  *                      struct szl_obj *obj,
  *                      szl_hash *hash)
@@ -839,7 +868,8 @@ struct szl_stream_ops {
 	ssize_t (*read)(struct szl_interp *,
 	                void *,
 	                unsigned char *,
-	                const size_t); /**< Reads a buffer from the stream */
+	                const size_t,
+	                int *); /**< Reads a buffer from the stream */
 	ssize_t (*write)(struct szl_interp *,
 	                 void *,
 	                 const unsigned char *,
@@ -1004,39 +1034,60 @@ enum szl_res szl_usage(struct szl_interp *interp, struct szl_obj *proc);
  */
 
 /**
- * @fn struct szl_obj *szl_get(struct szl_interp *interp, struct szl_obj *name)
+ * @fn int szl_get(struct szl_interp *interp,
+ *                 struct szl_obj *name,
+ *                 struct szl_obj **obj)
  * @brief Searches for an object by name and returns a new reference to it
  * @param interp [in,out] An interpreter
  * @param name [in,out] The object name
- * @return A new reference to the object or NULL
+ * @param obj [out] The object
+ * @return 1 or 0
  */
-struct szl_obj *szl_get(struct szl_interp *interp, struct szl_obj *name);
+int szl_get(struct szl_interp *interp,
+            struct szl_obj *name,
+            struct szl_obj **obj);
 
 /**
  * @fn struct szl_obj *szl_get_byname(struct szl_interp *interp,
- *                                    const char *name)
+ *                                    const char *name,
+ *                                    struct szl_obj **obj)
  * @brief Same as @ref szl_get, but accepts a C string instead of a string
  *        object
  */
-struct szl_obj *szl_get_byname(struct szl_interp *interp, const char *name);
+int szl_get_byname(struct szl_interp *interp,
+                   const char *name,
+                   struct szl_obj **obj);
 
 /**
  * @fn int szl_local(struct szl_interp *interp,
  *                   struct szl_obj *proc,
- *                   const char *name,
+ *                   struct szl_obj *name,
  *                   struct szl_obj *obj)
  * @brief Registers an existing object with a given name, in the scope of a
  *        procedure
  * @param interp [in,out] An interpreter
  * @param proc [in] The procedure
- * @param name [in] The object name
+ * @param name [in,out] The object name
  * @param obj [in,out] The object
  * @return 1 or 0
  */
 int szl_local(struct szl_interp *interp,
               struct szl_obj *proc,
-              const char *name,
+              struct szl_obj *name,
               struct szl_obj *obj);
+
+/**
+ * @fn int szl_local_byname(struct szl_interp *interp,
+ *                          struct szl_obj *proc,
+ *                          const char *name,
+ *                          struct szl_obj *obj)
+ * @brief Same as @ref szl_local, but accepts a C string instead of a string
+ *        object
+ */
+int szl_local_byname(struct szl_interp *interp,
+                     struct szl_obj *proc,
+                     const char *name,
+                     struct szl_obj *obj);
 
 /**
  * @}

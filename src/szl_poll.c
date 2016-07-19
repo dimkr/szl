@@ -26,6 +26,7 @@
 #include <string.h>
 #include <sys/epoll.h>
 #include <errno.h>
+#include <unistd.h>
 
 #include "szl.h"
 

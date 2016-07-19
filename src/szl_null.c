@@ -30,7 +30,8 @@ static
 ssize_t szl_null_read(struct szl_interp *interp,
                       void *priv,
                       unsigned char *buf,
-                      const size_t len)
+                      const size_t len,
+                      int *more)
 {
 	return 0;
 }

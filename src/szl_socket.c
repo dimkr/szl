@@ -41,7 +41,8 @@ static
 ssize_t szl_socket_read(struct szl_interp *interp,
                         void *priv,
                         unsigned char *buf,
-                        const size_t len)
+                        const size_t len,
+                        int *more)
 {
 	ssize_t out;
 
@@ -52,7 +53,8 @@ ssize_t szl_socket_read(struct szl_interp *interp,
 
 		szl_set_result_str(interp, strerror(errno), -1);
 		return -1;
-	}
+	} else if (out == 0)
+		*more = 0;
 
 	return out;
 }

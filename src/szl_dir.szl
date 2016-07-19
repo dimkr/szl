@@ -21,7 +21,7 @@
 # THE SOFTWARE.
 
 proc dir.rdelete {
-	if [test $# != 1] {throw {bad dir.rdelete usage: dir.rdelete path}}
+	if [test [list.length $@] != 1] {throw {bad dir.rdelete usage: dir.rdelete path}}
 
 	local names [dir.list $1]
 	local dirs {}
@@ -33,10 +33,10 @@ proc dir.rdelete {
 
 		for dir $subdirs {
 			local subnames [dir.list $dir]
-			list.extend next_subdirs [map name [list.index $subnames 0] {str.join $path.sep $dir $name}]
-			list.extend files [map name [list.index $subnames 1] {str.join $path.sep $dir $name}]
+			list.extend $next_subdirs [map name [list.index $subnames 0] {str.join $path.sep $dir $name}]
+			list.extend $files [map name [list.index $subnames 1] {str.join $path.sep $dir $name}]
 
-			list.append dirs $dir
+			list.append $dirs $dir
 		}
 
 		if [not $next_subdirs] break

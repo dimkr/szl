@@ -40,7 +40,8 @@ static
 ssize_t szl_file_read(struct szl_interp *interp,
                       void *priv,
                       unsigned char *buf,
-                      const size_t len)
+                      const size_t len,
+                      int *more)
 {
 	size_t ret;
 
@@ -51,6 +52,9 @@ ssize_t szl_file_read(struct szl_interp *interp,
 			return -1;
 		}
 	}
+
+	if (ret < len)
+		*more = 0;
 
 	return (ssize_t)ret;
 }
@@ -339,12 +343,18 @@ enum szl_res szl_io_proc_dup(struct szl_interp *interp,
 static
 int szl_io_wrap_stream(struct szl_interp *interp, FILE *fp, const char *name)
 {
-	struct szl_obj *obj;
+	struct szl_obj *nameo, *obj;
 	struct szl_stream *strm;
 
-	strm = (struct szl_stream *)malloc(sizeof(struct szl_stream));
-	if (!strm)
+	nameo = szl_new_str(name, -1);
+	if (!nameo)
 		return 0;
+
+	strm = (struct szl_stream *)malloc(sizeof(struct szl_stream));
+	if (!strm) {
+		szl_obj_unref(nameo);
+		return 0;
+	}
 
 	strm->ops = &szl_file_ops;
 	strm->keep = 1;
@@ -356,16 +366,19 @@ int szl_io_wrap_stream(struct szl_interp *interp, FILE *fp, const char *name)
 	obj = szl_new_stream(interp, strm, "stream");
 	if (!obj) {
 		szl_stream_free(strm);
+		szl_obj_unref(nameo);
 		return 0;
 	}
 
 	if ((!isatty(fileno(fp)) && !szl_io_enable_fbf(strm, fp)) ||
-	    !szl_local(interp, interp->global, name, obj)) {
+	    !szl_local(interp, interp->global, nameo, obj)) {
 		szl_obj_unref(obj);
+		szl_obj_unref(nameo);
 		return 0;
 	}
 
 	szl_obj_unref(obj);
+	szl_obj_unref(nameo);
 	return 1;
 }
 

@@ -29,14 +29,8 @@ enum szl_res szl_obj_proc_global(struct szl_interp *interp,
                                  const int objc,
                                  struct szl_obj **objv)
 {
-	const char *s;
-
-	s = szl_obj_str(interp, objv[1], NULL);
-	if (!s)
-		return SZL_ERR;
-
 	/* return the value upon success - useful for one-liners */
-	if (szl_local(interp, interp->global, s, objv[2]))
+	if (szl_local(interp, interp->global, objv[1], objv[2]))
 		return szl_set_result(interp, szl_obj_ref(objv[2]));
 
 	return SZL_ERR;
@@ -47,14 +41,8 @@ enum szl_res szl_obj_proc_local(struct szl_interp *interp,
                                 const int objc,
                                 struct szl_obj **objv)
 {
-	const char *name;
-
-	name = szl_obj_str(interp, objv[1], NULL);
-	if (!name)
-		return SZL_ERR;
-
 	/* see the comment in szl_obj_proc_set() */
-	if (szl_local(interp, interp->current->caller, name, objv[2]))
+	if (szl_local(interp, interp->current->caller, objv[1], objv[2]))
 		return szl_set_result(interp, szl_obj_ref(objv[2]));
 
 	return SZL_ERR;
@@ -66,17 +54,12 @@ enum szl_res szl_obj_proc_export(struct szl_interp *interp,
                                 struct szl_obj **objv)
 {
 	struct szl_obj *val;
-	const char *name;
 	int resi, ref = 0;
 
-	name = szl_obj_str(interp, objv[1], NULL);
-	if (!name)
-		return SZL_ERR;
-
 	if (objc == 2) {
-		val = szl_get(interp, objv[1]);
-		if (!val)
+		if (!szl_get(interp, objv[1], &val) || !val)
 			return SZL_ERR;
+
 		ref = 1;
 	}
 	else
@@ -84,10 +67,12 @@ enum szl_res szl_obj_proc_export(struct szl_interp *interp,
 
 	if (!interp->current->caller->caller) {
 		szl_set_result_str(interp, "cannot export from global scope", -1);
+		if (ref)
+			szl_obj_unref(val);
 		return SZL_ERR;
 	}
 
-	resi = szl_local(interp, interp->current->caller->caller, name, val);
+	resi = szl_local(interp, interp->current->caller->caller, objv[1], val);
 	if (ref)
 		szl_obj_unref(val);
 
@@ -124,48 +109,10 @@ enum szl_res szl_obj_proc_get(struct szl_interp *interp,
 {
 	struct szl_obj *obj;
 
-	obj = szl_get(interp, objv[1]);
-	if (!obj)
+	if (!szl_get(interp, objv[1], &obj) || !obj)
 		return SZL_ERR;
 
 	return szl_set_result(interp, obj);
-}
-
-static
-enum szl_res szl_obj_proc_list_vars(struct szl_interp *interp,
-                                    struct szl_obj *proc)
-{
-	struct szl_obj *list;
-	size_t i;
-
-	list = szl_new_empty();
-	if (!list)
-		return SZL_ERR;
-
-	for (i = 0; i < proc->nlocals; ++i) {
-		if (!szl_sappend(interp, list, proc->locals[i]->obj)) {
-			szl_obj_unref(list);
-			return SZL_ERR;
-		}
-	}
-
-	return szl_set_result(interp, list);
-}
-
-static
-enum szl_res szl_obj_proc_locals(struct szl_interp *interp,
-                                 const int objc,
-                                 struct szl_obj **objv)
-{
-	return szl_obj_proc_list_vars(interp, szl_caller(interp));
-}
-
-static
-enum szl_res szl_obj_proc_globals(struct szl_interp *interp,
-                                 const int objc,
-                                 struct szl_obj **objv)
-{
-	return szl_obj_proc_list_vars(interp, interp->global);
 }
 
 int szl_init_obj(struct szl_interp *interp)
@@ -216,22 +163,6 @@ int szl_init_obj(struct szl_interp *interp)
 	                      2,
 	                      "get name",
 	                      szl_obj_proc_get,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "locals",
-	                      1,
-	                      1,
-	                      "locals",
-	                      szl_obj_proc_locals,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "globals",
-	                      1,
-	                      1,
-	                      "globals",
-	                      szl_obj_proc_globals,
 	                      NULL,
 	                      NULL)));
 }

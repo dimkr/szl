@@ -27,25 +27,23 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <paths.h>
-#include <stdio.h>
 
 #include "szl.h"
 
 #define SZL_EXEC_BUFSIZ BUFSIZ
-#define SZL_EXIT_CODE_OBJ_NAME "?"
 
 static
 enum szl_res szl_proc_proc_exec(struct szl_interp *interp,
                                 const int objc,
                                 struct szl_obj **objv)
 {
-	struct szl_obj *obj;
+	struct szl_obj *list, *str;
 	char *buf, *mbuf;
 	const char *cmd;
 	struct szl_obj *exit_code;
 	size_t len, mlen, rlen;
 	pid_t pid;
-	int fds[2], out, status, resi;
+	int fds[2], out, status;
 	ssize_t clen;
 	enum szl_res res = SZL_OK;
 
@@ -53,14 +51,21 @@ enum szl_res szl_proc_proc_exec(struct szl_interp *interp,
 	if (!cmd || !len)
 		return SZL_ERR;
 
-	if (pipe(fds) < 0)
+	list = szl_new_empty();
+	if (!list)
 		return SZL_ERR;
+
+	if (pipe(fds) < 0) {
+		szl_obj_unref(list);
+		return SZL_ERR;
+	}
 
 	pid = fork();
 	switch (pid) {
 		case -1:
 			close(fds[1]);
 			close(fds[0]);
+			szl_obj_unref(list);
 			return SZL_ERR;
 
 		case 0:
@@ -77,6 +82,7 @@ enum szl_res szl_proc_proc_exec(struct szl_interp *interp,
 	buf = (char *)malloc(SZL_EXEC_BUFSIZ + 1);
 	if (!buf) {
 		close(fds[0]);
+		szl_obj_unref(list);
 		return SZL_ERR;
 	}
 
@@ -108,46 +114,56 @@ enum szl_res szl_proc_proc_exec(struct szl_interp *interp,
 	close(fds[0]);
 
 	if (waitpid(pid, &status, 0) != pid) {
-		if (buf)
-			free(buf);
+		free(buf);
+		szl_obj_unref(list);
 		return SZL_ERR;
 	}
 
 	if (res != SZL_OK) {
-		if (buf)
-			free(buf);
+		free(buf);
+		szl_obj_unref(list);
 		return res;
 	}
 
 	if (!WIFEXITED(status)) {
-		if (buf)
-			free(buf);
+		free(buf);
+		szl_obj_unref(list);
 		return SZL_ERR;
 	}
 
 	exit_code = szl_new_int(WEXITSTATUS(status));
 	if (!exit_code) {
-		if (buf)
-			free(buf);
+		free(buf);
+		szl_obj_unref(list);
 		return SZL_ERR;
 	}
 
-	resi = szl_local(interp,
-	                 interp->current->caller,
-	                 SZL_EXIT_CODE_OBJ_NAME,
-	                 exit_code);
-	szl_obj_unref(exit_code);
-	if (!resi) {
+	if (!szl_lappend(interp, list, exit_code)) {
+		szl_obj_unref(exit_code);
 		free(buf);
+		szl_obj_unref(list);
 		return SZL_ERR;
 	}
+
+	szl_obj_unref(exit_code);
 
 	buf[rlen] = '\0';
-	obj = szl_new_str_noalloc(buf, rlen);
-	if (obj)
-		return szl_set_result(interp, obj);
+	str = szl_new_str_noalloc(buf, rlen);
+	if (!str) {
+		free(buf);
+		szl_obj_unref(list);
+		return SZL_ERR;
+	}
 
-	return SZL_ERR;
+	if (!szl_lappend(interp, list, str)) {
+		szl_obj_unref(str);
+		free(buf);
+		szl_obj_unref(list);
+		return SZL_ERR;
+	}
+
+	szl_obj_unref(str);
+	return szl_set_result(interp, list);
 }
 
 static
@@ -163,8 +179,7 @@ enum szl_res szl_proc_eval_proc(struct szl_interp *interp,
                                 const int objc,
                                 struct szl_obj **objv)
 {
-	char buf[SZL_MAX_OBJC_DIGITS + 1];
-	struct szl_obj *argv_obj, *argc_obj;
+	struct szl_obj *argv_obj, *arg_obj;
 	const char *s, *exp;
 	size_t len, elen;
 	int i, resi;
@@ -179,16 +194,6 @@ enum szl_res szl_proc_eval_proc(struct szl_interp *interp,
 	if (!exp || !elen)
 		return SZL_ERR;
 
-	/* create the $# object */
-	argc_obj = szl_new_int(objc - 1);
-	if (!argc_obj)
-		return SZL_ERR;
-
-	resi = szl_local(interp, interp->current, SZL_OBJC_OBJECT_NAME, argc_obj);
-	szl_obj_unref(argc_obj);
-	if (!resi)
-		return SZL_ERR;
-
 	/* create the $@ object */
 	argv_obj = szl_new_empty();
 	if (!argv_obj)
@@ -201,15 +206,18 @@ enum szl_res szl_proc_eval_proc(struct szl_interp *interp,
 		}
 	}
 
-	resi = szl_local(interp, interp->current, SZL_OBJV_OBJECT_NAME, argv_obj);
+	resi = szl_local(interp, interp->current, interp->objv_name, argv_obj);
 	szl_obj_unref(argv_obj);
 	if (!resi)
 		return SZL_ERR;
 
 	/* create the argument objects ($0, $1, ...) */
 	for (i = 0; i < objc; ++i) {
-		sprintf(buf, "%d", i);
-		if (!szl_local(interp, interp->current, buf, objv[i]))
+		arg_obj = szl_new_int((szl_int)i);
+		if (!arg_obj)
+			return SZL_ERR;
+
+		if (!szl_local(interp, interp->current, arg_obj, objv[i]))
 			return SZL_ERR;
 	}
 

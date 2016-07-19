@@ -22,6 +22,6 @@
 
 proc list.sum {
 	local sum {}
-	for list $@ {list.extend sum $list}
+	for list $@ {list.extend $sum $list}
 	return $sum
 }

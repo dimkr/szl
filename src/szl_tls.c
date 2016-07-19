@@ -37,7 +37,8 @@ static
 ssize_t szl_tls_read(struct szl_interp *interp,
                      void *priv,
                      unsigned char *buf,
-                     const size_t len)
+                     const size_t len,
+                     int *more)
 {
 	int out, err;
 
@@ -46,12 +47,14 @@ ssize_t szl_tls_read(struct szl_interp *interp,
 		return (ssize_t)out;
 
 	err = SSL_get_error((SSL *)priv, out);
-	switch (err) {
-		case SSL_ERROR_WANT_READ:
-		case SSL_ERROR_WANT_WRITE:
-		case SSL_ERROR_ZERO_RETURN:
-			return 0;
-	}
+
+	if (SSL_get_shutdown((SSL *)priv) & SSL_RECEIVED_SHUTDOWN)
+		*more = 0;
+
+	if ((err == SSL_ERROR_WANT_READ) ||
+	    (err == SSL_ERROR_WANT_WRITE) ||
+	    (err == SSL_ERROR_ZERO_RETURN))
+		return 0;
 
 	szl_set_result_str(interp, ERR_error_string(ERR_get_error(), NULL), -1);
 	return -1;

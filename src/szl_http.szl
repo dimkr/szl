@@ -23,6 +23,7 @@
 load tls
 load zlib
 load curl
+load server
 
 global http.meth_delim [str.expand \r\n\r\n]
 global http.hdr_newline [str.expand \r\n]
@@ -32,6 +33,7 @@ global http.post_fmt [str.expand {POST {} HTTP/1.1\nHost: {}\r\nContent-Length: 
 global http.response_fmt [str.expand {HTTP/1.1 {} {}\r\n{}\r\n\r\n{}}]
 global http.codes [dict.new 200 OK 301 {Moved Permanently} 400 {Bad Request} 401 Unauthorized 403 Forbidden 404 {Not Found} 405 {Method Not Allowed} 408 {Request Timeout} 500 {Internal Server Error}]
 global http.hdr_val_delim {, }
+global http.banner szl
 
 proc http.parse {
 	# separate headers from the body
@@ -52,12 +54,12 @@ proc http.parse {
 
 	# append the body to the result
 	if [test [dict.get $hdrs {Content-Encoding} {}] == gzip] {
-		list.append out [zlib.gunzip [list.index $resp 1]]
+		list.append $out [zlib.gunzip [list.index $resp 1]]
 	} else {
-		list.append out [list.index $resp 1]
+		list.append $out [list.index $resp 1]
 	}
 
-	list.append out $hdrs
+	list.append $out $hdrs
 	return $out
 }
 
@@ -95,4 +97,89 @@ proc http.get {
 proc http.post {
 	local cont [zlib.gzip [list.join & [map {k v} $5 {str.format {{}={}} $k [curl.encode $v]}]]]
 	http.request $1 $2 $3 [str.format $http.post_fmt $4 $1 [str.length $cont] $cont]
+}
+
+global index_url /index.html
+global response_cache [dict.new]
+
+proc http.respond {
+	try {
+		local request [http.parse $1]
+		local url [list.index $request 0]
+		if [str.in $url ..] throw
+		if [test $url == /] {export url $index_url}
+
+		try {
+			return [dict.get $response_cache $url]
+		}
+
+		local path [path.join . $url]
+		if [path.exists $path] {
+			export body [[open $path ru] read]
+			export status_code 200
+			export status_text [dict.get $http.codes 200]
+		} else {
+			export status_code 404
+			local body [dict.get $http.codes 404]
+			export body
+			export status_text $body
+		}
+
+		local len [str.length $body]
+		local cbody $body
+
+		if [list.in [dict.get [list.index $request 2] {Accept-Encoding} {}] gzip] {
+			export cbody [zlib.gzip $body 9]
+		}
+
+		local headers [dict.new Server $http.banner Connection close]
+
+		local clen [str.length $cbody]
+		if [test $clen < $len] {
+			dict.set $headers {Content-Encoding} gzip
+			export body $cbody
+			export len $clen
+		}
+
+		dict.set $headers {Content-Length} $len
+		local response [str.format $http.response_fmt $status_code $status_text [list.join $http.hdr_newline [map {k v} $headers {str.format {{}: {}} $k $v}]] $body]
+		dict.set $response_cache $url $response
+		export response
+	} except {
+		local error $_
+		export response [str.format $http.response_fmt 500 [dict.get $http.codes 500] {} [str.format {Server error: {}} $error]]
+	}
+
+	return $response
+}
+
+proc http.server {
+	proc http.accept {
+		$1 accept
+	}
+
+	server.tcp $1 $2 $http.accept $http.respond $3 $4
+}
+
+proc http.tls_server {
+	local tls_cert $5
+	local tls_key $6
+
+	proc http.tls_accept {
+		local clients [$1 accept]
+		local tls_clients {}
+
+		for s $clients {
+			try {
+				local t [tls.accept [$s handle] $tls_cert $tls_key]
+				list.append $tls_clients $t
+			} finally {
+				$s close
+			}
+		}
+
+		return $tls_clients
+	}
+
+	server.tcp $1 $2 $http.tls_accept $http.respond $3 $4
 }

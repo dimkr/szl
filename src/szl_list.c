@@ -51,19 +51,7 @@ enum szl_res szl_list_proc_append(struct szl_interp *interp,
                                   const int objc,
                                   struct szl_obj **objv)
 {
-	struct szl_obj *list;
-
-	list = szl_get(interp, objv[1]);
-	if (!list)
-		return SZL_ERR;
-
-	if (!szl_lappend(interp, list, objv[2])) {
-		szl_obj_unref(list);
-		return SZL_ERR;
-	}
-
-	szl_obj_unref(list);
-	return SZL_OK;
+	return szl_lappend(interp, objv[1], objv[2]) ? SZL_OK : SZL_ERR;
 }
 
 static
@@ -71,22 +59,14 @@ enum szl_res szl_list_proc_set(struct szl_interp *interp,
                                const int objc,
                                struct szl_obj **objv)
 {
-	struct szl_obj *list;
 	szl_int index;
 
 	if (!szl_obj_int(interp, objv[2], &index))
 		return SZL_ERR;
 
-	list = szl_get(interp, objv[1]);
-	if (!list)
+	if (!szl_lset(interp, objv[1], index, objv[3]))
 		return SZL_ERR;
 
-	if (!szl_lset(interp, list, index, objv[3])) {
-		szl_obj_unref(list);
-		return SZL_ERR;
-	}
-
-	szl_obj_unref(list);
 	return SZL_OK;
 }
 
@@ -95,34 +75,18 @@ enum szl_res szl_list_proc_extend(struct szl_interp *interp,
                                   const int objc,
                                   struct szl_obj **objv)
 {
-	struct szl_obj *list, **items;
-	size_t len, n, i;
+	struct szl_obj **items;
+	size_t n, i;
 
-	if (!szl_obj_len(interp, objv[2], &len))
+	if (!szl_obj_list(interp, objv[2], &items, &n) || (n > SIZE_MAX))
 		return SZL_ERR;
-
-	list = szl_get(interp, objv[1]);
-	if (!list)
-		return SZL_ERR;
-
-	if (!len) {
-		szl_obj_unref(list);
-		return SZL_OK;
-	}
-
-	if (!szl_obj_list(interp, objv[2], &items, &n) || (n > SIZE_MAX)) {
-		szl_obj_unref(list);
-		return SZL_ERR;
-	}
 
 	for (i = 0; i < n; ++i) {
-		if (!szl_lappend(interp, list, items[i])) {
-			szl_obj_unref(list);
+		if (!szl_lappend(interp, objv[1], items[i]))
 			return SZL_ERR;
-		}
 	}
 
-	return szl_set_result(interp, list);
+	return szl_set_result(interp, szl_obj_ref(objv[1]));
 }
 
 static
@@ -368,7 +332,7 @@ int szl_init_list(struct szl_interp *interp)
 	                      "list.append",
 	                      3,
 	                      3,
-	                      "list.append name item",
+	                      "list.append list item",
 	                      szl_list_proc_append,
 	                      NULL,
 	                      NULL)) &&
@@ -376,7 +340,7 @@ int szl_init_list(struct szl_interp *interp)
 	                      "list.set",
 	                      4,
 	                      4,
-	                      "list.set name index item",
+	                      "list.set list index item",
 	                      szl_list_proc_set,
 	                      NULL,
 	                      NULL)) &&
@@ -384,7 +348,7 @@ int szl_init_list(struct szl_interp *interp)
 	                      "list.extend",
 	                      3,
 	                      3,
-	                      "list.extend name list",
+	                      "list.extend list list",
 	                      szl_list_proc_extend,
 	                      NULL,
 	                      NULL)) &&

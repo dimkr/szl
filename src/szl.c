@@ -42,79 +42,26 @@ static
 enum szl_res szl_run_line(struct szl_interp *, struct szl_obj *);
 
 static
-struct szl_local *szl_get_in_proc(struct szl_interp *interp,
-                                  struct szl_obj *proc,
-                                  const szl_hash hash)
+struct szl_obj *szl_dcopy(struct szl_interp *interp, struct szl_obj *dict)
 {
-	size_t i;
+	struct szl_obj **items, *copy;
+	size_t n, i;
 
-	for (i = 0; i < proc->nlocals; ++i) {
-		if (proc->locals[i]->name == hash)
-			return proc->locals[i];
-	}
+	if (!szl_obj_dict(interp, dict, &items, &n))
+		return NULL;
 
-	return NULL;
-}
+	copy = szl_new_empty();
+	if (!copy)
+		return copy;
 
-static
-int szl_local_by_hash(struct szl_interp *interp,
-                      const szl_hash hash,
-                      struct szl_obj *obj,
-                      struct szl_obj *proc)
-{
-	struct szl_local *old;
-	struct szl_local **locals;
-	size_t nlocals = proc->nlocals + 1;
-
-	/* if a previous object already exists with the same name, override its
-	 * value */
-	old = szl_get_in_proc(interp, proc, hash);
-	if (old) {
-		szl_obj_unref(old->obj);
-		old->obj = szl_obj_ref(obj);
-		return 1;
-	}
-
-	/* otherwise, add a new object */
-	locals = (struct szl_local **)realloc(proc->locals,
-	                                      sizeof(struct szl_local *) * nlocals);
-	if (!locals)
-		return 0;
-
-	proc->locals = locals;
-
-	locals[proc->nlocals] = (struct szl_local *)malloc(
-	                                                  sizeof(struct szl_local));
-	if (!locals[proc->nlocals])
-		return 0;
-
-	locals[proc->nlocals]->name = hash;
-	locals[proc->nlocals]->obj = szl_obj_ref(obj);
-	proc->nlocals = nlocals;
-
-	return 1;
-}
-
-static
-int szl_copy_locals(struct szl_interp *interp,
-                    struct szl_obj *caller,
-                    struct szl_obj *current)
-{
-	size_t i;
-
-	/* we never inherit globals, so all procedures share the same object
-	 * values */
-	if (caller != interp->global) {
-		for (i = 0; i < caller->nlocals; ++i) {
-			if (!szl_local_by_hash(interp,
-			                       caller->locals[i]->name,
-			                       caller->locals[i]->obj,
-			                       current))
-				return 0;
+	for (i = 0; i < n; i += 2) {
+		if (!szl_dset(interp, copy, items[i], items[i + 1])) {
+			szl_obj_unref(copy);
+			return NULL;
 		}
 	}
 
-	return 1;
+	return copy;
 }
 
 static
@@ -130,7 +77,15 @@ struct szl_obj *szl_new_call(struct szl_interp *interp,
 	if (!obj)
 		return obj;
 
-	if (copy_locals && !szl_copy_locals(interp, interp->current, obj)) {
+
+	/* we never inherit globals, so all procedures share the same object
+	 * values */
+	if (copy_locals && caller && (caller != interp->global))
+		obj->locals = szl_dcopy(interp, caller->locals);
+	else
+		obj->locals = szl_new_empty();
+
+	if (!obj->locals) {
 		szl_obj_unref(obj);
 		return NULL;
 	}
@@ -182,8 +137,20 @@ struct szl_interp *szl_interp_new(void)
 		return NULL;
 	}
 
+	interp->objv_name = szl_new_str(SZL_OBJV_OBJECT_NAME,
+	                                sizeof(SZL_OBJV_OBJECT_NAME) - 1);
+	if (!interp->objv_name) {
+		szl_obj_unref(interp->one);
+		szl_obj_unref(interp->zero);
+		szl_obj_unref(interp->space);
+		szl_obj_unref(interp->empty);
+		free(interp);
+		return NULL;
+	}
+
 	interp->global = szl_new_call(interp, NULL, NULL, 0, 0);
 	if (!interp->global) {
+		szl_obj_unref(interp->objv_name);
 		szl_obj_unref(interp->one);
 		szl_obj_unref(interp->zero);
 		szl_obj_unref(interp->space);
@@ -242,6 +209,7 @@ void szl_interp_free(struct szl_interp *interp)
 	szl_obj_unref(interp->global);
 	if (interp->null)
 		szl_obj_unref(interp->null);
+	szl_obj_unref(interp->objv_name);
 	szl_obj_unref(interp->one);
 	szl_obj_unref(interp->zero);
 	szl_obj_unref(interp->space);
@@ -268,14 +236,8 @@ void szl_obj_unref(struct szl_obj *obj)
 	size_t i;
 
 	if (--obj->refc == 0) {
-		if (obj->nlocals) {
-			for (i = 0; i < obj->nlocals; ++i) {
-				szl_obj_unref(obj->locals[i]->obj);
-				free(obj->locals[i]);
-			}
-
-			free(obj->locals);
-		}
+		if (obj->locals)
+			szl_obj_unref(obj->locals);
 
 		if (obj->del)
 			obj->del(obj->priv);
@@ -320,7 +282,6 @@ struct szl_obj *szl_new_str_noalloc(char *s, const size_t len)
 	obj->proc = NULL;
 	obj->del = NULL;
 	obj->locals = NULL;
-	obj->nlocals = 0;
 	obj->caller = NULL;
 	obj->refc = 1;
 
@@ -371,7 +332,6 @@ struct szl_obj *szl_new_int(const szl_int i)
 	obj->proc = NULL;
 	obj->del = NULL;
 	obj->locals = NULL;
-	obj->nlocals = 0;
 	obj->caller = NULL;
 	obj->refc = 1;
 
@@ -393,7 +353,6 @@ struct szl_obj *szl_new_double(const szl_double d)
 	obj->proc = NULL;
 	obj->del = NULL;
 	obj->locals = NULL;
-	obj->nlocals = 0;
 	obj->caller = NULL;
 	obj->refc = 1;
 
@@ -423,7 +382,7 @@ struct szl_obj *szl_new_proc(struct szl_interp *interp,
 	}
 
 	obj->refc = 0;
-	if (name[0] && (!szl_local(interp, szl_caller(interp), name, obj))) {
+	if (name[0] && (!szl_local_byname(interp, szl_caller(interp), name, obj))) {
 		if (del)
 			del(priv);
 		free(obj->s);
@@ -440,7 +399,6 @@ struct szl_obj *szl_new_proc(struct szl_interp *interp,
 	obj->del = del;
 	obj->priv = priv;
 	obj->locals = NULL;
-	obj->nlocals = 0;
 	obj->caller = NULL;
 
 	return obj;
@@ -457,7 +415,7 @@ int szl_new_const_int(struct szl_interp *interp,
 	if (!obj)
 		return 0;
 
-	ret = szl_local(interp, interp->global, name, obj);
+	ret = szl_local_byname(interp, interp->global, name, obj);
 	szl_obj_unref(obj);
 	return ret;
 }
@@ -474,7 +432,7 @@ int szl_new_const_str(struct szl_interp *interp,
 	if (!obj)
 		return 0;
 
-	ret = szl_local(interp, interp->global, name, obj);
+	ret = szl_local_byname(interp, interp->global, name, obj);
 	szl_obj_unref(obj);
 	return ret;
 }
@@ -622,26 +580,60 @@ int szl_lappend_int(struct szl_interp *interp,
 	return ret;
 }
 
-int szl_sappend(struct szl_interp *interp,
-                struct szl_obj *set,
-                struct szl_obj *item)
+int szl_dset(struct szl_interp *interp,
+             struct szl_obj *dict,
+             struct szl_obj *k,
+             struct szl_obj *v)
 {
 	struct szl_obj **items;
 	size_t n, i;
 	int eq;
 
-	if (!szl_obj_list(interp, set, &items, &n))
+	if (!szl_obj_dict(interp, dict, &items, &n))
 		return 0;
 
-	for (i = 0; i < n; ++i) {
-		if (!szl_obj_eq(interp, items[i], item, &eq))
+	for (i = 0; i < n; i += 2) {
+		if (!szl_obj_eq(interp, items[i], k, &eq))
 			return 0;
 
-		if (eq)
+		if (eq) {
+			if (!szl_lset(interp, dict, (szl_int)i + 1, v))
+				return 0;
+
 			return 1;
+		}
 	}
 
-	return szl_lappend(interp, set, item);
+	if (!szl_lappend(interp, dict, k) || !szl_lappend(interp, dict, v))
+		return 0;
+
+	return 1;
+}
+
+int szl_dget(struct szl_interp *interp,
+             struct szl_obj *dict,
+             struct szl_obj *k,
+             struct szl_obj **v)
+{
+	struct szl_obj **items;
+	size_t n, i;
+	int eq;
+
+	if (!szl_obj_dict(interp, dict, &items, &n))
+		return 0;
+
+	for (i = 0; i < n; i += 2) {
+		if (!szl_obj_eq(interp, items[i], k, &eq))
+			return 0;
+
+		if (eq) {
+			*v = szl_obj_ref(items[i + 1]);
+			return 1;
+		}
+	}
+
+	*v = NULL;
+	return SZL_ERR;
 }
 
 struct szl_obj *szl_join(struct szl_interp *interp,
@@ -892,6 +884,22 @@ int szl_obj_list(struct szl_interp *interp,
 	return 1;
 }
 
+int szl_obj_dict(struct szl_interp *interp,
+                 struct szl_obj *obj,
+                 struct szl_obj ***objv,
+                 size_t *objc)
+{
+	if (!szl_obj_list(interp, obj, objv, objc))
+		return 0;
+
+	if (*objc % 2 == 1) {
+		szl_set_result_str(interp, "bad dict", -1);
+		return 0;
+	}
+
+	return 1;
+}
+
 /* Jenkins's one-at-a-time */
 static
 szl_hash jenkins_hash(const unsigned char *buf, const size_t len)
@@ -1139,77 +1147,84 @@ enum szl_res szl_usage(struct szl_interp *interp, struct szl_obj *proc)
 	return SZL_ERR;
 }
 
-static
-szl_hash szl_hash_name(struct szl_interp *interp, const char *name)
+int szl_get(struct szl_interp *interp,
+            struct szl_obj *name,
+            struct szl_obj **obj)
 {
-	return jenkins_hash((const unsigned char *)name, strlen(name));
-}
-
-static
-struct szl_obj *szl_get_byhash(struct szl_interp *interp, const szl_hash hash)
-{
-	struct szl_local *local;
-
 	/* try the current frame's locals first */
-	local = szl_get_in_proc(interp, interp->current, hash);
+	if (!szl_dget(interp, interp->current->locals, name, obj))
+		return 0;
+
+	if (*obj)
+		return 1;
 
 	/* then, fall back to the caller's */
-	if (!local &&
-	   interp->current->caller &&
-	   (interp->current != interp->current->caller))
-		local = szl_get_in_proc(interp, interp->current->caller, hash);
+	if (interp->current->caller &&
+	    (interp->current != interp->current->caller)) {
+		if (!szl_dget(interp, interp->current->caller->locals, name, obj))
+			return 0;
+
+		if (*obj)
+			return 1;
+	}
 
 	/* finally, try the global frame */
-	if ((!local) &&
-		(interp->global != interp->current->caller) &&
-		(interp->global != interp->current))
-		local = szl_get_in_proc(interp, interp->global, hash);
+	if (interp->global != interp->current->caller) {
+		if (!szl_dget(interp, interp->global->locals, name, obj))
+			return 0;
 
-	if (local)
-		return szl_obj_ref(local->obj);
+		if (*obj)
+			return 1;
+	}
 
-	return NULL;
+	*obj = NULL;
+	return 1;
 }
 
-struct szl_obj *szl_get_byname(struct szl_interp *interp, const char *name)
+int szl_get_byname(struct szl_interp *interp,
+                   const char *name,
+                   struct szl_obj **obj)
 {
-	struct szl_obj *local;
+	struct szl_obj *nameo;
+	int ret;
+
 	if (name[0]) {
-		local = szl_get_byhash(interp, szl_hash_name(interp, name));
-		if (local)
-			return local;
+		nameo = szl_new_str(name, -1);
+		if (!nameo)
+			return SZL_ERR;
+
+		ret = szl_get(interp, nameo, obj);
+		szl_obj_unref(nameo);
+		return ret;
 	}
 
 	szl_set_result_fmt(interp, "bad obj: %s", name);
-	return NULL;
-}
-
-struct szl_obj *szl_get(struct szl_interp *interp, struct szl_obj *name)
-{
-	const char *s;
-	struct szl_obj *local;
-	szl_hash hash;
-
-	s = szl_obj_str(interp, name, NULL);
-	if (!s)
-		return NULL;
-
-	if (!szl_obj_hash(interp, name, &hash))
-		return NULL;
-
-	local = szl_get_byhash(interp, szl_hash_name(interp, s));
-	if (!local)
-		szl_set_result_fmt(interp, "bad obj: %s", s);
-
-	return local;
+	return 0;
 }
 
 int szl_local(struct szl_interp *interp,
               struct szl_obj *proc,
-              const char *name,
+              struct szl_obj *name,
               struct szl_obj *obj)
 {
-	return szl_local_by_hash(interp, szl_hash_name(interp, name), obj, proc);
+	return szl_dset(interp, proc->locals, name, obj);
+}
+
+int szl_local_byname(struct szl_interp *interp,
+                     struct szl_obj *proc,
+                     const char *name,
+                     struct szl_obj *obj)
+{
+	struct szl_obj *nameo;
+	int ret;
+
+	nameo = szl_new_str(name, -1);
+	if (!nameo)
+		return 0;
+
+	ret = szl_dset(interp, proc->locals, nameo, obj);
+	szl_obj_unref(nameo);
+	return ret;
 }
 
 static
@@ -1310,8 +1325,10 @@ enum szl_res szl_eval(struct szl_interp *interp,
 	else if ((start[0] == '[') && (*(end - 1) == ']')) {
 		*(end - 1) = '\0';
 		exp = szl_new_str(start + 1, end - start - 2);
-		if (!exp)
+		if (!exp) {
+			free(s2);
 			return SZL_ERR;
+		}
 		res = szl_run_line(interp, exp);
 		szl_obj_unref(exp);
 		*out = szl_last(interp);
@@ -1324,12 +1341,19 @@ enum szl_res szl_eval(struct szl_interp *interp,
 	         (start[1] == '{') &&
 	         (*(end - 1) == '}')) {
 		*(end - 1) = '\0';
-		*out = szl_get_byname(interp, start + 2);
+		if (!szl_get_byname(interp, start + 2, out)) {
+			free(s2);
+			return SZL_ERR;
+		}
 	}
 
 	/* if the expression starts with $, the rest is a variable name */
-	else if (start[0] == '$')
-		*out = szl_get_byname(interp, start + 1);
+	else if (start[0] == '$') {
+		if (!szl_get_byname(interp, start + 1, out)) {
+			free(s2);
+			return SZL_ERR;
+		}
+	}
 
 	/* otherwise, treat it as a string literal */
 	else
@@ -1489,19 +1513,24 @@ enum szl_res szl_run_line(struct szl_interp *interp, struct szl_obj *exp)
 
 	/* the first token is the procedure - try to find a variable named that way
 	 * and if it fails evaluate this token */
-	objv[0] = szl_get(interp, argv[0]);
+	if (!szl_get(interp, argv[0], &objv[0])) {
+		free(objv);
+		szl_obj_unref(call);
+		return SZL_ERR;
+	}
+
 	if (!objv[0]) {
 		proc = szl_obj_str(interp, argv[0], NULL);
 		if (!proc) {
-			szl_obj_unref(call);
 			free(objv);
+			szl_obj_unref(call);
 			return SZL_ERR;
 		}
 
 		res = szl_eval(interp, &objv[0], proc);
 		if (res != SZL_OK) {
-			szl_obj_unref(call);
 			free(objv);
+			szl_obj_unref(call);
 			return res;
 		}
 	}
@@ -1525,8 +1554,8 @@ enum szl_res szl_run_line(struct szl_interp *interp, struct szl_obj *exp)
 		--interp->level;
 		interp->current = call->caller;
 
-		szl_obj_unref(call);
 		free(objv);
+		szl_obj_unref(call);
 		return res;
 	}
 
@@ -1540,15 +1569,15 @@ enum szl_res szl_run_line(struct szl_interp *interp, struct szl_obj *exp)
 	for (i = 0; i < argc; ++i)
 		szl_obj_unref(objv[i]);
 
-	szl_obj_unref(call);
 	free(objv);
+	szl_obj_unref(call);
 
 	/* set the special SZL_PREV_RET_OBJ_NAME variable so it points to the
 	 * procedure return value */
-	if (!szl_local(interp,
-	               interp->current,
-	               SZL_PREV_RET_OBJ_NAME,
-	               interp->last))
+	if (!szl_local_byname(interp,
+	                      interp->current,
+	                      SZL_PREV_RET_OBJ_NAME,
+	                      interp->last))
 		return SZL_ERR;
 
 	return res;
@@ -1834,6 +1863,7 @@ enum szl_res szl_stream_read(struct szl_interp *interp,
 	struct szl_obj *obj;
 	unsigned char *buf;
 	ssize_t out;
+	int more = 1;
 
 	if (!strm->ops->read) {
 		szl_set_result_str(interp, "read from unsupported stream", -1);
@@ -1847,7 +1877,7 @@ enum szl_res szl_stream_read(struct szl_interp *interp,
 	if (!buf)
 		return SZL_ERR;
 
-	out = strm->ops->read(interp, strm->priv, buf, len);
+	out = strm->ops->read(interp, strm->priv, buf, len, &more);
 	if (out > 0) {
 		buf[out] = '\0';
 		obj = szl_new_str_noalloc((char *)buf, (size_t)out);
@@ -1862,6 +1892,10 @@ enum szl_res szl_stream_read(struct szl_interp *interp,
 
 		if (out < 0)
 			return SZL_ERR;
+		else if (!more) {
+			szl_set_result_str(interp, "read from closed stream", -1);
+			return SZL_ERR;
+		}
 	}
 
 	return SZL_OK;
@@ -1873,7 +1907,7 @@ enum szl_res szl_stream_read_all(struct szl_interp *interp,
 {
 	struct szl_obj *obj;
 	unsigned char *buf, *nbuf;
-	ssize_t len = SZL_STREAM_BUFSIZ, tot, more;
+	ssize_t len = SZL_STREAM_BUFSIZ, tot, more, cont = 1;
 
 	if (!strm->ops->read) {
 		szl_set_result_str(interp, "read from unsupported stream", -1);
@@ -1898,7 +1932,7 @@ enum szl_res szl_stream_read_all(struct szl_interp *interp,
 	if (!buf)
 		return SZL_ERR;
 
-	tot = strm->ops->read(interp, strm->priv, buf, len);
+	tot = strm->ops->read(interp, strm->priv, buf, len, &cont);
 	if (tot > 0) {
 		/* if we don't know whether there's more data to read, read more data in
 		 * SZL_STREAM_BUFSIZ-byte chunks until the read() callback returns 0 */
@@ -1912,17 +1946,19 @@ enum szl_res szl_stream_read_all(struct szl_interp *interp,
 				}
 				buf = nbuf;
 
+				cont = 1;
 				more = strm->ops->read(interp,
 				                       strm->priv,
 				                       buf + tot,
-				                       SZL_STREAM_BUFSIZ);
+				                       SZL_STREAM_BUFSIZ,
+				                       &cont);
 				if (more < 0) {
 					free(buf);
 					return SZL_ERR;
 				}
 				else if (more)
 					tot += more;
-				else
+				else if (!strm->blocking || !cont)
 					break;
 			} while (1);
 		}
