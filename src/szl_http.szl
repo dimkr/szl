@@ -117,7 +117,7 @@ proc http.respond {
 			return [dict.get $response_cache $url]
 		}
 
-		local path [path.join . $url]
+		local path [path.realpath [path.join . $url]]
 		if [path.exists $path] {
 			if [path.isdir $path] {
 				local index_path [path.join $path $index_name]
