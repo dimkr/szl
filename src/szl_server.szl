@@ -45,28 +45,28 @@ proc server.tcp {
 				}
 			}
 
-			if [test $events <= $min_events] {
+			if [<= $events $min_events] {
 				global events $min_events
 			} else {
-				global events [calc $events - 3]
+				global events [- $events 3]
 			}
 		}
 	}
 
 	# 3 events per client - in and out for each client, plus in for a timer
-	local max_events [calc 1 + [calc $5 * 3]]
+	local max_events [+ 1 [* $5 3]]
 
-	local requests [dict.new]
-	local responses [dict.new]
+	local requests {}
+	local responses {}
 
 	local listening_socket [stream.server $1 $2 $5]
 	$listening_socket unblock
 	local listening_socket_handle [$listening_socket handle]
 
 	local sockets [dict.new $listening_socket_handle $listening_socket]
-	local timers [dict.new]
-	local timer_handles_to_client_handles [dict.new]
-	local client_handles_to_timers [dict.new]
+	local timers {}
+	local timer_handles_to_client_handles {}
+	local client_handles_to_timers {}
 
 	local poller [poll.create]
 	local events $min_events
@@ -84,7 +84,7 @@ proc server.tcp {
 		local close_handles {}
 
 		for read_handle $read_handles {
-			if [test $read_handle == $listening_socket_handle] {
+			if [== $read_handle $listening_socket_handle] {
 				try {
 					export client_sockets [$3 $listening_socket]
 				} except {
@@ -134,8 +134,8 @@ proc server.tcp {
 						dict.set $timer_handles_to_client_handles $client_timer_handle $client_socket_handle
 						dict.set $client_handles_to_timers $client_socket_handle $client_timer
 
-						if [test $events < $max_events] {
-							global events [calc $events + 3]
+						if [< $events $max_events] {
+							global events [+ $events 3]
 						}
 					}
 				} else {
@@ -179,10 +179,10 @@ proc server.tcp {
 					local response_length [str.length $response]
 					local sent [$client_socket write $response]
 
-					if [test $response_length == $sent] {
+					if [== $response_length $sent] {
 						list.append $close_handles $write_handle
 					} else {
-						dict.set $responses $client_socket [str.range $response $sent [calc $response_length - 1]]
+						dict.set $responses $client_socket [str.range $response $sent [- $response_length 1]]
 					}
 				} except {
 					list.append $close_handles $write_handle

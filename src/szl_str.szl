@@ -26,15 +26,15 @@ proc str.trim {
 
 proc str.tail {
 	local objc [list.length $@]
-	if [test $objc == 1] {
+	if [== $objc 1] {
 		local length [str.length $1]
-		if [test $length == 0] {return {}}
-		local end [calc $length - 1]
+		if [== $length 0] {return {}}
+		local end [- $length 1]
 		str.range $1 $end $end
 	} else {
-		if [test $objc == 2] {
-			local end [calc $length - 1]
-			str.range $1 [calc $length - $2] $end
+		if [== $objc 2] {
+			local end [- $length 1]
+			str.range $1 [- $length $2] $end
 		} else {
 			throw {bad str.tail usage: str.tail str ?count?}
 		}

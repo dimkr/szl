@@ -27,77 +27,99 @@
 
 #include "szl.h"
 
-static
-enum szl_res szl_math_proc_calc(struct szl_interp *interp,
-                                const int objc,
-                                struct szl_obj **objv)
-{
-	const char *op;
-	szl_int ni, mi;
-	szl_double nd, md;
-
-	op = szl_obj_str(interp, objv[2], NULL);
-	if (!op)
-		return SZL_ERR;
-
-	if (!szl_obj_double(interp, objv[1], &md) ||
-	    !szl_obj_double(interp, objv[3], &nd) ||
-	    !szl_obj_int(interp, objv[1], &mi) ||
-	    !szl_obj_int(interp, objv[1], &ni))
-		return SZL_ERR;
-
-	if (strcmp("+", op) == 0) {
-		if ((md != (szl_double)mi) || (nd != (szl_double)ni))
-			return szl_set_result_double(interp, md + nd);
-
-		return szl_set_result_int(interp, mi + ni);
-	}
-	else if (strcmp("-", op) == 0) {
-		if ((md != (szl_double)mi) || (nd != (szl_double)ni))
-			return szl_set_result_double(interp, md - nd);
-
-		return szl_set_result_int(interp, mi - ni);
-	}
-	else if (strcmp("*", op) == 0) {
-		if ((md != (szl_double)mi) || (nd != (szl_double)ni))
-			return szl_set_result_double(interp, md * nd);
-
-		return szl_set_result_int(interp, mi * ni);
-	}
-	else if (strcmp("/", op) == 0) {
-		if (nd == 0) {
-			szl_set_result_str(interp, "division by 0", -1);
-			return SZL_ERR;
-		}
-
-		if ((md != (szl_double)mi) || (nd != (szl_double)ni))
-			return szl_set_result_double(interp, md / nd);
-
-		return szl_set_result_int(interp, mi / ni);
-	}
-	else if (strcmp("%", op) == 0) {
-		if (nd == 0) {
-			szl_set_result_str(interp, "division by 0", -1);
-			return SZL_ERR;
-		}
-
-		if ((md != (szl_double)mi) || (nd != (szl_double)ni))
-			return szl_set_result_double(interp, fmod(md, nd));
-
-		return szl_set_result_int(interp, mi % ni);
-	}
-
-	return szl_usage(interp, objv[0]);
+#define SZL_MATH_PROC(name, op)                               \
+static                                                        \
+enum szl_res szl_math_proc_## name(struct szl_interp *interp, \
+                                   const int objc,            \
+                                   struct szl_obj **objv)     \
+{                                                             \
+	szl_int ni, mi;                                           \
+	szl_double nd, md;                                        \
+	                                                          \
+	if (!szl_obj_double(interp, objv[1], &md) ||              \
+	    !szl_obj_double(interp, objv[2], &nd) ||              \
+	    !szl_obj_int(interp, objv[1], &mi) ||                 \
+	    !szl_obj_int(interp, objv[2], &ni))                   \
+		return SZL_ERR;                                       \
+	                                                          \
+	if ((md != (szl_double)mi) || (nd != (szl_double)ni))     \
+		return szl_set_result_double(interp, md + nd);        \
+	                                                          \
+	return szl_set_result_int(interp, mi op ni);              \
 }
+
+#define SZL_MATH_PROC_DIV(name, op)                           \
+static                                                        \
+enum szl_res szl_math_proc_## name(struct szl_interp *interp, \
+                                   const int objc,            \
+                                   struct szl_obj **objv)     \
+{                                                             \
+	szl_int ni, mi;                                           \
+	szl_double nd, md;                                        \
+	                                                          \
+	if (!szl_obj_double(interp, objv[1], &md) ||              \
+	    !szl_obj_double(interp, objv[2], &nd) ||              \
+	    !szl_obj_int(interp, objv[1], &mi) ||                 \
+	    !szl_obj_int(interp, objv[2], &ni))                   \
+		return SZL_ERR;                                       \
+	                                                          \
+	if (nd == 0) {                                            \
+		szl_set_result_str(interp, "division by 0", -1);      \
+		return SZL_ERR;                                       \
+	}                                                         \
+	                                                          \
+	if ((md != (szl_double)mi) || (nd != (szl_double)ni))     \
+		return szl_set_result_double(interp, md + nd);        \
+	                                                          \
+	return szl_set_result_int(interp, mi op ni);              \
+}
+
+SZL_MATH_PROC(add, +)
+SZL_MATH_PROC(sub, -)
+SZL_MATH_PROC(mul, *)
+SZL_MATH_PROC_DIV(div, /)
+SZL_MATH_PROC_DIV(mod, %)
 
 int szl_init_math(struct szl_interp *interp)
 {
-	return szl_new_proc(interp,
-	                    "calc",
-	                    4,
-	                    4,
-	                    "calc m op n",
-	                    szl_math_proc_calc,
-	                    NULL,
-	                    NULL) ? 1 : 0;
+	return (szl_new_proc(interp,
+	                     "+",
+	                     3,
+	                     3,
+	                     "+ m n",
+	                     szl_math_proc_add,
+	                     NULL,
+	                     NULL) &&
+	        szl_new_proc(interp,
+	                     "-",
+	                     3,
+	                     3,
+	                     "- m n",
+	                     szl_math_proc_sub,
+	                     NULL,
+	                     NULL) &&
+	        szl_new_proc(interp,
+	                     "*",
+	                     3,
+	                     3,
+	                     "* m n",
+	                     szl_math_proc_mul,
+	                     NULL,
+	                     NULL) &&
+	        szl_new_proc(interp,
+	                     "/",
+	                     3,
+	                     3,
+	                     "/ m n",
+	                     szl_math_proc_div,
+	                     NULL,
+	                     NULL) &&
+	        szl_new_proc(interp,
+	                     "%",
+	                     3,
+	                     3,
+	                     "% m n",
+	                     szl_math_proc_mod,
+	                     NULL,
+	                     NULL));
 }

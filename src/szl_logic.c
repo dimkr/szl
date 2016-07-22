@@ -29,93 +29,125 @@
 #define SZL_SWITCH_DEFAULT "*"
 
 static
-enum szl_res szl_logic_proc_true(struct szl_interp *interp,
-                                  const int objc,
-                                  struct szl_obj **objv)
+enum szl_res szl_logic_proc_eq(struct szl_interp *interp,
+                               const int objc,
+                               struct szl_obj **objv)
 {
-	return szl_set_result_bool(interp, 1);
-}
-
-static
-enum szl_res szl_logic_proc_false(struct szl_interp *interp,
-                                  const int objc,
-                                  struct szl_obj **objv)
-{
-	return szl_set_result_bool(interp, 0);
-}
-
-static
-enum szl_res szl_logic_proc_test(struct szl_interp *interp,
-                                 const int objc,
-                                 struct szl_obj **objv)
-{
-	const char *op;
-	szl_double n, m;
 	int eq;
 
-	op = szl_obj_str(interp, objv[2], NULL);
-	if (!op)
+	if (!szl_obj_eq(interp, objv[1], objv[2], &eq))
 		return SZL_ERR;
 
-	if (strcmp("==", op) == 0) {
-		if (!szl_obj_eq(interp, objv[1], objv[3], &eq))
-			return SZL_ERR;
+	return szl_set_result_bool(interp, (szl_int)eq);
+}
 
-		return szl_set_result_bool(interp, (szl_int)eq);
-	}
-	else if (strcmp("!=", op) == 0) {
-		if (!szl_obj_eq(interp, objv[1], objv[3], &eq))
-			return SZL_ERR;
+static
+enum szl_res szl_logic_proc_ne(struct szl_interp *interp,
+                               const int objc,
+                               struct szl_obj **objv)
+{
+	int eq;
 
-		return szl_set_result_bool(interp, (szl_int)!eq);
-	}
-	else if (strcmp(">", op) == 0) {
-		if (!szl_obj_double(interp, objv[1], &m) ||
-		    !szl_obj_double(interp, objv[3], &n))
-			return SZL_ERR;
+	if (!szl_obj_eq(interp, objv[1], objv[2], &eq))
+		return SZL_ERR;
 
-		return szl_set_result_bool(interp, (m > n));
-	}
-	else if (strcmp("<", op) == 0) {
-		if (!szl_obj_double(interp, objv[1], &m) ||
-		    !szl_obj_double(interp, objv[3], &n))
-			return SZL_ERR;
+	return szl_set_result_bool(interp, (szl_int)!eq);
+}
 
-		return szl_set_result_bool(interp, (m < n));
-	}
-	else if (strcmp(">=", op) == 0) {
-		if (!szl_obj_double(interp, objv[1], &m) ||
-		    !szl_obj_double(interp, objv[3], &n))
-			return SZL_ERR;
+static
+enum szl_res szl_logic_proc_gt(struct szl_interp *interp,
+                               const int objc,
+                               struct szl_obj **objv)
+{
+	szl_double m, n;
 
-		return szl_set_result_bool(interp, (m >= n));
-	}
-	else if (strcmp("<=", op) == 0) {
-		if (!szl_obj_double(interp, objv[1], &m) ||
-		    !szl_obj_double(interp, objv[3], &n))
-			return SZL_ERR;
+	if (!szl_obj_double(interp, objv[1], &m) ||
+		!szl_obj_double(interp, objv[2], &n))
+		return SZL_ERR;
 
-		return szl_set_result_bool(interp, (m <= n));
-	}
-	else if (strcmp("&&", op) == 0) {
-		return szl_set_result_bool(interp,
-		                           (szl_obj_istrue(objv[1]) &&
-		                            szl_obj_istrue(objv[3])));
-	}
-	else if (strcmp("||", op) == 0) {
-		return szl_set_result_bool(interp,
-		                           (szl_obj_istrue(objv[1]) ||
-		                            szl_obj_istrue(objv[3])));
-	}
-	else if (strcmp("^", op) == 0) {
-		return szl_set_result_bool(interp,
-		                           (szl_obj_istrue(objv[1]) ^
-		                            szl_obj_istrue(objv[3])));
-	}
-	else
-		return szl_usage(interp, objv[0]);
+	return szl_set_result_bool(interp, (m > n));
+}
 
-	return SZL_OK;
+static
+enum szl_res szl_logic_proc_ge(struct szl_interp *interp,
+                               const int objc,
+                               struct szl_obj **objv)
+{
+	szl_double m, n;
+
+	if (!szl_obj_double(interp, objv[1], &m) ||
+		!szl_obj_double(interp, objv[2], &n))
+		return SZL_ERR;
+
+	return szl_set_result_bool(interp, (m >= n));
+}
+
+static
+enum szl_res szl_logic_proc_lt(struct szl_interp *interp,
+                               const int objc,
+                               struct szl_obj **objv)
+{
+	szl_double m, n;
+
+	if (!szl_obj_double(interp, objv[1], &m) ||
+		!szl_obj_double(interp, objv[2], &n))
+		return SZL_ERR;
+
+	return szl_set_result_bool(interp, (m < n));
+}
+
+static
+enum szl_res szl_logic_proc_le(struct szl_interp *interp,
+                               const int objc,
+                               struct szl_obj **objv)
+{
+	szl_double m, n;
+
+	if (!szl_obj_double(interp, objv[1], &m) ||
+		!szl_obj_double(interp, objv[2], &n))
+		return SZL_ERR;
+
+	return szl_set_result_bool(interp, (m <= n));
+}
+
+static
+enum szl_res szl_logic_proc_and(struct szl_interp *interp,
+                                const int objc,
+                                struct szl_obj **objv)
+{
+	szl_int out;
+	int i;
+
+	out = szl_obj_istrue(objv[1]);
+	for (i = 2; out && (i < objc); ++i)
+		out &= szl_obj_istrue(objv[i]);
+
+	return szl_set_result_bool(interp, out);
+}
+
+static
+enum szl_res szl_logic_proc_or(struct szl_interp *interp,
+                                const int objc,
+                                struct szl_obj **objv)
+{
+	szl_int out;
+	int i;
+
+	out = szl_obj_istrue(objv[1]);
+	for (i = 2; !out && (i < objc); ++i)
+		out |= szl_obj_istrue(objv[i]);
+
+	return szl_set_result_bool(interp, out);
+}
+
+static
+enum szl_res szl_logic_proc_xor(struct szl_interp *interp,
+                                const int objc,
+                                struct szl_obj **objv)
+{
+	return szl_set_result_bool(interp,
+	                           (szl_obj_istrue(objv[1]) ^
+	                            szl_obj_istrue(objv[2])));
 }
 
 static
@@ -124,36 +156,6 @@ enum szl_res szl_logic_proc_not(struct szl_interp *interp,
                                 struct szl_obj **objv)
 {
 	return szl_set_result_bool(interp, szl_obj_isfalse(objv[1]));
-}
-
-static
-enum szl_res szl_logic_proc_any(struct szl_interp *interp,
-                                const int objc,
-                                struct szl_obj **objv)
-{
-	int i;
-
-	for (i = 1; i < objc; ++i) {
-		if (szl_obj_istrue(objv[i]))
-			return szl_set_result_bool(interp, 1);
-	}
-
-	return szl_set_result_bool(interp, 0);
-}
-
-static
-enum szl_res szl_logic_proc_all(struct szl_interp *interp,
-                                const int objc,
-                                struct szl_obj **objv)
-{
-	int i;
-
-	for (i = 1; i < objc; ++i) {
-		if (szl_obj_isfalse(objv[i]))
-			return szl_set_result_bool(interp, 0);
-	}
-
-	return szl_set_result_bool(interp, 1);
 }
 
 static
@@ -240,51 +242,83 @@ enum szl_res szl_logic_proc_switch(struct szl_interp *interp,
 int szl_init_logic(struct szl_interp *interp)
 {
 	return ((szl_new_proc(interp,
-	                      "true",
-	                      1,
-	                      1,
-	                      "true",
-	                      szl_logic_proc_true,
+	                      "==",
+	                      3,
+	                      3,
+	                      "== obj obj",
+	                      szl_logic_proc_eq,
 	                      NULL,
 	                      NULL)) &&
 	        (szl_new_proc(interp,
-	                      "false",
-	                      1,
-	                      1,
-	                      "false",
-	                      szl_logic_proc_false,
+	                      "!=",
+	                      3,
+	                      3,
+	                      "!= obj obj",
+	                      szl_logic_proc_ne,
 	                      NULL,
 	                      NULL)) &&
 	        (szl_new_proc(interp,
-	                      "test",
-	                      4,
-	                      4,
-	                      "test obj op obj",
-	                      szl_logic_proc_test,
+	                      ">",
+	                      3,
+	                      3,
+	                      "> m n",
+	                      szl_logic_proc_gt,
 	                      NULL,
 	                      NULL)) &&
 	        (szl_new_proc(interp,
-	                      "not",
+	                      ">=",
+	                      3,
+	                      3,
+	                      ">= m n",
+	                      szl_logic_proc_ge,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "<",
+	                      3,
+	                      3,
+	                      "< m n",
+	                      szl_logic_proc_lt,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "<=",
+	                      3,
+	                      3,
+	                      "<= m n",
+	                      szl_logic_proc_le,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "&&",
+	                      3,
+	                      -1,
+	                      "&& obj obj...",
+	                      szl_logic_proc_and,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "||",
+	                      3,
+	                      -1,
+	                      "|| obj obj...",
+	                      szl_logic_proc_or,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "^",
+	                      3,
+	                      3,
+	                      "^ obj obj",
+	                      szl_logic_proc_xor,
+	                      NULL,
+	                      NULL)) &&
+	        (szl_new_proc(interp,
+	                      "!",
 	                      2,
 	                      2,
-	                      "not obj",
+	                      "! obj",
 	                      szl_logic_proc_not,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "any",
-	                      2,
-	                      -1,
-	                      "any cond...",
-	                      szl_logic_proc_any,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "all",
-	                      2,
-	                      -1,
-	                      "all cond...",
-	                      szl_logic_proc_all,
 	                      NULL,
 	                      NULL)) &&
 	        (szl_new_proc(interp,

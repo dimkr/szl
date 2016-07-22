@@ -44,7 +44,7 @@ proc http.parse {
 
 	# create a dictionary that maps each header to its value
 	local hdrs [dict.new]
-	for h [list.range $hdr_lines 1 [calc [list.length $hdr_lines] - 1]] {
+	for h [list.range $hdr_lines 1 [- [list.length $hdr_lines] 1]] {
 		local p [str.split $h $http.hdr_delim]
 		dict.set $hdrs [list.index $p 0] [str.split [list.index $p 1] $http.hdr_val_delim]
 	}
@@ -53,7 +53,7 @@ proc http.parse {
 	local out [list.index [list.index $hdr_lines 0] 1]
 
 	# append the body to the result
-	if [test [dict.get $hdrs {Content-Encoding} {}] == gzip] {
+	if [== [dict.get $hdrs {Content-Encoding} {}] gzip] {
 		list.append $out [zlib.gunzip [list.index $resp 1]]
 	} else {
 		list.append $out [list.index $resp 1]
@@ -107,7 +107,7 @@ proc http.respond {
 		local request [http.parse $1]
 		local url [list.index $request 0]
 		if [str.in $url ..] throw
-		if [test $url == /] {export url $index_url}
+		if [== $url /] {export url $index_url}
 
 		try {
 			return [dict.get $response_cache $url]
@@ -135,7 +135,7 @@ proc http.respond {
 		local headers [dict.new Server $http.banner Connection close]
 
 		local clen [str.length $cbody]
-		if [test $clen < $len] {
+		if [< $clen $len] {
 			dict.set $headers {Content-Encoding} gzip
 			export body $cbody
 			export len $clen

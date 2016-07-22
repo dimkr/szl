@@ -23,20 +23,20 @@
 global newline [str.expand \n]
 
 proc fdopen {
-	if [test [list.length $@] != 2] {
+	if [!= [list.length $@] 2] {
 		throw {bad fdopen usage: fdopen handle mode}
 	}
 	if [_socket.issocket $1] {_socket.fdopen $1} else {_io.fdopen $1 $2}
 }
 
 proc puts {
-	if [test [list.length $@] != 1] {throw {bad puts usage: puts msg}}
+	if [!= [list.length $@] 1] {throw {bad puts usage: puts msg}}
 	$stdout write $1
-	if [test [str.tail $1] != \n] {$stdout write $newline}
+	if [!= [str.tail $1] $newline] {$stdout write $newline}
 	return {}
 }
 
 proc dup {
-	if [test [list.length $@] != 1] {throw {bad dup usage: dup strm}}
+	if [!= [list.length $@] 1] {throw {bad dup usage: dup strm}}
 	fdopen [_io.dup [$1 handle]]
 }

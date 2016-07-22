@@ -53,22 +53,31 @@ Use Cases
    scripts, but shell scripting isn't powerful enough (because shell language
    lacks programming language features such as exceptions), while other
    languages are too powerful and require too much work to execute processes and
-   read their output
-2. One needs a balanced, not too low-level and not too high-level programming
-   language for system development rapid prototyping
-3. One needs a quick n' dirty way to call C functions, without having to do
-   native development: +szl+ allows interfacing with C code and data types via
-   scripts!
+   read their output.
+2. One needs a way to write a highly scalable and reliable server, but C APIs
+   like +epoll+ make correct memory management and error handling (which affect
+   scalability, security and reliability over time) hard to achieve in C,
+   because memory management is manual and crash-prone, while errors cannot be
+   handled using exceptions, because C lacks this feature. +szl+ wraps low-level
+   interfaces like +epoll+ and +timerfd+ with a simpler interface but with very
+   little overhead, while providing automatic garbage collection, exceptions and
+   complex data types useful for servers (i.e. dictionaries that map sockets to
+   session data).
+3. A systems person needs a quick n' dirty way to call C functions, without
+   having to do native development during early research or the prototype phase:
+   +szl+ allows interfacing with C code and data types via scripts!
 4. One needs an embedded interpreter in a big software project, used as a logic
    layer, high-level glue between components written in different languages or
    as a scripting engine for advanced users (for example, in a console window of
-   an action game)
+   an action game).
 5. A complex task is very hard or impossible to accomplish using nothing but
-   traditional *nix tools (such as +sh+, +nc+, +tar+ and +cut+)
+   traditional *nix tools (such as +sh+, +nc+, +tar+ and +cut+): +szl+
+   implements sockets, string operations, compression, archiving and more, while
+   maintaining the simplicity of shell scripting.
 6. One needs an extremely lightweight scripting language, for quick development
-   of programs that run on underpowered hardware, such as cheap Wi-Fi routers
+   of programs that run on underpowered hardware, such as cheap Wi-Fi routers.
 7. One wants to introduce non-technical people to programming, using an easy to
-   learn scripting language with a simple syntax
+   learn scripting language with a simple syntax.
 
 History
 ~~~~~~~
@@ -108,14 +117,14 @@ $ szlsh script.szl
 Working with Variables
 ~~~~~~~~~~~~~~~~~~~~~~
 Basically, each statement is a series of space-delimited tokens. The first
-token, which is usually a verb, is the name of a procedure (think, _function_).
-The procedure receives the rest of the tokens as arguments (input), does
-something and returns an object (output). For example, in the following
-statement, 'calc' receives '1', '+' and '2' as arguments and returns '3' as
-output:
+token, which is usually a verb or a mathematical symbol, is the name of a
+procedure (think, _function_). The procedure receives the rest of the tokens as
+arguments (input), does something and returns an object (output). For example,
+in the following statement, '+' receives '1', and '2' as arguments and returns
+'3' as output:
 
 --------------------------------------
-calc 1 + 2
++ 1 2
 --------------------------------------
 
 [NOTE]
@@ -141,7 +150,7 @@ puts $number
 
 In +szl+, all objects (including numbers and even lists) are represented as
 strings and +szl+ knows how to treat them, depending on the context. For
-example, once two objects are passed to the 'calc' procedure receives as
+example, once two objects are passed to the '+' procedure receives as
 arguments, they are treated as numbers.
 
 When an object is no longer used, +szl+ will automatically free all resources
@@ -185,11 +194,11 @@ To obtain the return value of a procedure, wrap the statement that calls it with
 brackets. A statement enclosed in brackets is executed and replaced with its
 return value.
 
-For example, the following example executes 'calc 1 + 2.5' and stores the return
+For example, the following example executes '+ 1 2.5' and stores the return
 value of this procedure in a variable, 'sum':
 
 --------------------------------------
-local sum [calc 1 + 2.5]
+local sum [+ 1 2.5]
 --------------------------------------
 
 [NOTE]
@@ -203,7 +212,7 @@ variable '_', in the calling scope.
 Both braces and brackets may be nested, to form more complex logic:
 
 --------------------------------------
-local sum [calc [str.length {hello world}] - 3]
+local sum [- [str.length {hello world}] 3]
 --------------------------------------
 
 Special Characters
@@ -220,7 +229,7 @@ Formatting Strings
 To form more complex strings, such as user-friendly messages, use 'str.format':
 
 --------------------------------------
-puts [str.format {the sum of {} and {} is {}} 3 4 [calc 3 + 4]]
+puts [str.format {the sum of {} and {} is {}} 3 4 [+ 3 4]]
 --------------------------------------
 
 'str.format' accepts a format string (or, a template) and replaces
@@ -283,12 +292,12 @@ For example, the following functions are identical, functionality-wise:
 --------------------------------------
 proc foo {
 	puts {before check}
-	test 1 == 2
+	== 1 2
 }
 
 proc bar {
 	puts {before check}
-	return [test 1 == 2]
+	return [== 1 2]
 	puts {after check}
 }
 --------------------------------------
@@ -334,7 +343,7 @@ Objects
 	Returns 'obj'.
 
 --------------------------------------
-test [echo 5] == 5
+== [echo 5] 5
 --------------------------------------
 
 +get+ 'name'::
@@ -342,7 +351,7 @@ test [echo 5] == 5
 
 --------------------------------------
 local a 5
-test [get a] == 5
+== [get a] 5
 --------------------------------------
 
 Variables
@@ -362,7 +371,7 @@ procedure).
 --------------------------------------
 proc check_if_bigger_than_ten {
 	local bigger 0
-	if [test $1 > 10] {export bigger 1}
+	if [> $1 10] {export bigger 1}
 	puts $bigger
 }
 
@@ -401,7 +410,8 @@ String Operations
 	Appends a string to an existing str.
 
 +str.split+ 'str delim'::
-	Splits a string consisting of tokens separated by a delimiter.
+	Splits a string consisting of tokens separated by 'delim'. 'delim' may be an
+	empty string to return a list of all characters in the string.
 
 +str.join+ 'delim str str ?...?'::
 	Joins multiple strings, with a delimiter (which may be an empty string).
@@ -523,33 +533,55 @@ for i [range 1 11] {puts $i}
 
 Arithmetic and Logical Operations
 +++++++++++++++++++++++++++++++++
-+calc+ 'm op n'::
-	Performs an arithmetic operation on two numbers. The operation may be '+',
-	'-', '*', '/' or '%'.
++++ 'm n'::
+	Returns 'm + n'.
 
-+true+::
-	Returns '1'.
++-+ 'm n'::
+	Returns 'm - n'.
 
-+false+::
-	Returns '0'.
++*+ 'm n'::
+	Returns 'm * n'.
 
-+test+ 'obj op obj'::
-	Compares two objects and returns '1' if the specified condition is true,
-	otherwise '0'. The comparison operation may be '==', '!=', '<', '>', '\<=',
-	'>=', '&&', '||' or '^'.
++/+ 'm n'::
+	Returns 'm / n'.
 
---------------------------------------
-if [test [test [calc 1 + 1] == 2] && [test [calc 2 + 2] == 4]] {puts yes}
---------------------------------------
++%+ 'm n'::
+	Returns 'm - x', where 'x' is the floor of 'm / n'.
 
-+not+ 'cond'::
-	Returns '0' if a condition is true, otherwise '1'.
++==+ 'obj obj'::
+	Returns '1' if two objects are equal, otherwise '0'.
 
-+any+ 'cond...'::
++!=+ 'obj obj'::
+	Returns '1' if two objects are not equal, otherwise '0'.
+
++>+ 'm n'::
+	Returns '1' if 'm' is greater than 'n', otherwise '0'.
+
++>=+ 'm n'::
+	Returns '1' if 'm' is greater than or equal to 'n', otherwise '0'.
+
++<+ 'm n'::
+	Returns '1' if 'm' is less than 'n', otherwise '0'.
+
++\<=+ 'm n'::
+	Returns '1' if 'm' is less than or equal to 'n', otherwise '0'.
+
++&&+ 'obj obj...'::
+	Returns '1' if all conditions are true, otherwise '0'.
+
++||+ 'obj obj...'::
 	Returns '1' if at least one condition is true, otherwise '0'.
 
-+all+ 'cond...'::
-	Returns '0' if at least one condition is false, otherwise '1'.
++^+ 'obj obj'::
+	Returns '1' if at one condition is true and the other is false, otherwise
+	'0'.
+
+--------------------------------------
+if [&& [== [+ 1 1] 2] [== [+ 2 2] 4]] {puts yes}
+--------------------------------------
+
++!+ 'obj'::
+	Returns '0' if a condition is true, otherwise '1'.
 
 Procedures
 ^^^^^^^^^^
@@ -577,7 +609,7 @@ Flow Control
 	runs the block and stops if they are equal, or if the value is '*'.
 
 --------------------------------------
-switch [calc 1 + 2] 2 {
+switch [+ 1 2] 2 {
 	puts {it is 2}
 } 3 {
 	puts {it is 3}
@@ -600,7 +632,7 @@ switch [calc 1 + 2] 2 {
 	specify the items and returns a list of the block return values.
 
 --------------------------------------
-puts [map {a b} {1 1 1 2 1 3 1 4} {calc $a + $b}]
+puts [map {a b} {1 1 1 2 1 3 1 4} {+ $a $b}]
 --------------------------------------
 
 [TIP]
@@ -879,8 +911,8 @@ Processes
 	Returns the process ID of the +szl+ interpreter.
 
 +exec+ 'cmd'::
-	Runs a shell command, waits for it to terminate and returns its exit code
-	and output.
+	Runs a shell command, waits for it to terminate and returns a list
+	containing its exit code and output.
 
 [TIP]
 'exec' passes 'cmd' to the default shell, so 'cmd' may rely on shell features
@@ -993,7 +1025,6 @@ useful for working with REST APIs.
 
 --------------------------------------
 load http
-load dict
 
 puts [list.index [http.get httpbin.org 443 1 /get [dict.new a {123 456} b 789]] 1]
 --------------------------------------
@@ -1217,25 +1248,25 @@ Every action has its pleasures and its price.
    to save the return value of a statement if you don't need it.
 4. Avoid redundant statements, like 'return [foo]' instead of 'foo' at the end
    of a procedure. The extra procedure call ('return') is a waste of time.
-5. Whenever possible, use local variables ('local') instead of globals
-   ('global').
-   They get garbage collected earlier, so this results in reduced memory usage.
-6. Always simplify logical expressions, to reduce the number of procedure calls.
-   For example, 'test $foo != $bar' runs faster than 'not [test $foo == $bar]'.
-7. When joining more than two objects, avoid multiple 'str.append' calls and use
+4. When checking if a string is empty, avoid 'if [> [str.length $foo] 0]' and
+   prefer 'if $foo'. The truth value of empty strings is false, so this saves
+   two procedure calls.
+6. Whenever possible, use local variables ('local') instead of globals
+   ('global'). They get garbage collected earlier, so this results in reduced
+   memory usage.
+7. Always simplify logical expressions, to reduce the number of procedure calls.
+   For example, '!= $foo $bar' runs faster than '! [== $foo $bar]'.
+8. When joining more than two objects, avoid multiple 'str.append' calls and use
    'str.join' instead.
-8. 'str.append' does not create a new object and therefore it is more
+9. 'str.append' does not create a new object and therefore it is more
    efficient for joining only two strings.
-9. Always trim useless trailing whitespace in scripts (or use a text editor that
-   takes care of this automatically), to speed up parsing.
-10. Always store constant lists in variables. For example, if you intend to run
+10. Always trim useless trailing whitespace in scripts (or use a text editor
+    that takes care of this automatically), to speed up parsing.
+11. Always store constant lists in variables. For example, if you intend to run
     multiple 'for' loops with the same input (say, a series of words), store
     that input in a variable. This way, the string representation of the object
     is split only once.
-11. Use 'switch' instead of nested 'if' calls.
-12. Use '1' as the condition of infinite 'while' or 'do' loops. The evaluation
-    of '[true]' is slower than the evaluation of '1', due to the extra procedure
-    call involved.
+12. Use 'switch' instead of nested 'if' calls.
 
 Error Handling
 ~~~~~~~~~~~~~~

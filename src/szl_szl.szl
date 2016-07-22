@@ -33,7 +33,7 @@ proc szl.shell {
 	while 1 {
 		local exp [linenoise.read {>>> }]
 
-		while {[test [test [str.count $exp $obrace] != [str.count $exp $cbrace]] || [test [str.count $exp $obracket] != [str.count $exp $cbracket]]]} {
+		while {[|| [!= [str.count $exp $obrace] [str.count $exp $cbrace]] [!= [str.count $exp $obracket] [str.count $exp $cbracket]]]} {
 			str.append $exp [linenoise.read {... }]
 		}
 
@@ -41,11 +41,11 @@ proc szl.shell {
 			try {
 				$interp eval $exp
 				local out $_
-				if [test [str.length $out] > 0] {puts $out}
+				if [> [str.length $out] 0] {puts $out}
 			} except {
 				local out $_
 				$stdout write {[error] }
-				if [test [str.length $out] > 0] {puts $out} else {puts {}}
+				if [> [str.length $out] 0] {puts $out} else {puts {}}
 			}
 
 			try {linenoise.add $exp}
