@@ -95,7 +95,7 @@ proc http.get {
 }
 
 proc http.post {
-	local cont [zlib.gzip [list.join & [map {k v} $5 {str.format {{}={}} $k [curl.encode $v]}]]]
+	local cont [zlib.gzip [list.join & [map {k v} $5 {str.format {{}={}} $k [curl.encode $v]}]] 9]
 	http.request $1 $2 $3 [str.format $http.post_fmt $4 $1 [str.length $cont] $cont]
 }
 
@@ -128,7 +128,17 @@ proc http.respond {
 		local len [str.length $body]
 		local cbody $body
 
-		if [list.in [dict.get [list.index $request 2] {Accept-Encoding} {}] gzip] {
+		local binary 0
+		if [> $len 8] {
+			for o [str.ord [str.range $body 0 7]] {
+				if [|| [< $o 0] [> $o 127]] {export binary 1}
+				export binary
+				if $binary break
+			}
+			export binary
+		}
+
+		if [&& [! $binary] [list.in [dict.get [list.index $request 2] {Accept-Encoding} {}] gzip]] {
 			export cbody [zlib.gzip $body 9]
 		}
 

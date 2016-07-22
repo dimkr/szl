@@ -444,6 +444,9 @@ puts [str.format {the length of "{}" is {}} abcd [str.length abcd]]
 +str.trim+ 'str'::
 	Removes whitespace at both ends of a string.
 
++str.ord+ 'str'::
+	Returns the integer value of each character of a string.
+
 List Operations
 +++++++++++++++
 +list.length+ 'list'::
