@@ -1745,7 +1745,7 @@ int szl_load(struct szl_interp *interp, const char *name)
 	struct szl_obj *current = interp->current;
 	szl_ext_init init;
 	int res;
-	unsigned int nexts = interp->nexts + 1, level = interp->level;
+	unsigned int nexts = interp->nexts + 1;
 
 	for (builtin = szl_builtin_exts; *builtin; ++builtin) {
 		if (strcmp(*builtin, name) == 0)
@@ -1784,12 +1784,8 @@ int szl_load(struct szl_interp *interp, const char *name)
 	/* run the extension initializer - if it evaluates code or creates
 	 * procedures, do this in the global scope */
 	interp->current = interp->global;
-	interp->level = 0;
-
 	res = init(interp);
-
 	interp->current = current;
-	interp->level = level;
 
 	if (!res) {
 		szl_unload(handle);
@@ -1809,6 +1805,7 @@ enum szl_res szl_source(struct szl_interp *interp, const char *path)
 {
 	struct szl_block block;
 	struct stat stbuf;
+	struct szl_obj *current = interp->current;
 	char *buf;
 	size_t len;
 	int fd, res;
@@ -1849,7 +1846,11 @@ enum szl_res szl_source(struct szl_interp *interp, const char *path)
 		return SZL_ERR;
 	}
 
+	/* run the script in the global scope */
+	interp->current = interp->global;
 	res = szl_run_block(interp, &block);
+	interp->current = current;
+
 	szl_free_block(&block);
 	free(buf);
 	return res;
