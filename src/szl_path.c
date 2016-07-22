@@ -56,6 +56,29 @@ enum szl_res szl_path_proc_exists(struct szl_interp *interp,
 	return szl_set_result_bool(interp, 1);
 }
 
+static
+enum szl_res szl_path_proc_isdir(struct szl_interp *interp,
+                                 const int objc,
+                                 struct szl_obj **objv)
+{
+	struct stat stbuf;
+	const char *path;
+	size_t len;
+
+	path = szl_obj_str(interp, objv[1], &len);
+	if (!path || !len)
+		return SZL_ERR;
+
+	if (stat(path, &stbuf) < 0) {
+		if (errno == ENOENT)
+			return szl_set_result_bool(interp, 0);
+
+		return SZL_ERR;
+	}
+
+	return szl_set_result_bool(interp, S_ISDIR(stbuf.st_mode));
+}
+
 int szl_init_path(struct szl_interp *interp)
 {
 	return (szl_new_const_str(interp,
@@ -68,6 +91,14 @@ int szl_init_path(struct szl_interp *interp)
 	                     2,
 	                     "path.exists path",
 	                     szl_path_proc_exists,
+	                     NULL,
+	                     NULL) &&
+	        szl_new_proc(interp,
+	                     "path.isdir",
+	                     2,
+	                     2,
+	                     "path.isdir path",
+	                     szl_path_proc_isdir,
 	                     NULL,
 	                     NULL) &&
 	        (szl_run(interp,

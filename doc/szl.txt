@@ -749,6 +749,9 @@ To join path components in a portable way, use 'path.join'.
 +path.exists+ 'path'::
 	Checks whether a file exists.
 
++path.isdir+ 'path'::
+	Checks whether a path points to a directory.
+
 +file.size+ 'path'::
 	Returns the size of a file.
 

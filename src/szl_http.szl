@@ -102,6 +102,11 @@ proc http.post {
 global index_url /index.html
 global response_cache [dict.new]
 
+global http.index_header_fmt [str.expand {<!DOCTYPE HTML>\n<html>\n\t<head>\n\t\t<meta charset="UTF-8">\n\t\t<title>Index of {}</title>\n\t</head>\n\t<body>\n\t\t<h1>Index of {}</h1>\n\t\t<ul>\n}]
+global http.index_dir_fmt [str.expand {\t\t\t<li><a href="{}/{}">{}</a></li>\n}]
+global http.index_file_fmt [str.expand {\t\t\t<li><a href="{}/{}">{}</a> ({} bytes)</li>\n}]
+global http.index_footer [str.expand \t\t</ul>\n\t</body>\n</html>]
+
 proc http.respond {
 	try {
 		local request [http.parse $1]
@@ -115,7 +120,26 @@ proc http.respond {
 
 		local path [path.join . $url]
 		if [path.exists $path] {
-			export body [[open $path ru] read]
+			if [path.isdir $path] {
+				local body [str.format $http.index_header_fmt $url $url]
+
+				local names [dir.list $path]
+
+				for name [list.index $names 0] {
+					str.append $body [str.format $http.index_dir_fmt $url $name $name]
+				}
+
+				for name [list.index $names 1] {
+					str.append $body [str.format $http.index_file_fmt $url $name $name [file.size [path.join $path $name]]]
+				}
+
+				str.append $body $http.index_footer
+				export body
+			} else {
+				export body [[open $path ru] read]
+			}
+
+			export body
 			export status_code 200
 			export status_text [dict.get $http.codes 200]
 		} else {
