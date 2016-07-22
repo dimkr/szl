@@ -182,7 +182,11 @@ proc server.tcp {
 					if [== $response_length $sent] {
 						list.append $close_handles $write_handle
 					} else {
-						dict.set $responses $client_socket [str.range $response $sent [- $response_length 1]]
+						local remaining [str.range $response $sent [- $response_length 1]]
+						dict.set $responses $client_socket $remaining
+						if [! $remaining] {
+							list.append $close_handles $write_handle
+						}
 					}
 				} except {
 					list.append $close_handles $write_handle
