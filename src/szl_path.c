@@ -26,6 +26,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <errno.h>
+#include <stdlib.h>
+#include <limits.h>
+#include <string.h>
 
 #include "szl.h"
 
@@ -79,6 +82,33 @@ enum szl_res szl_path_proc_isdir(struct szl_interp *interp,
 	return szl_set_result_bool(interp, S_ISDIR(stbuf.st_mode));
 }
 
+static
+enum szl_res szl_path_proc_realpath(struct szl_interp *interp,
+                                    const int objc,
+                                    struct szl_obj **objv)
+{
+	struct szl_obj *obj;
+	char *rpath;
+	const char *path;
+	size_t len;
+
+	path = szl_obj_str(interp, objv[1], &len);
+	if (!path || !len)
+		return SZL_ERR;
+
+	rpath = realpath(path, NULL);
+	if (!rpath)
+		return SZL_ERR;
+
+	obj = szl_new_str_noalloc(rpath, strlen(rpath));
+	if (!obj) {
+		free(rpath);
+		return SZL_ERR;
+	}
+
+	return szl_set_result(interp, obj);
+}
+
 int szl_init_path(struct szl_interp *interp)
 {
 	return (szl_new_const_str(interp,
@@ -99,6 +129,14 @@ int szl_init_path(struct szl_interp *interp)
 	                     2,
 	                     "path.isdir path",
 	                     szl_path_proc_isdir,
+	                     NULL,
+	                     NULL) &&
+	        szl_new_proc(interp,
+	                     "path.realpath",
+	                     2,
+	                     2,
+	                     "path.realpath path",
+	                     szl_path_proc_realpath,
 	                     NULL,
 	                     NULL) &&
 	        (szl_run(interp,

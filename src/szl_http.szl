@@ -99,7 +99,7 @@ proc http.post {
 	http.request $1 $2 $3 [str.format $http.post_fmt $4 $1 [str.length $cont] $cont]
 }
 
-global index_url /index.html
+global index_name index.html
 global response_cache [dict.new]
 
 global http.index_header_fmt [str.expand {<!DOCTYPE HTML>\n<html>\n\t<head>\n\t\t<meta charset="UTF-8">\n\t\t<title>Index of {}</title>\n\t</head>\n\t<body>\n\t\t<h1>Index of {}</h1>\n\t\t<ul>\n}]
@@ -112,7 +112,6 @@ proc http.respond {
 		local request [http.parse $1]
 		local url [list.index $request 0]
 		if [str.in $url ..] throw
-		if [== $url /] {export url $index_url}
 
 		try {
 			return [dict.get $response_cache $url]
@@ -121,19 +120,26 @@ proc http.respond {
 		local path [path.join . $url]
 		if [path.exists $path] {
 			if [path.isdir $path] {
-				local body [str.format $http.index_header_fmt $url $url]
+				local index_path [path.join $path $index_name]
+				if [path.exists $index_path] {
+					export body [[open $index_path ru] read]
+				} else {
+					local body [str.format $http.index_header_fmt $url $url]
 
-				local names [dir.list $path]
+					local names [dir.list $path]
 
-				for name [list.index $names 0] {
-					str.append $body [str.format $http.index_dir_fmt $url $name $name]
+					for name [list.index $names 0] {
+						str.append $body [str.format $http.index_dir_fmt $url $name $name]
+					}
+
+					for name [list.index $names 1] {
+						str.append $body [str.format $http.index_file_fmt $url $name $name [file.size [path.join $path $name]]]
+					}
+
+					str.append $body $http.index_footer
+					export body
 				}
 
-				for name [list.index $names 1] {
-					str.append $body [str.format $http.index_file_fmt $url $name $name [file.size [path.join $path $name]]]
-				}
-
-				str.append $body $http.index_footer
 				export body
 			} else {
 				export body [[open $path ru] read]

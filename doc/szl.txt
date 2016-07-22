@@ -752,6 +752,9 @@ To join path components in a portable way, use 'path.join'.
 +path.isdir+ 'path'::
 	Checks whether a path points to a directory.
 
++path.realpath+ 'path'::
+	Returns the absolute, canonical path of a file.
+
 +file.size+ 'path'::
 	Returns the size of a file.
 
