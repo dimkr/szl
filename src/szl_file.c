@@ -40,36 +40,31 @@ struct szl_flock {
 
 static
 enum szl_res szl_file_proc_size(struct szl_interp *interp,
-                                const int objc,
+                                const unsigned int objc,
                                 struct szl_obj **objv)
 {
 	struct stat stbuf;
-	const char *path;
+	char *path;
 	size_t len;
 
-	path = szl_obj_str(interp, objv[1], &len);
-	if (!path || !len)
+	if (!szl_as_str(interp, objv[1], &path, &len) ||
+	    !len ||
+	    (stat(path, &stbuf) < 0) ||
+	    (stbuf.st_size > SZL_INT_MAX))
 		return SZL_ERR;
 
-	if ((stat(path, &stbuf) < 0) || (stbuf.st_size > SZL_INT_MAX))
-		return SZL_ERR;
-
-	return szl_set_result_int(interp, (szl_int)stbuf.st_size);
+	return szl_set_last_int(interp, (szl_int)stbuf.st_size);
 }
 
 static
 enum szl_res szl_file_proc_delete(struct szl_interp *interp,
-                                  const int objc,
+                                  const unsigned int objc,
                                   struct szl_obj **objv)
 {
-	const char *path;
+	char *path;
 	size_t len;
 
-	path = szl_obj_str(interp, objv[1], &len);
-	if (!path || !len)
-		return SZL_ERR;
-
-	if (unlink(path) < 0)
+	if (!szl_as_str(interp, objv[1], &path, &len) || !len || (unlink(path) < 0))
 		return SZL_ERR;
 
 	return SZL_OK;
@@ -91,15 +86,14 @@ void szl_file_lock_del(void *priv)
 
 static
 enum szl_res szl_file_lock_proc(struct szl_interp *interp,
-                                const int objc,
+                                const unsigned int objc,
                                 struct szl_obj **objv)
 {
 	struct szl_flock *lock = (struct szl_flock *)objv[0]->priv;
-	const char *op;
+	char *op;
 	size_t len;
 
-	op = szl_obj_str(interp, objv[1], &len);
-	if (!op || !len)
+	if (!szl_as_str(interp, objv[1], &op, &len) || !len)
 		return SZL_ERR;
 
 	if ((objc == 2) && (strcmp("unlock", op) == 0)) {
@@ -112,29 +106,27 @@ enum szl_res szl_file_lock_proc(struct szl_interp *interp,
 		return SZL_OK;
 	}
 
-	return szl_usage(interp, objv[0]);
+	return szl_set_last_help(interp, objv[0]);
 }
 
 static
 enum szl_res szl_file_proc_lock(struct szl_interp *interp,
-                                const int objc,
+                                const unsigned int objc,
                                 struct szl_obj **objv)
 {
-	char name[sizeof("file.lock:"SZL_PASTE(SZL_INT_MIN))];
-	struct szl_obj *proc;
+	struct szl_obj *name, *proc;
 	struct szl_flock *lock;
-	const char *path;
+	char *path;
 	size_t len;
 
-	path = szl_obj_str(interp, objv[1], &len);
-	if (!path || !len)
+	if (!szl_as_str(interp, objv[1], &path, &len) || !len)
 		return SZL_ERR;
 
 	lock = (struct szl_flock *)malloc(sizeof(*lock));
 	if (!lock)
 		return SZL_ERR;
 
-	lock->path = szl_obj_strdup(interp, objv[1], NULL);
+	lock->path = szl_strdup(interp, objv[1], NULL);
 	if (!lock->path) {
 		free(lock);
 		return SZL_ERR;
@@ -144,20 +136,28 @@ enum szl_res szl_file_proc_lock(struct szl_interp *interp,
 	                O_WRONLY | O_CREAT,
 	                S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 	if (lock->fd < 0) {
-		szl_set_result_fmt(interp, "failed to open %s", path);
+		szl_set_last_fmt(interp, "failed to open %s", path);
 		free(lock->path);
 		free(lock);
 		return SZL_ERR;
 	}
 
 	if (lockf(lock->fd, F_LOCK, 0) < 0) {
-		szl_set_result_fmt(interp, "failed to lock %s", path);
+		szl_set_last_fmt(interp, "failed to lock %s", path);
+		close(lock->fd);
 		free(lock->path);
 		free(lock);
 		return SZL_ERR;
 	}
 
-	szl_new_obj_name(interp, "file.lock", name, sizeof(name), lock);
+	name = szl_new_str_fmt("file.lock:%d", lock->fd);
+	if (!name) {
+		lockf(lock->fd, F_ULOCK, 0);
+		close(lock->fd);
+		free(lock->path);
+		free(lock);
+	}
+
 	proc = szl_new_proc(interp,
 	                    name,
 	                    1,
@@ -167,86 +167,94 @@ enum szl_res szl_file_proc_lock(struct szl_interp *interp,
 	                    szl_file_lock_del,
 	                    lock);
 	if (!proc) {
+		szl_unref(name);
+		lockf(lock->fd, F_ULOCK, 0);
+		close(lock->fd);
 		free(lock->path);
 		free(lock);
 		return SZL_ERR;
 	}
 
 	lock->locked = 1;
-	return szl_set_result(interp, szl_obj_ref(proc));
+	return szl_set_last(interp, proc);
 }
 
 static
 enum szl_res szl_file_proc_locked(struct szl_interp *interp,
-                                  const int objc,
+                                  const unsigned int objc,
                                   struct szl_obj **objv)
 {
-	const char *path;
+	char *path;
 	size_t len;
 	int fd;
 
-	path = szl_obj_str(interp, objv[1], &len);
-	if (!path || !len)
+	if (!szl_as_str(interp, objv[1], &path, &len) || !len)
 		return SZL_ERR;
 
 	fd = open(path, O_RDONLY, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 	if (fd < 0) {
 		if (errno != ENOENT) {
-			szl_set_result_fmt(interp, "failed to open %s", path);
+			szl_set_last_fmt(interp, "failed to open %s", path);
 			return SZL_ERR;
 		}
 
-		return szl_set_result_bool(interp, 0);
+		return szl_set_last_bool(interp, 0);
 	}
 
 	if (lockf(fd, F_TEST, 0) == 0) {
 		close(fd);
-		return szl_set_result_bool(interp, 0);
+		return szl_set_last_bool(interp, 0);
 	}
 
-	if ((errno != EAGAIN) && (errno !=  EACCES)) {
+	if ((errno != EAGAIN) && (errno != EACCES)) {
 		close(fd);
-		szl_set_result_fmt(interp,
-		                   "failed to check whether %s is locked",
-		                   path);
+		szl_set_last_fmt(interp, "failed to check whether %s is locked", path);
 		return SZL_ERR;
 	}
 
-	return szl_set_result_bool(interp, 1);
+	return szl_set_last_bool(interp, 1);
 }
+
+static
+const struct szl_ext_export file_exports[] = {
+	{
+		SZL_PROC_INIT("file.size",
+		              "path",
+		              2,
+		              2,
+		              szl_file_proc_size,
+		              NULL)
+	},
+	{
+		SZL_PROC_INIT("file.delete",
+		              "path",
+		              2,
+		              2,
+		              szl_file_proc_delete,
+		              NULL)
+	},
+	{
+		SZL_PROC_INIT("file.lock",
+		              "path",
+		              2,
+		              2,
+		              szl_file_proc_lock,
+		              NULL)
+	},
+	{
+		SZL_PROC_INIT("file.locked",
+		              "path",
+		              2,
+		              2,
+		              szl_file_proc_locked,
+		              NULL)
+	}
+};
 
 int szl_init_file(struct szl_interp *interp)
 {
-	return ((szl_new_proc(interp,
-	                      "file.size",
-	                      2,
-	                      2,
-	                      "file.size path",
-	                      szl_file_proc_size,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "file.delete",
-	                      2,
-	                      2,
-	                      "file.delete path",
-	                      szl_file_proc_delete,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "file.lock",
-	                      2,
-	                      2,
-	                      "file.lock path",
-	                      szl_file_proc_lock,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "file.locked",
-	                      2,
-	                      2,
-	                      "file.locked path",
-	                      szl_file_proc_locked,
-	                      NULL,
-	                      NULL)));
+	return szl_new_ext(interp,
+	                   "file",
+	                   file_exports,
+	                   sizeof(file_exports) / sizeof(file_exports[0]));
 }

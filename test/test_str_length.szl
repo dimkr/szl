@@ -20,13 +20,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-load test
+$load test
 
-test.run {no string} 0 {str.length} {bad str.length call: 'str.length', should be 'str.length str'}
-test.run {empty string} 1 {str.length {}} 0
-test.run {1-length string} 1 {str.length x} 1
-test.run {one space} 1 {str.length { }} 1
-test.run {string with spaces} 1 {str.length {x  y}} 4
-test.run {string with tabs} 1 {str.length {x		y}} 4
-test.run int 1 {str.length [calc 100 * 10]} 4
-test.run double 1 {str.length [calc 100.5 * 300]} [str.length 30150]
+$test.run {no string} 0 {$str.length} {bad usage, should be 'str.length str'}
+$test.run {empty string} 1 {$str.length {}} 0
+$test.run {1-length string} 1 {$str.length x} 1
+$test.run {one space} 1 {$str.length { }} 1
+$test.run {$string with spaces} 1 {$str.length {x  y}} 4
+$test.run {$string with tabs} 1 {$str.length {x		y}} 4
+$test.run int 1 {$str.length [$* 100 10]} 4
+$test.run float 1 {$str.length [$* 100.5 300]} 5

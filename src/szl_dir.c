@@ -35,17 +35,15 @@ static const char szl_dir_inc[] = {
 
 static
 enum szl_res szl_dir_proc_create(struct szl_interp *interp,
-                                 const int objc,
+                                 const unsigned int objc,
                                  struct szl_obj **objv)
 {
-	const char *path;
+	char *path;
 	size_t len;
 
-	path = szl_obj_str(interp, objv[1], &len);
-	if (!path || !len)
-		return SZL_ERR;
-
-	if (mkdir(path, 0755) < 0)
+	if (!szl_as_str(interp, objv[1], &path, &len) ||
+	    !len ||
+	    (mkdir(path, 0755) < 0))
 		return SZL_ERR;
 
 	return SZL_OK;
@@ -53,17 +51,15 @@ enum szl_res szl_dir_proc_create(struct szl_interp *interp,
 
 static
 enum szl_res szl_dir_proc_delete(struct szl_interp *interp,
-                                 const int objc,
+                                 const unsigned int objc,
                                  struct szl_obj **objv)
 {
-	const char *path;
+	char *path;
 	size_t len;
 
-	path = szl_obj_str(interp, objv[1], &len);
-	if (!path || !len)
-		return SZL_ERR;
-
-	if (rmdir(path) < 0)
+	if (!szl_as_str(interp, objv[1], &path, &len) ||
+	    !len ||
+	    (rmdir(path) < 0))
 		return SZL_ERR;
 
 	return SZL_OK;
@@ -71,17 +67,15 @@ enum szl_res szl_dir_proc_delete(struct szl_interp *interp,
 
 static
 enum szl_res szl_dir_proc_cd(struct szl_interp *interp,
-                             const int objc,
+                             const unsigned int objc,
                              struct szl_obj **objv)
 {
-	const char *path;
+	char *path;
 	size_t len;
 
-	path = szl_obj_str(interp, objv[1], &len);
-	if (!path || !len)
-		return SZL_ERR;
-
-	if (chdir(path) < 0)
+	if (!szl_as_str(interp, objv[1], &path, &len) ||
+	    !len ||
+	    (chdir(path) < 0))
 		return SZL_ERR;
 
 	return SZL_OK;
@@ -89,27 +83,25 @@ enum szl_res szl_dir_proc_cd(struct szl_interp *interp,
 
 static
 enum szl_res szl_dir_proc_list(struct szl_interp *interp,
-                               const int objc,
+                               const unsigned int objc,
                                struct szl_obj **objv)
 {
 	struct dirent ent;
 	struct szl_obj *names[2], *obj;
-	const char *s;
+	char *path, *s;
 	struct dirent *entp;
 	DIR *dir;
-	const char *path;
 	size_t len;
 	int i, out;
 
-	path = szl_obj_str(interp, objv[1], &len);
-	if (!path || !len)
+	if (!szl_as_str(interp, objv[1], &path, &len) || !len)
 		return SZL_ERR;
 
-	names[0] = szl_new_empty();
+	names[0] = szl_new_list();
 	if (!names[0])
 		return SZL_ERR;
 
-	names[1] = szl_new_empty();
+	names[1] = szl_new_list();
 	if (!names[1])
 		return SZL_ERR;
 
@@ -123,9 +115,9 @@ enum szl_res szl_dir_proc_list(struct szl_interp *interp,
 
 	do {
 		if (readdir_r(dir, &ent, &entp) != 0) {
-			szl_obj_unref(obj);
-			szl_obj_unref(names[1]);
-			szl_obj_unref(names[0]);
+			szl_unref(obj);
+			szl_unref(names[1]);
+			szl_unref(names[0]);
 			closedir(dir);
 			return SZL_ERR;
 		}
@@ -140,70 +132,60 @@ enum szl_res szl_dir_proc_list(struct szl_interp *interp,
 			     (entp->d_name[2] == '\0')))
 				continue;
 
-			out = szl_lappend_str(interp, names[0], entp->d_name, -1);
+			out = szl_list_append_str(interp, names[0], entp->d_name, -1);
 		}
 		else
-			out = szl_lappend_str(interp, names[1], entp->d_name, -1);
+			out = szl_list_append_str(interp, names[1], entp->d_name, -1);
 
 		if (!out) {
-			szl_obj_unref(obj);
-			szl_obj_unref(names[1]);
-			szl_obj_unref(names[0]);
+			szl_unref(obj);
+			szl_unref(names[1]);
+			szl_unref(names[0]);
 			closedir(dir);
 			return SZL_ERR;
 		}
 	} while (1);
 
 	for (i = 0; i < 2; ++i) {
-		s = szl_obj_str(interp, names[i], &len);
-		if (!s || !szl_lappend_str(interp, obj, s, (int)len)) {
-			szl_obj_unref(obj);
-			szl_obj_unref(names[1]);
-			szl_obj_unref(names[0]);
+		if (!szl_as_str(interp, names[i], &s, &len) ||
+		    !szl_list_append_str(interp, obj, s, (int)len)) {
+			szl_unref(obj);
+			szl_unref(names[1]);
+			szl_unref(names[0]);
 			closedir(dir);
 			return SZL_ERR;
 		}
 	}
 
 	closedir(dir);
-	szl_obj_unref(names[1]);
-	szl_obj_unref(names[0]);
-	return szl_set_result(interp, obj);
+	szl_unref(names[1]);
+	szl_unref(names[0]);
+	return szl_set_last(interp, obj);
 }
+
+static
+const struct szl_ext_export dir_exports[] = {
+	{
+		SZL_PROC_INIT("dir.create", "path", 2, 2, szl_dir_proc_create, NULL)
+	},
+	{
+		SZL_PROC_INIT("dir.delete", "path", 2, 2, szl_dir_proc_delete, NULL)
+	},
+	{
+		SZL_PROC_INIT("cd", "path", 2, 2, szl_dir_proc_cd, NULL)
+	},
+	{
+		SZL_PROC_INIT("dir.list", "path", 2, 2, szl_dir_proc_list, NULL)
+	}
+};
 
 int szl_init_dir(struct szl_interp *interp)
 {
-	return ((szl_new_proc(interp,
-	                      "dir.create",
-	                      2,
-	                      2,
-	                      "dir.create path",
-	                      szl_dir_proc_create,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "dir.delete",
-	                      2,
-	                      2,
-	                      "dir.delete path",
-	                      szl_dir_proc_delete,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "cd",
-	                      2,
-	                      2,
-	                      "cd path",
-	                      szl_dir_proc_cd,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "dir.list",
-	                      2,
-	                      2,
-	                      "dir.list path",
-	                      szl_dir_proc_list,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_run(interp, szl_dir_inc, sizeof(szl_dir_inc) - 1) == SZL_OK));
+	return (szl_new_ext(interp,
+	                    "dir",
+	                    dir_exports,
+	                    sizeof(dir_exports) / sizeof(dir_exports[0])) &&
+	        szl_run(interp,
+	                szl_dir_inc,
+	                sizeof(szl_dir_inc) - 1) == SZL_OK);
 }

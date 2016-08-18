@@ -40,18 +40,16 @@ enum szl_res szl_lzfse_op(struct szl_interp *interp,
 	                      size_t (*get_auxlen)(void))
 {
 	struct szl_obj *str;
-	const char *in;
-	char *out;
+	char *in, *out;
 	void *aux;
 	size_t inlen, outlen;
 
-	in = szl_obj_str(interp, objv[1], &inlen);
-	if (!in)
+	if (!szl_as_str(interp, objv[1], &in, &inlen))
 		return SZL_ERR;
 
 	outlen = get_outlen(inlen);
 	if (!outlen) {
-		szl_set_result_fmt(interp, "bad input len: %zd", inlen);
+		szl_set_last_fmt(interp, "bad input len: %zd", inlen);
 		return SZL_ERR;
 	}
 
@@ -80,7 +78,7 @@ enum szl_res szl_lzfse_op(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	return szl_set_result(interp, str);
+	return szl_set_last(interp, str);
 }
 
 static
@@ -94,7 +92,7 @@ size_t get_encode_outlen(const size_t inlen)
 
 static
 enum szl_res szl_lzfse_proc_compress(struct szl_interp *interp,
-	                                 const int objc,
+	                                 const unsigned int objc,
 	                                 struct szl_obj **objv)
 {
 	return szl_lzfse_op(interp,
@@ -116,7 +114,7 @@ size_t get_decode_outlen(const size_t inlen)
 
 static
 enum szl_res szl_lzfse_proc_decompress(struct szl_interp *interp,
-	                                   const int objc,
+	                                   const unsigned int objc,
 	                                   struct szl_obj **objv)
 {
 	return szl_lzfse_op(interp,
@@ -126,23 +124,30 @@ enum szl_res szl_lzfse_proc_decompress(struct szl_interp *interp,
 	                    lzfse_decode_scratch_size);
 }
 
+static
+const struct szl_ext_export lzfse_exports[] = {
+	{
+		SZL_PROC_INIT("lzfse.compress",
+		              "str",
+		              2,
+		              2,
+		              szl_lzfse_proc_compress,
+		              NULL)
+	},
+	{
+		SZL_PROC_INIT("lzfse.decompress",
+		              "str",
+		              2,
+		              2,
+		              szl_lzfse_proc_decompress,
+		              NULL)
+	}
+};
+
 int szl_init_lzfse(struct szl_interp *interp)
 {
-	return (szl_new_proc(interp,
-	                     "lzfse.compress",
-	                     2,
-	                     2,
-	                     "lzfse.compress str",
-	                     szl_lzfse_proc_compress,
-	                     NULL,
-	                     NULL) &&
-	        szl_new_proc(interp,
-	                     "lzfse.decompress",
-	                     2,
-	                     2,
-	                     "lzfse.decompress str",
-	                     szl_lzfse_proc_decompress,
-	                     NULL,
-	                     NULL));
+	return szl_new_ext(interp,
+	                   "lzfse",
+	                   lzfse_exports,
+	                   sizeof(lzfse_exports) / sizeof(lzfse_exports[0]));
 }
-

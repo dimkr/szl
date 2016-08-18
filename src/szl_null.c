@@ -58,43 +58,35 @@ const struct szl_stream_ops szl_null_ops = {
 	.size = szl_null_size
 };
 
-static
-enum szl_res szl_null_proc_null(struct szl_interp *interp,
-                                const int objc,
-                                struct szl_obj **objv)
-{
-	struct szl_stream *strm;
-
-	if (!interp->null) {
-		strm = (struct szl_stream *)malloc(sizeof(struct szl_stream));
-		if (!strm)
-			return SZL_ERR;
-
-		strm->ops = &szl_null_ops;
-		strm->keep = 0;
-		strm->closed = 0;
-		strm->priv = NULL;
-		strm->buf = NULL;
-		strm->blocking = 1;
-
-		interp->null = szl_new_stream(interp, strm, "null");
-		if (!interp->null) {
-			szl_stream_free(strm);
-			return SZL_ERR;
-		}
-	}
-
-	return szl_set_result(interp, szl_obj_ref(interp->null));
-}
-
 int szl_init_null(struct szl_interp *interp)
 {
-	return szl_new_proc(interp,
-	                    "null",
-	                    1,
-	                    1,
-	                    "null",
-	                    szl_null_proc_null,
-	                    NULL,
-	                    NULL) ? 1 : 0;
+	static struct szl_ext_export null_exports[] = {
+		{
+			SZL_STREAM_INIT("null")
+		}
+	};
+	struct szl_stream *strm;
+
+	strm = (struct szl_stream *)malloc(sizeof(struct szl_stream));
+	if (!strm)
+		return 0;
+
+	strm->ops = &szl_null_ops;
+	strm->keep = 0;
+	strm->closed = 0;
+	strm->priv = NULL;
+	strm->buf = NULL;
+	strm->blocking = 1;
+
+	null_exports[0].val.proc.priv = strm;
+
+	if (!szl_new_ext(interp,
+	                 "null",
+	                 null_exports,
+	                 sizeof(null_exports) / sizeof(null_exports[0]))) {
+		szl_stream_free(strm);
+		return 0;
+	}
+
+	return 1;
 }

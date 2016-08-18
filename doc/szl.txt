@@ -9,31 +9,26 @@ Dima Krasner <dima@dimakrasner.com>
 
 Introduction
 ------------
-+szl+ (pronounced "sizzle") is a scripting language heavily inspired by Tcl and
-shell. It follows five design principles:
++szl+ (pronounced "sizzle") is a scripting language inspired by
+http://www.tcl.tk/[Tcl], shell and http://www.python.org/[CPython], which
+follows four design principles:
 
-1. Less syntax: there should be only *one, obvious way* to achieve a certain
-   effect, to make the language easier to learn
-2. Minimal syntax is not enough for code clarity; it also has to be *consistent*
-   and therefore *predictable*
+1. There should be only *one, obvious way* to achieve a certain effect
+2. Consistency:
 - Every statement is a procedure call
 - Everything is an object
 - Every object is a string
-3. Minimal standard library, but comprehensive and useful enough to allow the
-   addition of more complex operations
+3. Minimal, low-level standard library which leaves high-level logic to the user
 4. One-liners are first-class citizens and *not* frowned upon
-5. Good balance between performance and code size: the interpreter core should
-   be as small as possible, while more high-level parts of the standard library
-   are implemented as scripts; however, the interpreter should be efficient
-   enough to achieve reasonable performance and the language should be designed
-   to allow this
 
 [quote, 'Vincent Van Gogh']
 Great things are ... done by a series of small things brought together.
 
-The +szl+ interpreter is designed as a library, exposes a high-level API and can
-be easily embedded in other software projects.
+The +szl+ interpreter is designed as a library and exposes a high-level API. It
+strives to provide reasonable performance at tiny code size, to make it
+attractive as an embedded scripting engine integrated into other projects.
 
+[NOTE]
 The term "+szl+" refers to *both* the programming language and its official
 interpreter, depending on the context.
 
@@ -94,18 +89,59 @@ The doer alone learneth.
 
 Getting Started
 ~~~~~~~~~~~~~~~
-Each and every +szl+ script is a text file which consists of lines in the
+Each and every +szl+ script is a text file which consists of statements in the
 following form:
 
 --------------------------------------
-proc arg arg
+$proc arg arg
 --------------------------------------
+
+Every +szl+ statement describes an operation on one or more objects. Objects may
+be:
+
+1) Textual (strings),
+2) Numeric (integers and floating-point numbers), or
+3) Lists (a series of objects)
+
+Each statement is a series of space-delimited tokens, while each token
+corresponds to an object.
+
+The first object in a statement must be a procedure (think, _function_).
+The procedure receives the rest of the objects as arguments (input), does
+something and returns an object (output). For example, in the following
+statement, the '+' procedure receives '1', and '2' as arguments and returns
+'3' as output:
+
+--------------------------------------
+$+ 1 2
+--------------------------------------
+
+Each object is identified by a unique name. To access the value of an object,
+prefix its name with '$'. For example, to call the 'puts' procedure:
+
+--------------------------------------
+$puts hello
+--------------------------------------
+
+[NOTE]
+Some procedures do not receive any arguments.
+
+To name a new object, use either 'local' or 'global'. For example, to create
+an object named 'number', with the value of '5':
+
+--------------------------------------
+$local number 5
+$puts $number
+--------------------------------------
+
+When an object is no longer used, +szl+ will automatically free all resources
+associated with it.
 
 Lines that begin with '#' are comments and ignored by the interpreter:
 
 --------------------------------------
 # this is a very useful script
-proc arg arg
+$local number 5
 --------------------------------------
 
 To run a script, run +szlsh+ (the +szl+ interpreter) in a console:
@@ -114,75 +150,32 @@ To run a script, run +szlsh+ (the +szl+ interpreter) in a console:
 $ szlsh script.szl
 --------------------------------------
 
-Working with Variables
-~~~~~~~~~~~~~~~~~~~~~~
-Basically, each statement is a series of space-delimited tokens. The first
-token, which is usually a verb or a mathematical symbol, is the name of a
-procedure (think, _function_). The procedure receives the rest of the tokens as
-arguments (input), does something and returns an object (output). For example,
-in the following statement, '+' receives '1', and '2' as arguments and returns
-'3' as output:
+Lists
+~~~~~
+In +szl+, *everything* is a string. All objects are represented as strings and
++szl+ knows how to treat them, depending on the context. For example, once two
+objects are passed to the '+' procedure, they are treated as numbers.
+
+Lists are strings wrapped with braces:
 
 --------------------------------------
-+ 1 2
---------------------------------------
-
-[NOTE]
-Some procedures do not receive any arguments.
-
-Objects (sometimes referred to as variables) are identified by name and carry
-values (such as text strings or numbers). To create a new object or change the
-value of an existing one, use 'local':
-
---------------------------------------
-local number 5
---------------------------------------
-
-'local' receives the object name and its value. To query the value of an
-existing object, prefix its name with '$', like this:
-
---------------------------------------
-puts $number
---------------------------------------
-
-'$number' will be expanded: the value of 'number' will be fetched and passed to
-'puts' as its argument.
-
-In +szl+, all objects (including numbers and even lists) are represented as
-strings and +szl+ knows how to treat them, depending on the context. For
-example, once two objects are passed to the '+' procedure receives as
-arguments, they are treated as numbers.
-
-When an object is no longer used, +szl+ will automatically free all resources
-associated with it: that's "garbage collection".
-
-Grouping
-~~~~~~~~
-Multi-word values should be grouped using braces:
-
---------------------------------------
-local message {hello world}
+$local message {hello world}
 --------------------------------------
 
 In this example, 'local' accepts two arguments: 'message' and 'hello world'.
 
-Some procedures (for example, 'if') accept +szl+ statements as their arguments.
-For example, in the the following snippet (which prints 'ok'), 'puts ok' is an
-argument of 'if':
+In addition, strings enclosed in braces may contain multiple lines. For example,
+the second argument of 'if' is a block of one or more +szl+ statements:
 
 --------------------------------------
-if 1 {puts ok}
---------------------------------------
-
-A block of multiple +szl+ statements passed as an argument can be also be laid
-out like this:
-
---------------------------------------
-if 1 {
-	puts hello
-	puts world
+$if 1 {
+	$puts hello
+	$puts world
 }
 --------------------------------------
+
+This block of statements is a list, while a list is a string. To sum it up:
+*everything* in +szl+ is a string and every string is an object.
 
 [NOTE]
 A block can be idented using either spaces, tabs or both. Whitespace at the
@@ -190,15 +183,14 @@ beginning or end of statements is ignored.
 
 Using Return Values
 ~~~~~~~~~~~~~~~~~~~
-To obtain the return value of a procedure, wrap the statement that calls it with
-brackets. A statement enclosed in brackets is executed and replaced with its
-return value.
+To obtain the return value of a statement, wrap it with brackets. A statement
+enclosed in brackets is executed and replaced with its return value.
 
-For example, the following example executes '+ 1 2.5' and stores the return
-value of this procedure in a variable, 'sum':
+For example, the following example executes '$+ 1 2.5' and stores the return
+value of this procedure in 'sum':
 
 --------------------------------------
-local sum [+ 1 2.5]
+$local sum [$+ 1 2.5]
 --------------------------------------
 
 [NOTE]
@@ -206,13 +198,13 @@ Every procedure has a return value. If a procedure does not specify a return
 value, it returns an empty string.
 
 [TIP]
-The return value of the previously called procedure is stored in the special
-variable '_', in the calling scope.
+The return value of the previously called procedure is stored in the special '_'
+object, in the calling scope.
 
 Both braces and brackets may be nested, to form more complex logic:
 
 --------------------------------------
-local sum [- [str.length {hello world}] 3]
+$local sum [$- [$str.length {hello world}] 3]
 --------------------------------------
 
 Special Characters
@@ -221,7 +213,7 @@ Special characters such as line breaks can be used in object declarations, using
 a backslash ('\') and 'str.expand':
 
 --------------------------------------
-local tabs [str.expand \t\t]
+$local tabs [$str.expand \t\t]
 --------------------------------------
 
 Formatting Strings
@@ -229,7 +221,7 @@ Formatting Strings
 To form more complex strings, such as user-friendly messages, use 'str.format':
 
 --------------------------------------
-puts [str.format {the sum of {} and {} is {}} 3 4 [+ 3 4]]
+$puts [$str.format {the sum of {} and {} is {}} 3 4 [$+ 3 4]]
 --------------------------------------
 
 'str.format' accepts a format string (or, a template) and replaces
@@ -241,45 +233,38 @@ Declaring Procedures
 example defines a procedure called 'print_hello' and calls it:
 
 --------------------------------------
-proc print_hello {
-	puts hello
+$proc print_hello {
+	$puts hello
 }
 
-print_hello
+$print_hello
 --------------------------------------
 
-Procedure arguments are accessible using variables named '1', '2' and so on. The
+Procedure arguments are accessible using objects named '1', '2' and so on. The
 following procedure prints its first argument ('hello'):
 
 --------------------------------------
-proc print_something {
-	puts $1
+$proc print_something {
+	$puts $1
 }
 
-print_something hello
---------------------------------------
-
-The number of arguments passed to a function is accessible through the '#'
-variable:
-
---------------------------------------
-proc print_argument_count {
-	puts [str.format {received {} arguments} $#]
-}
-
-print_argument_count a b c
+$print_something hello
 --------------------------------------
 
 In addition, a procedure may access its list of arguments, via the special '@'
-variable:
+object:
 
 --------------------------------------
-proc print_statement {
-	puts [str.format {invoked with arguments: {}} $@]
+$proc print_statement {
+	$puts [$str.format {invoked with arguments: {}} $@]
 }
 
-print_statement a b {c d} e f {g h}
+$print_statement a b {c d} e f {g h}
 --------------------------------------
+
+[NOTE]
+When accessed outside of a procedure, '@' specifies the command-line arguments
++szl+ was invoked with.
 
 The return value of a procedure is either:
 
@@ -290,15 +275,15 @@ The return value of a procedure is either:
 
 For example, the following functions are identical, functionality-wise:
 --------------------------------------
-proc foo {
-	puts {before check}
-	== 1 2
+$proc foo {
+	$puts {before check}
+	$== 1 2
 }
 
-proc bar {
-	puts {before check}
-	return [== 1 2]
-	puts {after check}
+$proc bar {
+	$puts {before check}
+	$return [$== 1 2]
+	$puts {after check}
 }
 --------------------------------------
 
@@ -309,7 +294,7 @@ example, to be able to compress files using the 'zlib.gzip' procedure, the
 'zlib' extension should be loaded:
 
 --------------------------------------
-load zlib
+$load zlib
 --------------------------------------
 
 Using Modules
@@ -320,18 +305,8 @@ between projects. For example, utility procedures can be put in 'util.szl'.
 Then, 'source' can be used to execute this file through the script body:
 
 --------------------------------------
-source util.szl
+$source util.szl
 --------------------------------------
-
-Summary
-~~~~~~~
-The entire syntax of +szl+ is based on four types of expressions:
-
-1. Single-word strings
-2. Strings wrapped with braces: multi-word strings
-3. Strings that begin with '$' followed by a variable name and whitespace:
-   variable values
-4. Strings wrapped with brackets: procedure calls
 
 Standard Library
 ----------------
@@ -343,49 +318,48 @@ Objects
 	Returns 'obj'.
 
 --------------------------------------
-== [echo 5] 5
+$== [$echo 5] 5
 --------------------------------------
 
 +get+ 'name'::
-	Returns the variable named 'name'.
+	Returns the object named 'name'.
 
 --------------------------------------
-local a 5
-== [get a] 5
+$local a 5
+$== [$get a] 5
 --------------------------------------
 
-Variables
-+++++++++
+Objects
++++++++
 +local+ 'name val'::
-	Creates a new variable in the local scope.
+	Creates a new object in the local scope.
 
 [TIP]
-'local' returns the variable value, which is useful for one-liners (for example,
-when one wishes to create a new variable and pass its value to another
-procedure).
+'local' returns the object value, which is useful for one-liners (for example,
+when one wishes to create a new object and pass its value to another procedure).
 
 +export+ 'name ?val?'::
-	Creates a local variable in the calling scope. If no value is specified, the
-	value of the local variable with the same name is used as fallback.
+	Creates a local object in the calling scope. If no value is specified, the
+	value of the local object with the same name is used as fallback.
 
 --------------------------------------
-proc check_if_bigger_than_ten {
-	local bigger 0
-	if [> $1 10] {export bigger 1}
-	puts $bigger
+$proc check_if_bigger_than_ten {
+	$local bigger 0
+	$if [$> $1 10] {$export bigger 1}
+	$puts $bigger
 }
 
-check_if_bigger_than_ten 12
+$check_if_bigger_than_ten 12
 --------------------------------------
 
 +global+ 'name val'::
-	Similar to 'local', but creates the new variable in the global scope. The
-	variable will be accessible from all procedures.
+	Similar to 'local', but creates the new object in the global scope. The
+	object will be accessible from all procedures.
 
 [NOTE]
-If a procedure uses 'local' to define a local variable with the same name as
-a previously defined global variable, attempts to obtain the variable value from
-within the procedure will refer to the local variable.
+If a procedure uses 'local' to define a local object with the same name as a
+previously defined global object, attempts to obtain the object value from
+within the procedure will refer to the local one.
 
 String Operations
 +++++++++++++++++
@@ -424,7 +398,7 @@ String Operations
 	hexadecimal numbers in '\x' notation (e.g. '\xff').
 
 --------------------------------------
-puts [str.expand {this is a\n\tmulti-line strin\x67}]
+$puts [$str.expand {this is a\n\tmulti-line strin\x67}]
 --------------------------------------
 
 +str.format+ 'fmt obj...'::
@@ -432,7 +406,7 @@ puts [str.expand {this is a\n\tmulti-line strin\x67}]
 	values.
 
 --------------------------------------
-puts [str.format {the length of "{}" is {}} abcd [str.length abcd]]
+$puts [$str.format {the length of "{}" is {}} abcd [$str.length abcd]]
 --------------------------------------
 
 +str.rtrim+ 'str'::
@@ -456,33 +430,33 @@ List Operations
 	Returns the items in a list, between zero-based indices 'start' and 'end'.
 
 --------------------------------------
-local fruits {apple orange pear}
-puts [str.format {the first two fruits are: {}} [list.range $fruits 0 1]]
+$local fruits {apple orange pear}
+$puts [$str.format {the first two fruits are: {}} [$list.range $fruits 0 1]]
 --------------------------------------
 
 +list.in+ 'list item'::
 	Returns '1' if 'item' is an item of 'list', otherwise '0'.
 
 --------------------------------------
-local fruits {apple orange pear}
-puts [list.in $fruits orange]
-puts [list.in $fruits melon]
+$local fruits {apple orange pear}
+$puts [$list.in $fruits orange]
+$puts [$list.in $fruits melon]
 --------------------------------------
 
 +list.append+ 'list item'::
 	Appends an object to a list.
 
 --------------------------------------
-local fruits {apple orange}
-list.append $fruits pear
-puts $fruits
+$local fruits {apple orange}
+$list.append $fruits pear
+$puts $fruits
 --------------------------------------
 
 +list.join+ 'delim list'::
 	Joins the items of a list to form a string.
 
 --------------------------------------
-puts [str.format {three fruits: {}} [list.join , {apple orange pear}]]
+$puts [$str.format {three fruits: {}} [$list.join , {apple orange pear}]]
 --------------------------------------
 
 +list.set+ 'list index item'::
@@ -490,17 +464,17 @@ puts [str.format {three fruits: {}} [list.join , {apple orange pear}]]
 
 --------------------------------------
 local fruits {apple orange}
-list.set $fruits 1 banana
-puts $fruits
+$list.set $fruits 1 banana
+$puts $fruits
 --------------------------------------
 
 +list.extend+ 'list list'::
-	Adds all items in a list to an existing list.
+	Adds all items in a list to an existing one and returns it.
 
 --------------------------------------
-local fruits {apple orange}
-list.extend $fruits {pear banana}
-puts $fruits
+$local fruits {apple orange}
+$puts [$list.extend $fruits {pear banana}]
+$puts $fruits
 --------------------------------------
 
 +list.zip+ 'list list...'::
@@ -508,16 +482,9 @@ puts $fruits
 	of the same length.
 
 --------------------------------------
-for pair [list.zip {apple orange pear} {red orange green}] {
-	puts [str.format {{}s are {}} [list.index $pair 0] [list.index $pair 1]]
+$for pair [$list.zip {apple orange pear} {red orange green}] {
+	$puts [$str.format {{}s are {}} [$list.index $pair 0] [$list.index $pair 1]]
 }
---------------------------------------
-
-+list.sum+ 'list list...'::
-	Returns a list containing the items of given lists.
-
---------------------------------------
-local fruits [list.sum {apple orange} pear]
 --------------------------------------
 
 +list.reverse+ 'list'::
@@ -531,7 +498,7 @@ local fruits [list.sum {apple orange} pear]
 	If no minimum is specified, the range starts at '0'.
 
 --------------------------------------
-for i [range 1 11] {puts $i}
+$for i [range 1 11] {$puts $i}
 --------------------------------------
 
 Arithmetic and Logical Operations
@@ -576,11 +543,10 @@ Arithmetic and Logical Operations
 	Returns '1' if at least one condition is true, otherwise '0'.
 
 +^+ 'obj obj'::
-	Returns '1' if at one condition is true and the other is false, otherwise
-	'0'.
+	Returns '1' if one condition is true and the other is false, otherwise '0'.
 
 --------------------------------------
-if [&& [== [+ 1 1] 2] [== [+ 2 2] 4]] {puts yes}
+$if [$&& [$== [$+ 1 1] 2] [$== [$+ 2 2] 4]] {$puts yes}
 --------------------------------------
 
 +!+ 'obj'::
@@ -612,14 +578,14 @@ Flow Control
 	runs the block and stops if they are equal, or if the value is '*'.
 
 --------------------------------------
-switch [+ 1 2] 2 {
-	puts {it is 2}
+$switch [$+ 1 2] 2 {
+	$puts {it is 2}
 } 3 {
-	puts {it is 3}
+	$puts {it is 3}
 } 4 {
-	puts {it is 4}
+	$puts {it is 4}
 } * {
-	puts {unknown result}
+	$puts {unknown result}
 }
 --------------------------------------
 
@@ -631,11 +597,11 @@ switch [+ 1 2] 2 {
 	the loop body.
 
 +map+ 'names list exp'::
-	For each series of items in a list, runs a block with local variables that
+	For each series of items in a list, runs a block with local object that
 	specify the items and returns a list of the block return values.
 
 --------------------------------------
-puts [map {a b} {1 1 1 2 1 3 1 4} {+ $a $b}]
+$puts [$map {a b} {1 1 1 2 1 3 1 4} {$+ $a $b}]
 --------------------------------------
 
 [TIP]
@@ -646,8 +612,8 @@ usage (since the block return values are collected in a new list).
 	Same as 'map', but discards the block return values.
 
 --------------------------------------
-for {a b} {1 2 3 4 5 6 7 8} {
-	puts [str.format {a is {} and b is {}} $a $b]
+$for {a b} {1 2 3 4 5 6 7 8} {
+	$puts [$str.format {a is {} and b is {}} $a $b]
 }
 --------------------------------------
 
@@ -679,12 +645,12 @@ Exceptions
 	via '_', like this:
 
 --------------------------------------
-try {
-	puts
+$try {
+	$puts
 } except {
-	puts [str.format {caught an error: {}} $_]
+	$puts [$str.format {caught an error: {}} $_]
 } finally {
-	puts {Always executed}
+	$puts {Always executed}
 }
 --------------------------------------
 
@@ -697,10 +663,10 @@ Any set of statements can be wrapped with a 'try' block without a matching
 	error condition may be caught by a 'try' call.
 
 --------------------------------------
-try {
-	throw {some error description}
+$try {
+	$throw {some error description}
 } except {
-	puts [str.format {caught an error: {}} $_]
+	$puts [$str.format {caught an error: {}} $_]
 }
 --------------------------------------
 
@@ -721,9 +687,9 @@ I/O
 	Prints an object to standard output. If the object does not end with a line
 	break ('\n'), a line break character is appended.
 
-+null+::
-	Creates a fake, empty file. Every attempt to read from the file returns an
-	empty string and all data written to it is discarded.
++$null+::
+	A fake, empty file. Every attempt to read from it returns an empty string
+	every attempt to write to it succeeds.
 
 +$stdin+::
 +$stdout+::
@@ -740,7 +706,7 @@ File System
 	Joins path components.
 
 --------------------------------------
-local path [path.join .. something.txt]
+$local path [$path.join .. something.txt]
 --------------------------------------
 
 [TIP]
@@ -809,10 +775,16 @@ once).
 	non-blocking and less than 'len' bytes are available for reading without
 	waiting, that will be the number of bytes returned.
 
++$stream+ 'readln str'::
+	Reads from a stream, until line end or until no more data can be read.
+
 +$stream+ 'write str'::
 	Writes a string to a stream. If the stream is non-blocking and only a part
 	of the string could be written without waiting, the procedure will return
 	the number of bytes written.
+
++$stream+ 'writeln str'::
+	Writes a string to a stream. If the stream
 
 [NOTE]
 Since writing operations on files may be buffered to improve efficiency, data
@@ -838,32 +810,8 @@ implicit 'close' call is redundant and trivial file operations can be
 implemented as one-liners:
 
 --------------------------------------
-local content [[open /etc/hosts ru] read]
+$local content [[$open /etc/hosts ru] read]
 --------------------------------------
-
-File Handle Operations
-++++++++++++++++++++++
-+fdopen+ 'handle'::
-	Re-opens an existing stream by its handle.
-
-[WARNING]
-Streams created using 'fdopen' do not carry the state (for example, queued
-unwritten data) of the original streams. To avoid corruption of written data,
-call 'flush' before reusing a file handle.
-
-[WARNING]
-Streams created using 'fdopen' share the same underlying handle as the original
-streams: when a stream is closed, all streams that share its handle are
-invalidated.
-
-[WARNING]
-Writing to a single file via multiple streams simultaneously is likely to result
-in data corruption.
-
-+dup+ 'handle'::
-	Duplicates an existing handle, to allow the creation of a new stream which
-	shares the same underlying handle as an existing one, but without affecting
-	the original stream.
 
 Sockets
 ^^^^^^^
@@ -920,14 +868,15 @@ Processes
 	Returns the process ID of the +szl+ interpreter.
 
 +exec+ 'cmd'::
-	Runs a shell command, waits for it to terminate and returns a list
-	containing its exit code and output.
+	Runs a shell command and returns a new stream representing it. Data written
+	to the stream is passed to the shell command's standard input pipe and data
+	the shell command's  output be read through the stream.
 
 [TIP]
 'exec' passes 'cmd' to the default shell, so 'cmd' may rely on shell features
 such as redirection (e.g. '2>&1'):
 --------------------------------------
-puts [exec {uname -a 2>&1}]
+$puts [[$exec {uname -a 2>/dev/null}] read]
 --------------------------------------
 
 Signals
@@ -1033,9 +982,9 @@ useful for working with REST APIs.
 	the HTTP status code and the response body.
 
 --------------------------------------
-load http
+$load http
 
-puts [list.index [http.get httpbin.org 443 1 /get [dict.new a {123 456} b 789]] 1]
+$puts [$list.index [$http.get httpbin.org 443 1 /get [$dict.new a {123 456} b 789]] 1]
 --------------------------------------
 
 +http.post+ 'host port tls url params'::
@@ -1155,8 +1104,8 @@ to be '\0'-terminated.
 	Creates a C string with a given initial value.
 
 +ffi.cast+ 'addr type'::
-	Reads a C variable at a given address and returns a new variable object. The
-	type shall be one of 'int8', 'uint8', 'int16', 'uint16', 'int32', 'uint32',
+	Reads a C variable at a given address and returns a new object. The type
+	shall be one of 'int8', 'uint8', 'int16', 'uint16', 'int32', 'uint32',
 	'dword', 'int64', 'uint64', 'char', 'uchar', 'short', 'ushort', 'int',
 	'uint', 'long', 'ulong' and 'pointer'.
 
@@ -1170,7 +1119,7 @@ Data Structures
 	its raw contents instead of an empty string.
 
 +$struct+ 'member index'::
-	Returns the value of a 'struct' member, as a new variable object.
+	Returns the value of a 'struct' member, as a new object.
 
 Libraries
 +++++++++
@@ -1253,27 +1202,27 @@ Every action has its pleasures and its price.
 
 1. Avoid unnecessary 'str.expand' or 'str.format' calls.
 2. Avoid the wrapping of strings with braces, if they do not contain spaces.
-3. Avoid the creation of redundant variables; it's OK and even recommended not
+3. Avoid the creation of redundant objects; it's OK and even recommended not
    to save the return value of a statement if you don't need it.
 4. Avoid redundant statements, like 'return [foo]' instead of 'foo' at the end
    of a procedure. The extra procedure call ('return') is a waste of time.
-4. When checking if a string is empty, avoid 'if [> [str.length $foo] 0]' and
-   prefer 'if $foo'. The truth value of empty strings is false, so this saves
+5. When checking if a string is empty, avoid '$if [$> [$str.length $foo] 0]' and
+   prefer '$if $foo'. The truth value of empty strings is false, so this saves
    two procedure calls.
 6. Whenever possible, use local variables ('local') instead of globals
    ('global'). They get garbage collected earlier, so this results in reduced
    memory usage.
 7. Always simplify logical expressions, to reduce the number of procedure calls.
-   For example, '!= $foo $bar' runs faster than '! [== $foo $bar]'.
+   For example, '$!= $foo $bar' runs faster than '$! [$== $foo $bar]'.
 8. When joining more than two objects, avoid multiple 'str.append' calls and use
    'str.join' instead.
 9. 'str.append' does not create a new object and therefore it is more
    efficient for joining only two strings.
 10. Always trim useless trailing whitespace in scripts (or use a text editor
     that takes care of this automatically), to speed up parsing.
-11. Always store constant lists in variables. For example, if you intend to run
-    multiple 'for' loops with the same input (say, a series of words), store
-    that input in a variable. This way, the string representation of the object
+11. Always store constant lists in named objects. For example, if you intend to
+    run multiple 'for' loops with the same input (say, a series of words), store
+    that input in an object. This way, the string representation of the object
     is split only once.
 12. Use 'switch' instead of nested 'if' calls.
 
@@ -1282,33 +1231,33 @@ Error Handling
 For error handling, use the shorter and more manageable approach of early
 'throw' and late 'except' -
 --------------------------------------
-try {
-	f 1 2 3
-	g 4 5 6
-	h 7 8 9
+$try {
+	$f 1 2 3
+	$g 4 5 6
+	$h 7 8 9
 	.
 	.
 	.
 } except {
-	puts [str.format {an error has occurred: {}} $_]
+	$puts [$str.format {an error has occurred: {}} $_]
 }
 --------------------------------------
 instead of boolean return values and a pyramid of nested checks, e.g.:
 --------------------------------------
-if {[f 1 2 3]} {
-	if {[g 4 5 6]} {
-		if {[h 7 8 9]} {
+$if {[$f 1 2 3]} {
+	$if {[$g 4 5 6]} {
+		$if {[$h 7 8 9]} {
 			.
 			.
 			.
 		} else {
-			puts {h failed}
+			$puts {h failed}
 		}
 	} else {
-		puts {g failed}
+		$puts {g failed}
 	}
 } else {
-	puts {f failed}
+	$puts {f failed}
 }
 --------------------------------------
 This is highly beneficial, for several reasons:
@@ -1330,7 +1279,7 @@ http://www.kernel.org/[Linux] distributions.
 
 Objects
 ~~~~~~~
-Each and every +szl+ variable or procedure is represented by a +struct szl_obj+.
+Each and every +szl+ object is represented by a +struct szl_obj+.
 
 Call Stack
 ~~~~~~~~~~~
@@ -1338,10 +1287,9 @@ Call Stack
 
 1. The currently running procedure, which changes every time a procedure is
    called
-2. The _global procedure_: all local objects accessible from any part of the
-   script (procedures and variables set directly in the script body, not inside
-   a procedure body) are represented internally as local variables of this
-   special, non-callable, so-called _global procedure_
+2. The _global procedure_: all objects accessible from any part of the
+   script (for example, objects created outside of a procedure body) are
+   represented internally as local objects of this special scope
 
 Memory Management
 ~~~~~~~~~~~~~~~~~
@@ -1349,41 +1297,32 @@ Memory Management
 Procedures always return a new reference, which may be the first reference of a
 newly allocated object or an additional reference to an existing one.
 
-When a procedure returns, its local variables are garbage collected. Procedures
-are always registered as global variables, so they get garbage collected only
-upon termination of the interpreter.
+When a procedure returns, its dictionary of local objects is garbage collected.
+Procedures are always registered as global variables, so they get garbage
+collected only upon termination of the interpreter.
 
 Type System
 ~~~~~~~~~~~
-Each +szl+ object may be represented internally using one or more of seven
+Each +szl+ object may be represented internally using one or more of four
 types:
 
 1. String
 2. Integer
 3. Floating-point integer
-4. Boolean
-5. List
-6. Procedure
-7. Procedure call
-8. Hash
+4. List
 
 Most +szl+ objects start their lifetime as strings. When a string is passed to a
 procedure that performs a numeric operation, a numeric representation is added
 to the passed object (i.e. so it has two representations, textual and numeric).
-In similar fashion, objects are assigned a truth value once they are passed to a
-procedure that performs a logical operation.
 
-In addition, a procedure call is represented as a list object containing the
-statement (the procedure name, plus the value of '@') and a procedure call
-object, which holds local variables. When a procedure is invoked more than once
-(e.g. inside a 'for' block), the list representation of the statement is
-preserved to eliminate parsing overhead, while the procedure call object is
-discarded to free its local variables.
+In addition, a statement is represented as a list object. When a procedure is
+invoked more than once (e.g. inside a 'for' block), the list representation of
+the statement is preserved to eliminate parsing overhead, while the procedure
+call object is discarded to free its local objects.
 
-Objects gain a hash representation during comparison or lookup of local
-variables (which is done by hash). This way, the lookup of objects (i.e. the
-procedure object associated with the name of a procedure called inside the body
-of a loop) is more efficient.
+Objects are hashed during comparison or lookup of local objects (which is done
+by hash, since local objects are implemented using a dictionay). This way, the
+lookup of objects is more efficient.
 
 Booleans
 ^^^^^^^^
@@ -1393,20 +1332,18 @@ values return the integers '1' and '0'.
 
 Builtin Objects
 ~~~~~~~~~~~~~~~
-Each +szl+ interpreter creates four singletons at initialization time:
+Each +szl+ interpreter creates several singletons at initialization time:
 
-1. '{}'
-2. '{ }'
-3. '0'
-4. '1'
+1. '{}': all procedures that return an empty string return a new reference to
+  the same object.
+2. '{ }': a delimiter used during conversion between strings and lists.
+3. Integers between '0' and '15': '1' and '0' also act as return values of
+   boolean procedures like '=='.
+4. '/': the value of 'path.sep'.
+5. '_' and '@': the names of special objects.
 
-All procedures that return an empty string return a new reference to the same
-object. Similarily, all procedures that return '0' or '1' (most notably, boolean
-procedures like 'test') use the same objects, instead of creating new, identical
-objects. The space singleton is used by 'range'. This reduces memory consumption
-and improves efficiency, as these return values are very common.
-
-In addition, 'null' always returns the same object since it carries no state.
+This reduces memory consumption and improves efficiency, as these objects are
+used very often.
 
 Statement Execution
 ~~~~~~~~~~~~~~~~~~~
@@ -1446,13 +1383,11 @@ All +szl+ procedures are part of extensions.
 Extensions may be either linked statically into the interpreter, or built as
 separate shared objects that export a function of type 'szl_ext_init', with a
 name in the form 'SZL_EXT_INIT_FUNC_NAME_FMT'. This function shall register the
-procedures and objects provided by the extension using 'szl_new_proc()'.
+procedures and objects provided by the extension using 'szl_new_ext()'.
 
 Some trivial procedures (such as 'puts') are implemented in 'szl' blobs
-evaluated by extensions at initialization time (e.g. 'szl_str.szl'). They
-implement +szl+ procedures, on top of more low-level procedures exposed by the C
-extensions. Some of these low-level C procedures are considered implementation
-details and their name is prefixed with an underscore (e.g. '_io.fdopen').
+evaluated by extensions at initialization time. They implement +szl+ procedures,
+on top of more low-level procedures exposed by the C extensions.
 
 Build System
 ~~~~~~~~~~~~

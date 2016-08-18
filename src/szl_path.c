@@ -32,68 +32,60 @@
 
 #include "szl.h"
 
-static const char szl_path_inc[] = {
-#include "szl_path.inc"
-};
-
 static
 enum szl_res szl_path_proc_exists(struct szl_interp *interp,
-                                  const int objc,
+                                  const unsigned int objc,
                                   struct szl_obj **objv)
 {
 	struct stat stbuf;
-	const char *path;
+	char *path;
 	size_t len;
 
-	path = szl_obj_str(interp, objv[1], &len);
-	if (!path || !len)
+	if (!szl_as_str(interp, objv[1], &path, &len) || !len)
 		return SZL_ERR;
 
 	if (stat(path, &stbuf) < 0) {
 		if (errno == ENOENT)
-			return szl_set_result_bool(interp, 0);
+			return szl_set_last_bool(interp, 0);
 
 		return SZL_ERR;
 	}
 
-	return szl_set_result_bool(interp, 1);
+	return szl_set_last_bool(interp, 1);
 }
 
 static
 enum szl_res szl_path_proc_isdir(struct szl_interp *interp,
-                                 const int objc,
+                                 const unsigned int objc,
                                  struct szl_obj **objv)
 {
 	struct stat stbuf;
-	const char *path;
+	char *path;
 	size_t len;
 
-	path = szl_obj_str(interp, objv[1], &len);
-	if (!path || !len)
+	if (!szl_as_str(interp, objv[1], &path, &len) || !len)
 		return SZL_ERR;
 
 	if (stat(path, &stbuf) < 0) {
 		if (errno == ENOENT)
-			return szl_set_result_bool(interp, 0);
+			return szl_set_last_bool(interp, 0);
 
 		return SZL_ERR;
 	}
 
-	return szl_set_result_bool(interp, S_ISDIR(stbuf.st_mode));
+	return szl_set_last_bool(interp, S_ISDIR(stbuf.st_mode));
 }
 
 static
 enum szl_res szl_path_proc_realpath(struct szl_interp *interp,
-                                    const int objc,
+                                    const unsigned int objc,
                                     struct szl_obj **objv)
 {
 	struct szl_obj *obj;
-	char *rpath;
-	const char *path;
+	char *rpath, *path;
 	size_t len;
 
-	path = szl_obj_str(interp, objv[1], &len);
-	if (!path || !len)
+	if (!szl_as_str(interp, objv[1], &path, &len) || !len)
 		return SZL_ERR;
 
 	rpath = realpath(path, NULL);
@@ -106,40 +98,56 @@ enum szl_res szl_path_proc_realpath(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	return szl_set_result(interp, obj);
+	return szl_set_last(interp, obj);
 }
+
+static
+enum szl_res szl_path_proc_join(struct szl_interp *interp,
+                                const unsigned int objc,
+                                struct szl_obj **objv)
+{
+	struct szl_obj *path;
+
+	path = szl_join(interp, interp->sep, &objv[1], (size_t)objc - 1, 0);
+	if (!path)
+		return SZL_ERR;
+
+	return szl_set_last(interp, path);
+}
+
+static
+const struct szl_ext_export path_exports[] = {
+	{
+		SZL_PROC_INIT("path.exists", "path", 2, 2, szl_path_proc_exists, NULL)
+	},
+	{
+		SZL_PROC_INIT("path.isdir", "path", 2, 2, szl_path_proc_isdir, NULL)
+	},
+	{
+		SZL_PROC_INIT("path.realpath",
+		              "path",
+		              2,
+		              2,
+		              szl_path_proc_realpath,
+		              NULL)
+	},
+	{
+		SZL_PROC_INIT("path.join",
+		              "path path...",
+		              3,
+		              -1,
+		              szl_path_proc_join,
+		              NULL)
+	},
+	{
+		SZL_STR_INIT("path.sep", "/")
+	}
+};
 
 int szl_init_path(struct szl_interp *interp)
 {
-	return (szl_new_const_str(interp,
-	                          "path.sep",
-	                          "/",
-	                          1) &&
-	        szl_new_proc(interp,
-	                     "path.exists",
-	                     2,
-	                     2,
-	                     "path.exists path",
-	                     szl_path_proc_exists,
-	                     NULL,
-	                     NULL) &&
-	        szl_new_proc(interp,
-	                     "path.isdir",
-	                     2,
-	                     2,
-	                     "path.isdir path",
-	                     szl_path_proc_isdir,
-	                     NULL,
-	                     NULL) &&
-	        szl_new_proc(interp,
-	                     "path.realpath",
-	                     2,
-	                     2,
-	                     "path.realpath path",
-	                     szl_path_proc_realpath,
-	                     NULL,
-	                     NULL) &&
-	        (szl_run(interp,
-	                 szl_path_inc,
-	                 sizeof(szl_path_inc) - 1) == SZL_OK));
+	return szl_new_ext(interp,
+	                   "path",
+	                   path_exports,
+	                   sizeof(path_exports) / sizeof(path_exports[0]));
 }

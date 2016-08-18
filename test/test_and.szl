@@ -20,12 +20,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-load test
+$load test
 
-test.run {no args} 0 {any} {bad any call: 'any', should be 'any cond...'}
-test.run {true} 1 {any 1} 1
-test.run {false} 1 {any 0} 0
-test.run {true false} 1 {any 1 0} 1
-test.run {false true} 1 {any 0 1} 1
-test.run {false true false} 1 {any 0 1 0} 1
-test.run {false false true} 1 {any 0 0 1} 1
+$test.run {no args} 0 {$&&} {bad usage, should be '&& obj obj...'}
+$test.run {one arg} 0 {$&& 1} {bad usage, should be '&& obj obj...'}
+$test.run {true false} 1 {$&& 1 0} 0
+$test.run {false true} 1 {$&& 0 1} 0
+$test.run {true true} 1 {$&& 1 1} 1
+$test.run {false true false} 1 {$&& 0 1 0} 0
+$test.run {false false true} 1 {$&& 0 0 1} 0
+$test.run {true false true} 1 {$&& 1 0 1} 0
+$test.run {true true true} 1 {$&& 1 1 1} 1

@@ -20,23 +20,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-global newline [str.expand \n]
+$global newline [$str.expand \n]
 
-proc fdopen {
-	if [!= [list.length $@] 2] {
-		throw {bad fdopen usage: fdopen handle mode}
-	}
-	if [_socket.issocket $1] {_socket.fdopen $1} else {_io.fdopen $1 $2}
-}
-
-proc puts {
-	if [!= [list.length $@] 1] {throw {bad puts usage: puts msg}}
+$proc puts {
 	$stdout write $1
-	if [!= [str.tail $1] $newline] {$stdout write $newline}
-	return {}
-}
-
-proc dup {
-	if [!= [list.length $@] 1] {throw {bad dup usage: dup strm}}
-	fdopen [_io.dup [$1 handle]]
+	$if [$!= [$str.tail $1] $newline] {$stdout write $newline}
+	$return {}
 }

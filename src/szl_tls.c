@@ -27,7 +27,9 @@
 #include <fcntl.h>
 
 #include <openssl/ssl.h>
+#include <openssl/engine.h>
 #include <openssl/err.h>
+#include <openssl/conf.h>
 
 #include "szl.h"
 
@@ -56,7 +58,7 @@ ssize_t szl_tls_read(struct szl_interp *interp,
 	    (err == SSL_ERROR_ZERO_RETURN))
 		return 0;
 
-	szl_set_result_str(interp, ERR_error_string(ERR_get_error(), NULL), -1);
+	szl_set_last_str(interp, ERR_error_string(ERR_get_error(), NULL), -1);
 	return -1;
 }
 
@@ -70,7 +72,7 @@ ssize_t szl_tls_write(struct szl_interp *interp,
 
 	out = (ssize_t)SSL_write((SSL *)priv, buf, (int)len);
 	if (out < 0) {
-		szl_set_result_str(interp, ERR_error_string(ERR_get_error(), NULL), -1);
+		szl_set_last_str(interp, ERR_error_string(ERR_get_error(), NULL), -1);
 		return -1;
 	}
 
@@ -161,7 +163,7 @@ enum szl_res szl_tls_new(struct szl_interp *interp,
 	fd = dup(fd);
 	if (fd < 0) {
 		free(strm);
-		szl_set_result_str(interp, strerror(errno), -1);
+		szl_set_last_str(interp, strerror(errno), -1);
 		return SZL_ERR;
 	}
 
@@ -180,9 +182,9 @@ enum szl_res szl_tls_new(struct szl_interp *interp,
 			close(fd);
 			SSL_free(ssl);
 			free(strm);
-			szl_set_result_str(interp,
-			                   ERR_error_string(ERR_get_error(), NULL),
-			                   -1);
+			szl_set_last_str(interp,
+			                 ERR_error_string(ERR_get_error(), NULL),
+			                 -1);
 			return SZL_ERR;
 		}
 
@@ -204,17 +206,17 @@ enum szl_res szl_tls_new(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	return szl_set_result(interp, obj);
+	return szl_set_last(interp, obj);
 }
 
 static
 enum szl_res szl_tls_proc_connect(struct szl_interp *interp,
-                                  const int objc,
+                                  const unsigned int objc,
                                   struct szl_obj **objv)
 {
 	szl_int fd;
 
-	if ((!szl_obj_int(interp, objv[1], &fd)) || (fd < 0) || (fd > INT_MAX))
+	if ((!szl_as_int(interp, objv[1], &fd)) || (fd < 0) || (fd > INT_MAX))
 		return SZL_ERR;
 
 	return szl_tls_new(interp, (int)fd, 0, NULL, NULL);
@@ -222,22 +224,20 @@ enum szl_res szl_tls_proc_connect(struct szl_interp *interp,
 
 static
 enum szl_res szl_tls_proc_accept(struct szl_interp *interp,
-                                 const int objc,
+                                 const unsigned int objc,
                                  struct szl_obj **objv)
 {
-	const char *cert, *priv;
+	char *cert, *priv;
 	szl_int fd;
 	size_t len;
 
-	if ((!szl_obj_int(interp, objv[1], &fd)) || (fd < 0) || (fd > INT_MAX))
+	if ((!szl_as_int(interp, objv[1], &fd)) || (fd < 0) || (fd > INT_MAX))
 		return SZL_ERR;
 
-	cert = szl_obj_str(interp, objv[2], &len);
-	if (!cert || !len)
-		return SZL_ERR;
-
-	priv = szl_obj_str(interp, objv[3], &len);
-	if (!priv || !len)
+	if (!szl_as_str(interp, objv[2], &cert, &len) ||
+	    !len ||
+	    !szl_as_str(interp, objv[3], &priv, &len) ||
+	    !len)
 		return SZL_ERR;
 
 	return szl_tls_new(interp, (int)fd, 1, cert, priv);
@@ -249,8 +249,34 @@ static void szl_del_tls(void)
 	if (szl_tls_ctx)
 		SSL_CTX_free(szl_tls_ctx);
 
+	FIPS_mode_set(0);
+	ENGINE_cleanup();
+	CONF_modules_unload(1);
+	EVP_cleanup();
+	CRYPTO_cleanup_all_ex_data();
+	ERR_remove_state(0);
 	ERR_free_strings();
 }
+
+static
+const struct szl_ext_export tls_exports[] = {
+	{
+		SZL_PROC_INIT("tls.connect",
+		              "handle",
+		              2,
+		              2,
+		              szl_tls_proc_connect,
+		              NULL)
+	},
+	{
+		SZL_PROC_INIT("tls.accept",
+		              "handle cert priv",
+		              4,
+		              4,
+		              szl_tls_proc_accept,
+		              NULL)
+	}
+};
 
 int szl_init_tls(struct szl_interp *interp)
 {
@@ -264,22 +290,10 @@ int szl_init_tls(struct szl_interp *interp)
 	if (SSL_CTX_set_default_verify_paths(szl_tls_ctx)) {
 		SSL_CTX_set_verify(szl_tls_ctx, SSL_VERIFY_NONE, NULL);
 
-		if (szl_new_proc(interp,
-		                 "tls.connect",
-		                 2,
-		                 2,
-		                 "tls.connect handle",
-		                 szl_tls_proc_connect,
-		                 NULL,
-		                 NULL) &&
-		    szl_new_proc(interp,
-		                 "tls.accept",
-		                 4,
-		                 4,
-		                 "tls.accept handle cert priv",
-		                 szl_tls_proc_accept,
-		                 NULL,
-		                 NULL))
+		if (szl_new_ext(interp,
+	                    "tls",
+		                tls_exports,
+		                sizeof(tls_exports) / sizeof(tls_exports[0])))
 			return 1;
 	}
 

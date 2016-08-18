@@ -20,21 +20,21 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-load test
+$load test
 
-test.run {no expansion} 1 {str.expand abcd} {abcd}
-test.run {no expansion with whitespace} 1 {str.expand { ab	cd }} { ab	cd }
+$test.run {no expansion} 1 {$str.expand abcd} {abcd}
+$test.run {no expansion with whitespace} 1 {$str.expand { ab	cd }} { ab	cd }
 
-test.run {escape sequence} 1 {str.expand \\\t\\} {\	\}
-test.run {multiple escape sequences} 1 {str.expand \\\t\t\t\\} {\			\}
-test.run {multiple escape sequences with whitespace} 1 {str.expand { \\\t \t \t\\ }} { \	 	 	\ }
-test.run {bad escape sequence} 0 {str.expand \f} {bad escape sequence: \f}
+$test.run {escape sequence} 1 {$str.expand \\\t\\} {\	\}
+$test.run {multiple escape sequences} 1 {$str.expand \\\t\t\t\\} {\			\}
+$test.run {multiple escape sequences with whitespace} 1 {$str.expand { \\\t \t \t\\ }} { \	 	 	\ }
+$test.run {bad escape sequence} 0 {$str.expand \f} {bad escape: \f}
 
-test.run {hex escape} 1 {str.expand \x61} {a}
-test.run {multiple hex escape} 1 {str.expand \x61\x62\x63} {abc}
-test.run {multiple hex escape with whitespace} 1 {str.expand {	\x61\t\x62\t\x63	}} {	a	b	c	}
-test.run {bad hex escape 0} 0 {str.expand \xfg} {bad hex digit: g}
-test.run {bad hex escape 1} 0 {str.expand \xgf} {bad hex digit: g}
-test.run {bad hex escape 2} 0 {str.expand \xgg} {bad hex digit: g}
-test.run {bad hex escape 3} 0 {str.expand {\xg }} {bad hex digit: g}
-test.run {bad hex escape 4} 0 {str.expand \xg} {bad hex escape}
+$test.run {hex escape} 1 {$str.expand \x61} {a}
+$test.run {multiple hex escape} 1 {$str.expand \x61\x62\x63} {abc}
+$test.run {multiple hex escape with whitespace} 1 {$str.expand {	\x61\t\x62\t\x63	}} {	a	b	c	}
+$test.run {bad hex escape 0} 0 {$str.expand \xfg} {bad hex digit: g}
+$test.run {bad hex escape 1} 0 {$str.expand \xgf} {bad hex digit: g}
+$test.run {bad hex escape 2} 0 {$str.expand \xgg} {bad hex digit: g}
+$test.run {bad hex escape 3} 0 {$str.expand {\xg }} {bad hex digit: g}
+$test.run {bad hex escape 4} 0 {$str.expand \xg} {bad hex escape}

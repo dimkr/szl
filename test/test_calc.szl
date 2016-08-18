@@ -20,44 +20,38 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-load test
+$load test
 
-test.run {calc one arg} 0 {calc 1} {bad calc call: 'calc 1', should be 'calc m op n'}
-test.run {calc 2 args} 0 {calc 1 2} {bad calc call: 'calc 1 2', should be 'calc m op n'}
-test.run {calc arg plus} 0 {calc 1 +} {bad calc call: 'calc 1 +', should be 'calc m op n'}
-test.run {calc 3 args} 0 {calc 1 2 3} {bad calc call: 'calc 1 2 3', should be 'calc m op n'}
-test.run {calc 4 args} 0 {calc 1 + 3 4} {bad calc call: 'calc 1 + 3 4', should be 'calc m op n'}
+$test.run {calc int plus string} 0 {$+ 1 a} {bad float: a}
+$test.run {calc string plus int} 0 {$+ a 1} {bad float: a}
 
-test.run {calc int plus string} 0 {calc 1 + a} {bad float: a}
-test.run {calc string plus int} 0 {calc a + 1} {bad float: a}
+$test.run {calc int plus int} 1 {$+ 1 4} 5
+$test.run {calc float plus float} 1 {$+ 1.5 4.33} 5.83
+$test.run {calc int plus float} 1 {$+ 1 4.33} 5.33
+$test.run {calc float plus int} 1 {$+ 4.33 1} 5.33
 
-test.run {calc int plus int} 1 {calc 1 + 4} 5
-test.run {calc float plus float} 1 {calc 1.5 + 4.33} 5.83
-test.run {calc int plus float} 1 {calc 1 + 4.33} 5.33
-test.run {calc float plus int} 1 {calc 4.33 + 1} 5.33
+$test.run {calc int minus int} 1 {$- 4 1} 3
+$test.run {calc float minus float} 1 {$- 4.33 1.5} 2.83
+$test.run {calc int minus float} 1 {$- 4.33 1} 3.33
+$test.run {calc float minus int} 1 {$- 4 1.5} 2.5
 
-test.run {calc int minus int} 1 {calc 4 - 1} 3
-test.run {calc float minus float} 1 {calc 4.33 - 1.5} 2.83
-test.run {calc int minus float} 1 {calc 4.33 - 1} 3.33
-test.run {calc float minus int} 1 {calc 4 - 1.5} 2.5
+$test.run {calc int mul int} 1 {$* 2 4} 8
+$test.run {calc float mul float} 1 {$* 1.5 4.5} 6.75
+$test.run {calc int mul float} 1 {$* 2 4.33} 8.66
+$test.run {calc float mul int} 1 {$* 4.33 2} 8.66
+$test.run {calc int mul zero} 1 {$* 2 0.0} 0
 
-test.run {calc int mul int} 1 {calc 2 * 4} 8
-test.run {calc float mul float} 1 {calc 1.5 * 4.5} 6.75
-test.run {calc int mul float} 1 {calc 2 * 4.33} 8.66
-test.run {calc float mul int} 1 {calc 4.33 * 2} 8.66
-test.run {calc int mul zero} 1 {calc 2 * 0.0} 0
+$test.run {calc int div int} 1 {$/ 8 4} 2
+$test.run {calc float div float} 1 {$/ 6.75 4.5} 1.5
+$test.run {calc int div float} 1 {$/ 8.66 4.33} 2
+$test.run {calc float div int} 1 {$/ 8.66 2} 4.33
+$test.run {calc int div zero 1} 0 {$/ 2 0.0} {division by 0}
+$test.run {calc int div zero 2} 0 {$/ 2 0} {division by 0}
 
-test.run {calc int div int} 1 {calc 8 / 4} 2
-test.run {calc float div float} 1 {calc 6.75 / 4.5} 1.5
-test.run {calc int div float} 1 {calc 8.66 / 4.33} 2
-test.run {calc float div int} 1 {calc 8.66 / 2} 4.33
-test.run {calc int div zero 1} 0 {calc 2 / 0.0} {division by 0}
-test.run {calc int div zero 2} 0 {calc 2 / 0} {division by 0}
-
-test.run {calc int mod int 1} 1 {calc 8 % 4} 0
-test.run {calc int mod int 2} 1 {calc 7 % 4} 3
-test.run {calc float mod float} 1 {calc 7.0 % 4.0} 3
-test.run {calc int mod float} 1 {calc 7 % 4.0} 3
-test.run {calc float mod int} 1 {calc 7.0 % 4} 3
-test.run {calc int mod zero 1} 0 {calc 7 / 0.0} {division by 0}
-test.run {calc int mod zero 2} 0 {calc 7 / 0} {division by 0}
+$test.run {calc int mod int 1} 1 {$% 8 4} 0
+$test.run {calc int mod int 2} 1 {$% 7 4} 3
+$test.run {calc float mod float} 1 {$% 7.0 4.0} 3
+$test.run {calc int mod float} 1 {$% 7 4.0} 3
+$test.run {calc float mod int} 1 {$% 7.0 4} 3
+$test.run {calc int mod zero 1} 0 {$% 7 0.0} {division by 0}
+$test.run {calc int mod zero 2} 0 {$% 7 0} {division by 0}

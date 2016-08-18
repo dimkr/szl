@@ -20,31 +20,31 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-load test
+$load test
 
-test.run {one item} 1 {
-	local d [dict.new]
-	dict.set $d x y
-	dict.get $d x
+$test.run {one item} 1 {
+	$local d [$dict.new]
+	$dict.set $d x y
+	$dict.get $d x
 } {y}
 
-test.run {three items} 1 {
-	local d [dict.new]
-	dict.set $d a b
-	dict.set $d x y
-	dict.set $d 1 2
-	dict.get $d x
+$test.run {three items} 1 {
+	$local d [$dict.new]
+	$dict.set $d a b
+	$dict.set $d x y
+	$dict.set $d 1 2
+	$dict.get $d x
 } {y}
 
-test.run {item with whitespace} 1 {
-	local d [dict.new]
-	dict.set $d a {x y}
-	dict.get $d a
+$test.run {item with whitespace} 1 {
+	$local d [$dict.new]
+	$dict.set $d a {x y}
+	$dict.get $d a
 } {x y}
 
-test.run {two items with whitespace} 1 {
-	local d [dict.new]
-	dict.set $d a {x y}
-	dict.set $d b {1 2}
-	dict.get $d b
+$test.run {two items with whitespace} 1 {
+	$local d [$dict.new]
+	$dict.set $d a {x y}
+	$dict.set $d b {1 2}
+	$dict.get $d b
 } {1 2}

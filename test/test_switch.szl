@@ -20,17 +20,17 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-load test
+$load test
 
-test.run {no args} 0 {switch} {bad switch call: 'switch', should be 'switch obj val exp val exp...'}
-test.run {too few args 1} 0 {switch 1} {bad switch call: 'switch 1', should be 'switch obj val exp val exp...'}
-test.run {too few args 2} 0 {switch 1 x} {bad switch call: 'switch 1 x', should be 'switch obj val exp val exp...'}
-test.run {too few args 3} 0 {switch 1 x a} {bad switch call: 'switch 1 x a', should be 'switch obj val exp val exp...'}
-test.run {too few args 4} 0 {switch 1 x a y} {bad switch call: 'switch 1 x a y', should be 'switch obj val exp val exp...'}
-test.run {not even args} 0 {switch 1 x a y b z} {bad switch call: 'switch 1 x a y b z', should be 'switch obj val exp val exp...'}
-test.run {value found} 1 {switch [calc 2 + 3] 4 throw 5 {calc 2 + 9} 6 throw} 11
-test.run {value found twice} 1 {switch [calc 2 + 3] 4 throw 5 {calc 2 + 9} 5 throw 6 throw} 11
-test.run {value not found} 1 {switch [calc 2 + 3] 4 throw 6 throw} {}
-test.run {value fallback} 1 {switch [calc 2 + 3] 4 throw 6 throw * {calc 2 + 9}} 11
-test.run {value fallback twice} 1 {switch [calc 2 + 3] 4 throw 6 throw * {calc 2 + 9} * throw} 11
-test.run {value found and fallback} 1 {switch [calc 2 + 3] 4 throw 5 {calc 2 + 9} 6 throw * {calc 2 + 9}} 11
+$test.run {no args} 0 {$switch} {bad usage, should be 'switch obj val exp val exp...'}
+$test.run {too few args 1} 0 {$switch 1} {bad usage, should be 'switch obj val exp val exp...'}
+$test.run {too few args 2} 0 {$switch 1 x} {bad usage, should be 'switch obj val exp val exp...'}
+$test.run {too few args 3} 0 {$switch 1 x a} {bad usage, should be 'switch obj val exp val exp...'}
+$test.run {too few args 4} 0 {$switch 1 x a y} {bad usage, should be 'switch obj val exp val exp...'}
+$test.run {not even args} 0 {$switch 1 x a y b z} {bad usage, should be 'switch obj val exp val exp...'}
+$test.run {value found} 1 {$switch [$+ 2 3] 4 $throw 5 {$+ 2 9} 6 $throw} 11
+$test.run {value found twice} 1 {$switch [$+ 2 3] 4 $throw 5 {$+ 2 9} 5 $throw 6 $throw} 11
+$test.run {value not found} 1 {$switch [$+ 2 3] 4 $throw 6 $throw} {}
+$test.run {value fallback} 1 {$switch [$+ 2 3] 4 $throw 6 $throw * {$+ 2 9}} 11
+$test.run {value fallback twice} 1 {$switch [$+ 2 3] 4 $throw 6 $throw * {$+ 2 9} * $throw} 11
+$test.run {value found and fallback} 1 {$switch [$+ 2 3] 4 $throw 5 {$+ 2 9} 6 $throw * {$+ 2 9}} 11

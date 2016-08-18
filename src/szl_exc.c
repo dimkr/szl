@@ -28,66 +28,60 @@
 
 static
 enum szl_res szl_exc_proc_try(struct szl_interp *interp,
-                              const int objc,
+                              const unsigned int objc,
                               struct szl_obj **objv)
 {
 	struct szl_obj *obj;
-	const char *try = NULL, *except = NULL, *finally = NULL;
-	const char *s;
+	char *s, *try = NULL, *except = NULL, *finally = NULL;
 	size_t tlen, elen = 0, flen;
 	enum szl_res res, eres = SZL_OK, fres;
 
 	switch (objc) {
 		case 6:
-			s = szl_obj_str(interp, objv[4], NULL);
-			if (!s || (strcmp("finally", s) != 0))
+			if (!szl_as_str(interp, objv[4], &s, NULL) ||
+			   (strcmp("finally", s) != 0))
 				return SZL_ERR;
 
-			finally = szl_obj_str(interp, objv[5], &flen);
-			if (!finally)
+			if (!szl_as_str(interp, objv[5], &finally, &flen))
 				return SZL_ERR;
 
 			/* fall through */
 
 		case 4:
-			s = szl_obj_str(interp, objv[2], NULL);
-			if (!s)
+			if (!szl_as_str(interp, objv[2], &s, NULL))
 				return SZL_ERR;
 
 			if (strcmp("except", s) == 0) {
-				except = szl_obj_str(interp, objv[3], &elen);
-				if (!except)
+				if (!szl_as_str(interp, objv[3], &except, &elen))
 					return SZL_ERR;
 
 				/* fall through */
 
 			}
 			else if (strcmp("finally", s) == 0) {
-				finally = szl_obj_str(interp, objv[3], &flen);
-				if (!finally)
+				if (!szl_as_str(interp, objv[3], &finally, &flen))
 					return SZL_ERR;
 
 			} else
 				return SZL_ERR;
 
 		case 2:
-			try = szl_obj_str(interp, objv[1], &tlen);
-			if (!try)
+			if (!szl_as_str(interp, objv[1], &try, &tlen))
 				return SZL_ERR;
 
 			break;
 
 		default:
-			return szl_usage(interp, objv[0]);
+			return szl_set_last_help(interp, objv[0]);
 	}
 
 	res = szl_run(interp, try, tlen);
-	obj = szl_obj_ref(interp->last);
+	obj = szl_ref(interp->last);
 	if ((res == SZL_ERR) && elen) {
 		eres = szl_run(interp, except, elen);
 		if (eres == SZL_ERR) {
-			szl_obj_unref(obj);
-			obj = szl_obj_ref(interp->last);
+			szl_unref(obj);
+			obj = szl_ref(interp->last);
 		} else if (eres == SZL_EXIT)
 			res = SZL_EXIT;
 	}
@@ -98,7 +92,7 @@ enum szl_res szl_exc_proc_try(struct szl_interp *interp,
 			res = SZL_EXIT;
 	}
 
-	szl_set_result(interp, obj);
+	szl_set_last(interp, obj);
 
 	if (res == SZL_ERR) {
 		if (eres == SZL_ERR)
@@ -111,32 +105,34 @@ enum szl_res szl_exc_proc_try(struct szl_interp *interp,
 
 static
 enum szl_res szl_exc_proc_throw(struct szl_interp *interp,
-                                const int objc,
+                                const unsigned int objc,
                                 struct szl_obj **objv)
 {
 	if (objc == 2)
-		szl_set_result(interp, szl_obj_ref(objv[1]));
+		szl_set_last(interp, szl_ref(objv[1]));
 
 	return SZL_ERR;
 }
 
+static
+const struct szl_ext_export exc_exports[] = {
+	{
+		SZL_PROC_INIT("try",
+		              "exp ?except exp? ?finally exp?",
+		              2,
+		              6,
+		              szl_exc_proc_try,
+		              NULL)
+	},
+	{
+		SZL_PROC_INIT("throw", "?msg?", 1, 2, szl_exc_proc_throw, NULL)
+	}
+};
+
 int szl_init_exc(struct szl_interp *interp)
 {
-	return ((szl_new_proc(interp,
-	                      "try",
-	                      2,
-	                      6,
-	                      "try exp ?except exp? ?finally exp?",
-	                      szl_exc_proc_try,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "throw",
-	                      1,
-	                      2,
-	                      "throw ?msg?",
-	                      szl_exc_proc_throw,
-	                      NULL,
-	                      NULL)));
+	return szl_new_ext(interp,
+	                   "exc",
+	                   exc_exports,
+	                   sizeof(exc_exports) / sizeof(exc_exports[0]));
 }
-

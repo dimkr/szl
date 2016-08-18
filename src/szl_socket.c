@@ -51,7 +51,7 @@ ssize_t szl_socket_read(struct szl_interp *interp,
 		if ((errno == EAGAIN) || (errno == EWOULDBLOCK))
 			return 0;
 
-		szl_set_result_str(interp, strerror(errno), -1);
+		szl_set_last_str(interp, strerror(errno), -1);
 		return -1;
 	} else if (out == 0)
 		*more = 0;
@@ -72,7 +72,7 @@ ssize_t szl_socket_write(struct szl_interp *interp,
 		if ((errno == EAGAIN) || (errno == EWOULDBLOCK))
 			return 0;
 
-		szl_set_result_str(interp, strerror(errno), -1);
+		szl_set_last_str(interp, strerror(errno), -1);
 		return -1;
 	}
 
@@ -141,7 +141,7 @@ int szl_socket_accept(struct szl_interp *interp,
 		close(fd);
 	}
 
-	szl_set_result_str(interp, strerror(errno), -1);
+	szl_set_last_str(interp, strerror(errno), -1);
 	return 0;
 }
 
@@ -210,14 +210,14 @@ struct szl_stream *szl_socket_new_client(struct szl_interp *interp,
 	fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 	if (fd < 0) {
 		freeaddrinfo(res);
-		szl_set_result_str(interp, strerror(errno), -1);
+		szl_set_last_str(interp, strerror(errno), -1);
 		return NULL;
 	}
 
 	if (connect(fd, res->ai_addr, res->ai_addrlen) < 0) {
 		close(fd);
 		freeaddrinfo(res);
-		szl_set_result_str(interp, strerror(errno), -1);
+		szl_set_last_str(interp, strerror(errno), -1);
 		return NULL;
 	}
 
@@ -253,7 +253,7 @@ int szl_socket_new_server(struct szl_interp *interp,
 	fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 	if (fd < 0) {
 		freeaddrinfo(res);
-		szl_set_result_str(interp, strerror(errno), -1);
+		szl_set_last_str(interp, strerror(errno), -1);
 		return -1;
 	}
 
@@ -266,7 +266,7 @@ int szl_socket_new_server(struct szl_interp *interp,
 	if (bind(fd, res->ai_addr, res->ai_addrlen) < 0) {
 		close(fd);
 		freeaddrinfo(res);
-		szl_set_result_str(interp, strerror(errno), -1);
+		szl_set_last_str(interp, strerror(errno), -1);
 		return -1;
 	}
 
@@ -276,7 +276,7 @@ int szl_socket_new_server(struct szl_interp *interp,
 
 static
 enum szl_res szl_socket_proc(struct szl_interp *interp,
-                             const int objc,
+                             const unsigned int objc,
                              struct szl_obj **objv,
                              const char *type,
                              const int listening,
@@ -286,20 +286,17 @@ enum szl_res szl_socket_proc(struct szl_interp *interp,
                                                       const int))
 {
 	struct szl_obj *obj;
-	const char *host, *service;
+	char *host, *service;
 	struct szl_stream *strm;
 	szl_int backlog = SZL_DEFAULT_SERVER_SOCKET_BACKLOG;
 	size_t len;
 
-	service = szl_obj_str(interp, objv[2], &len);
-	if (!service || !len)
+	if (!szl_as_str(interp, objv[2], &service, &len) ||
+	    !len ||
+	    !szl_as_str(interp, objv[1], &host, &len))
 		return SZL_ERR;
 
-	host = szl_obj_str(interp, objv[1], &len);
-	if (!host)
-		return SZL_ERR;
-
-	if (listening && (objc == 4) && (!szl_obj_int(interp, objv[3], &backlog)))
+	if (listening && (objc == 4) && (!szl_as_int(interp, objv[3], &backlog)))
 		return SZL_ERR;
 
 	if (!len)
@@ -315,7 +312,7 @@ enum szl_res szl_socket_proc(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	return szl_set_result(interp, obj);
+	return szl_set_last(interp, obj);
 }
 
 static
@@ -333,7 +330,7 @@ struct szl_stream *szl_socket_new_stream_client(struct szl_interp *interp,
 
 static
 enum szl_res szl_socket_proc_stream_client(struct szl_interp *interp,
-                                           const int objc,
+                                           const unsigned int objc,
                                            struct szl_obj **objv)
 {
 	return szl_socket_proc(interp,
@@ -359,7 +356,7 @@ struct szl_stream *szl_socket_new_stream_server(struct szl_interp *interp,
 
 	if (listen(fd, backlog) < 0) {
 		close(fd);
-		szl_set_result_str(interp, strerror(errno), -1);
+		szl_set_last_str(interp, strerror(errno), -1);
 		return NULL;
 	}
 
@@ -372,7 +369,7 @@ struct szl_stream *szl_socket_new_stream_server(struct szl_interp *interp,
 
 static
 enum szl_res szl_socket_proc_stream_server(struct szl_interp *interp,
-                                           const int objc,
+                                           const unsigned int objc,
                                            struct szl_obj **objv)
 {
 	return szl_socket_proc(interp,
@@ -398,7 +395,7 @@ struct szl_stream *szl_socket_new_dgram_client(struct szl_interp *interp,
 
 static
 enum szl_res szl_socket_proc_dgram_client(struct szl_interp *interp,
-                                          const int objc,
+                                          const unsigned int objc,
                                           struct szl_obj **objv)
 {
 	return szl_socket_proc(interp,
@@ -431,7 +428,7 @@ struct szl_stream *szl_socket_new_dgram_server(struct szl_interp *interp,
 
 static
 enum szl_res szl_socket_proc_dgram_server(struct szl_interp *interp,
-                                          const int objc,
+                                          const unsigned int objc,
                                           struct szl_obj **objv)
 {
 	return szl_socket_proc(interp,
@@ -443,110 +440,45 @@ enum szl_res szl_socket_proc_dgram_server(struct szl_interp *interp,
 }
 
 static
-enum szl_res szl_socket_proc_issocket(struct szl_interp *interp,
-                                      const int objc,
-                                      struct szl_obj **objv)
-{
-	struct stat stbuf;
-	szl_int fd;
-
-	if ((!szl_obj_int(interp, objv[1], &fd)) || (fd < 0) || (fd > INT_MAX))
-		return SZL_ERR;
-
-	if (fstat((int)fd, &stbuf) < 0)
-		return SZL_ERR;
-
-	return szl_set_result_bool(interp, S_ISSOCK(stbuf.st_mode) ? 1 : 0);
-}
-
-static
-enum szl_res szl_socket_proc_socket_fdopen(struct szl_interp *interp,
-                                           const int objc,
-                                           struct szl_obj **objv)
-{
-	struct szl_obj *obj;
-	struct szl_stream *strm;
-	szl_int fd;
-	socklen_t type, len;
-
-	if ((!szl_obj_int(interp, objv[1], &fd)) || (fd < 0) || (fd > INT_MAX))
-		return SZL_ERR;
-
-	len = sizeof(type);
-	if ((getsockopt((int)fd, SOL_SOCKET, SO_TYPE, &type, &len) < 0) ||
-		(len != sizeof(type)))
-		return SZL_ERR;
-
-	if (type == SOCK_STREAM)
-		strm = szl_socket_new((int)fd, &szl_stream_client_ops);
-	else if (type == SOCK_DGRAM)
-		strm = szl_socket_new((int)fd, &szl_dgram_client_ops);
-	else
-		return SZL_ERR;
-
-	if (!strm)
-		return SZL_ERR;
-
-	obj = szl_new_stream(
-	                  interp,
-	                  strm,
-	                  (type == SOCK_STREAM) ? "stream.client" : "dgram.client");
-	if (!obj) {
-		szl_stream_free(strm);
-		return SZL_ERR;
+const struct szl_ext_export socket_exports[] = {
+	{
+		SZL_PROC_INIT("stream.client",
+		              "host service",
+		              3,
+		              3,
+		              szl_socket_proc_stream_client,
+		              NULL)
+	},
+	{
+		SZL_PROC_INIT("dgram.client",
+		              "host service",
+		              3,
+		              3,
+		              szl_socket_proc_dgram_client,
+		              NULL)
+	},
+	{
+		SZL_PROC_INIT("stream.server",
+		              "host service ?backlog?",
+		              3,
+		              4,
+		              szl_socket_proc_stream_server,
+		              NULL)
+	},
+	{
+		SZL_PROC_INIT("dgram.server",
+		              "host service",
+		              3,
+		              3,
+		              szl_socket_proc_dgram_server,
+		              NULL)
 	}
-
-	return szl_set_result(interp, obj);
-}
+};
 
 int szl_init_socket(struct szl_interp *interp)
 {
-	return ((szl_new_proc(interp,
-	                      "stream.client",
-	                      3,
-	                      3,
-	                      "stream.client host service",
-	                      szl_socket_proc_stream_client,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "dgram.client",
-	                      3,
-	                      3,
-	                      "dgram.client host service",
-	                      szl_socket_proc_dgram_client,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "stream.server",
-	                      3,
-	                      4,
-	                      "stream.server host service ?backlog?",
-	                      szl_socket_proc_stream_server,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "dgram.server",
-	                      3,
-	                      3,
-	                      "dgram.server host service",
-	                      szl_socket_proc_dgram_server,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "_socket.issocket",
-	                      2,
-	                      2,
-	                      "_socket.issocket handles",
-	                      szl_socket_proc_issocket,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "_socket.fdopen",
-	                      2,
-	                      2,
-	                      "_socket.fdopen handle",
-	                      szl_socket_proc_socket_fdopen,
-	                      NULL,
-	                      NULL)));
+	return szl_new_ext(interp,
+	                   "socket",
+	                   socket_exports,
+	                   sizeof(socket_exports) / sizeof(socket_exports[0]));
 }

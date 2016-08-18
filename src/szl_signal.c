@@ -45,22 +45,18 @@ static const struct {
 
 static
 enum szl_res szl_signal_sigmask_proc(struct szl_interp *interp,
-                                     const int objc,
+                                     const unsigned int objc,
                                      struct szl_obj **objv)
 {
 	struct szl_sigmask *mask = (struct szl_sigmask *)objv[0]->priv;
-	const char *s;
+	char *s;
 	size_t len;
 	int i, out;
 
-	s = szl_obj_str(interp, objv[1], &len);
-	if (!s || !len)
-		return SZL_ERR;
-
-	if (strcmp("check", s) != 0)
-		return SZL_ERR;
-
-	if (sigpending(&mask->set) < 0)
+	if (!szl_as_str(interp, objv[1], &s, &len) ||
+	    !len ||
+	    (strcmp("check", s) != 0) ||
+	    (sigpending(&mask->set) < 0))
 		return SZL_ERR;
 
 	for (i = 0; i < sizeof(sigs) / sizeof(sigs[0]); ++i) {
@@ -69,7 +65,7 @@ enum szl_res szl_signal_sigmask_proc(struct szl_interp *interp,
 			return SZL_ERR;
 
 		if (out) {
-			szl_set_result_fmt(interp, "received a signal: %s", sigs[i].name);
+			szl_set_last_fmt(interp, "received a signal: %s", sigs[i].name);
 			return SZL_ERR;
 		}
 	}
@@ -86,12 +82,11 @@ void szl_signal_sigmask_del(void *priv)
 
 static
 enum szl_res szl_signal_proc_block(struct szl_interp *interp,
-                                   const int objc,
+                                   const unsigned int objc,
                                    struct szl_obj **objv)
 {
-	char name[sizeof("signal.mask:"SZL_PASTE(SZL_INT_MIN))];
-	struct szl_obj *proc;
-	const char *s;
+	struct szl_obj *name, *proc;
+	char *s;
 	struct szl_sigmask *mask;
 	size_t len;
 	int i, j;
@@ -106,8 +101,7 @@ enum szl_res szl_signal_proc_block(struct szl_interp *interp,
 	}
 
 	for (i = 1; i < objc; ++i) {
-		s = szl_obj_str(interp, objv[i], &len);
-		if (!s || !len) {
+		if (!szl_as_str(interp, objv[i], &s, &len) || !len) {
 			free(mask);
 			return SZL_ERR;
 		}
@@ -124,12 +118,18 @@ enum szl_res szl_signal_proc_block(struct szl_interp *interp,
 
 	}
 
-	if (sigprocmask(SIG_BLOCK, &mask->set, &mask->oldset) < 0) {
+	name = szl_new_str_fmt("signal.mask:%"PRIxPTR, (uintptr_t)mask);
+	if (!name) {
 		free(mask);
 		return SZL_ERR;
 	}
 
-	szl_new_obj_name(interp, "signal.mask", name, sizeof(name), mask);
+	if (sigprocmask(SIG_BLOCK, &mask->set, &mask->oldset) < 0) {
+		szl_unref(name);
+		free(mask);
+		return SZL_ERR;
+	}
+
 	proc = szl_new_proc(interp,
 	                    name,
 	                    2,
@@ -140,22 +140,31 @@ enum szl_res szl_signal_proc_block(struct szl_interp *interp,
 	                    mask);
 	if (!proc) {
 		sigprocmask(SIG_UNBLOCK, &mask->oldset, NULL);
+		szl_unref(name);
 		free(mask);
 		return SZL_ERR;
 	}
 
-	return szl_set_result(interp, szl_obj_ref(proc));
+	szl_unref(name);
+	return szl_set_last(interp, proc);
 }
+
+static
+const struct szl_ext_export signal_exports[] = {
+	{
+		SZL_PROC_INIT("signal.block",
+		              "sig...",
+		              2,
+		              -1,
+		              szl_signal_proc_block,
+		              NULL)
+	}
+};
 
 int szl_init_signal(struct szl_interp *interp)
 {
-	return szl_new_proc(interp,
-	                    "signal.block",
-	                    2,
-	                    -1,
-	                    "signal.block sig...",
-	                    szl_signal_proc_block,
-	                    NULL,
-	                    NULL) ? 1 : 0;
+	return szl_new_ext(interp,
+	                   "signal",
+	                   signal_exports,
+	                   sizeof(signal_exports) / sizeof(signal_exports[0]));
 }
-

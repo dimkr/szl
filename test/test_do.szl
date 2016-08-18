@@ -20,46 +20,46 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-load test
+$load test
 
-test.run {no args} 0 {do} {bad do call: 'do', should be 'do exp while cond'}
-test.run {one arg} 0 {do x} {bad do call: 'do x', should be 'do exp while cond'}
-test.run {2 args} 0 {do x while} {bad do call: 'do x while', should be 'do exp while cond'}
-test.run {4 args} 0 {do x while 1 while} {bad do call: 'do x while 1 while', should be 'do exp while cond'}
+$test.run {no args} 0 {$do} {bad usage, should be 'do exp while cond'}
+$test.run {one arg} 0 {$do x} {bad usage, should be 'do exp while cond'}
+$test.run {2 args} 0 {$do x while} {bad usage, should be 'do exp while cond'}
+$test.run {4 args} 0 {$do x while 1 while} {bad usage, should be 'do exp while cond'}
 
-test.run {6 iterations} 1 {
-	local a {}
-	do {
-		str.append a [str.length $a]
-	} while {[test [str.length $a] < 7]}
-	echo $a
+$test.run {6 iterations} 1 {
+	$local a {}
+	$do {
+		$str.append $a [$str.length $a]
+	} while {[$< [$str.length $a] 7]}
+	$echo $a
 } 0123456
 
-test.run {one iteration} 1 {
-	local a abc
-	do {
-		str.append a [str.length $a]
+$test.run {one iteration} 1 {
+	$local a abc
+	$do {
+		$str.append $a [$str.length $a]
 	} while 0
-	echo $a
+	$echo $a
 } abc
 
-test.run {break after 4 iterations} 1 {
-	local a {}
-	do {
-		str.append a [str.length $a]
-		if [test [str.length $a] == 4] break
+$test.run {break after 4 iterations} 1 {
+	$local a {}
+	$do {
+		$str.append $a [$str.length $a]
+		$if [$== [$str.length $a] 4] {$break}
 	} while 1
-	echo $a
+	$echo $a
 } 0123
 
-test.run {continue in third iteration} 1 {
-	local a {}
-	do {
-		if [test $a == 012] {
-			str.append a x
-			continue
+$test.run {continue in third iteration} 1 {
+	$local a {}
+	$do {
+		$if [$== $a 012] {
+			$str.append $a x
+			$continue
 		}
-		str.append a [str.length $a]
-	} while {[test [str.length $a] < 7]}
-	echo $a
+		$str.append $a [$str.length $a]
+	} while {[$< [$str.length $a] 7]}
+	$echo $a
 } 012x456

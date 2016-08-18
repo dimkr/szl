@@ -30,96 +30,75 @@
 #define SZL_MATH_PROC(name, op)                               \
 static                                                        \
 enum szl_res szl_math_proc_## name(struct szl_interp *interp, \
-                                   const int objc,            \
+                                   const unsigned int objc,   \
                                    struct szl_obj **objv)     \
 {                                                             \
 	szl_int ni, mi;                                           \
-	szl_double nd, md;                                        \
+	szl_float nf, mf;                                         \
 	                                                          \
-	if (!szl_obj_double(interp, objv[1], &md) ||              \
-	    !szl_obj_double(interp, objv[2], &nd) ||              \
-	    !szl_obj_int(interp, objv[1], &mi) ||                 \
-	    !szl_obj_int(interp, objv[2], &ni))                   \
+	if (!szl_as_float(interp, objv[1], &mf) ||                \
+	    !szl_as_float(interp, objv[2], &nf) ||                \
+	    !szl_as_int(interp, objv[1], &mi) ||                  \
+	    !szl_as_int(interp, objv[2], &ni))                    \
 		return SZL_ERR;                                       \
 	                                                          \
-	if ((md != (szl_double)mi) || (nd != (szl_double)ni))     \
-		return szl_set_result_double(interp, md + nd);        \
+	if ((mf != (szl_float)mi) || (mf != (szl_float)ni))       \
+		return szl_set_last_float(interp, mf op nf);          \
 	                                                          \
-	return szl_set_result_int(interp, mi op ni);              \
+	return szl_set_last_int(interp, mi op ni);                \
 }
 
 #define SZL_MATH_PROC_DIV(name, op)                           \
 static                                                        \
 enum szl_res szl_math_proc_## name(struct szl_interp *interp, \
-                                   const int objc,            \
+                                   const unsigned int objc,   \
                                    struct szl_obj **objv)     \
 {                                                             \
-	szl_int ni, mi;                                           \
-	szl_double nd, md;                                        \
+	szl_float m, n;                                           \
 	                                                          \
-	if (!szl_obj_double(interp, objv[1], &md) ||              \
-	    !szl_obj_double(interp, objv[2], &nd) ||              \
-	    !szl_obj_int(interp, objv[1], &mi) ||                 \
-	    !szl_obj_int(interp, objv[2], &ni))                   \
+	if (!szl_as_float(interp, objv[1], &m) ||                 \
+	    !szl_as_float(interp, objv[2], &n))                   \
 		return SZL_ERR;                                       \
 	                                                          \
-	if (nd == 0) {                                            \
-		szl_set_result_str(interp, "division by 0", -1);      \
+	if (n == 0) {                                             \
+		szl_set_last_str(interp,                              \
+		                 "division by 0",                     \
+		                 sizeof("division by 0") - 1);        \
 		return SZL_ERR;                                       \
 	}                                                         \
 	                                                          \
-	if ((md != (szl_double)mi) || (nd != (szl_double)ni))     \
-		return szl_set_result_double(interp, md + nd);        \
-	                                                          \
-	return szl_set_result_int(interp, mi op ni);              \
+	return szl_set_last_float(interp, op);                    \
 }
 
 SZL_MATH_PROC(add, +)
 SZL_MATH_PROC(sub, -)
 SZL_MATH_PROC(mul, *)
-SZL_MATH_PROC_DIV(div, /)
-SZL_MATH_PROC_DIV(mod, %)
+SZL_MATH_PROC_DIV(div, m / n)
+SZL_MATH_PROC_DIV(mod, (szl_float)fmod(m, n))
+
+static
+const struct szl_ext_export math_exports[] = {
+	{
+		SZL_PROC_INIT("+", "m n", 3, 3, szl_math_proc_add, NULL)
+	},
+	{
+		SZL_PROC_INIT("-", "m n", 3, 3, szl_math_proc_sub, NULL)
+	},
+	{
+		SZL_PROC_INIT("*", "m n", 3, 3, szl_math_proc_mul, NULL)
+	},
+	{
+		SZL_PROC_INIT("/", "m n", 3, 3, szl_math_proc_div, NULL)
+	},
+	{
+		SZL_PROC_INIT("%", "m n", 3, 3, szl_math_proc_mod, NULL)
+	}
+};
 
 int szl_init_math(struct szl_interp *interp)
 {
-	return (szl_new_proc(interp,
-	                     "+",
-	                     3,
-	                     3,
-	                     "+ m n",
-	                     szl_math_proc_add,
-	                     NULL,
-	                     NULL) &&
-	        szl_new_proc(interp,
-	                     "-",
-	                     3,
-	                     3,
-	                     "- m n",
-	                     szl_math_proc_sub,
-	                     NULL,
-	                     NULL) &&
-	        szl_new_proc(interp,
-	                     "*",
-	                     3,
-	                     3,
-	                     "* m n",
-	                     szl_math_proc_mul,
-	                     NULL,
-	                     NULL) &&
-	        szl_new_proc(interp,
-	                     "/",
-	                     3,
-	                     3,
-	                     "/ m n",
-	                     szl_math_proc_div,
-	                     NULL,
-	                     NULL) &&
-	        szl_new_proc(interp,
-	                     "%",
-	                     3,
-	                     3,
-	                     "% m n",
-	                     szl_math_proc_mod,
-	                     NULL,
-	                     NULL));
+	return szl_new_ext(interp,
+	                   "math",
+	                   math_exports,
+	                   sizeof(math_exports) / sizeof(math_exports[0]));
 }

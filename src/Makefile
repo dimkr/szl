@@ -31,6 +31,7 @@ LDFLAGS ?= -Wl,-s
 CFLAGS += -std=gnu99 \
           -Wall \
           -pedantic \
+          -Wno-overlength-strings \
           -D_GNU_SOURCE \
           -DSZL_VERSION=\"$(SZL_VERSION)\"
 LDFLAGS += -L.
@@ -64,8 +65,8 @@ STATIC_LIBS = $(STATIC_LIB) liblinenoise.a libed25519.a liblzfse.a
 SHARED_LIB = libszl.so
 PROGS = szlsh
 
-BUILTIN_EXT_NAMES = obj proc str exc socket null logic file dir io list math \
-                    loop ext time env path signal poll timer dict szl
+BUILTIN_EXT_NAMES = obj proc exec str exc socket null logic file dir io list \
+                    math loop ext time env path signal poll timer dict szl
 EXTERNAL_EXT_NAMES =
 
 # SZL_LIB is the library szlsh and extensions are linked against
@@ -189,7 +190,12 @@ OBJECTS = $(SRCS:.c=.o)
 all: $(PROGS) $(EXTERNAL_EXT_LIBS)
 
 szl_builtin.c:
-	echo "#include \"szl.h\"" > $@
+	echo "#include <stddef.h>" > $@
+	echo "#include \"szl.h\"" >> $@
+	for i in $(BUILTIN_EXT_NAMES); \
+	do \
+		echo "extern int szl_init_$$i(struct szl_interp *);"; \
+	done >> $@
 	echo "char *szl_builtin_exts[] = {" >> $@
 	for i in $(BUILTIN_EXT_NAMES); \
 	do \
@@ -197,17 +203,13 @@ szl_builtin.c:
 	done >> $@
 	echo " \
 NULL};" >> $@
-	for i in $(BUILTIN_EXT_NAMES); \
-	do \
-		echo "extern int szl_init_$$i(struct szl_interp *interp);"; \
-	done >> $@
-	echo "enum szl_res szl_init_builtin_exts(struct szl_interp *interp) \
+	echo "int szl_init_builtin_exts(struct szl_interp *interp) \
 {" >> $@
 	for i in $(BUILTIN_EXT_NAMES); \
 	do \
-		echo "	if (!szl_init_$$i(interp)) return SZL_ERR;"; \
+		echo "	if (!szl_init_$$i(interp)) return 0;"; \
 	done >> $@
-	echo "	return SZL_OK; \
+	echo "	return 1; \
 }" >> $@
 
 szl_conf.h: szl_conf.h.in
@@ -231,19 +233,13 @@ szl_conf.h: szl_conf.h.in
 szl.o: szl.c szl.h szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS) $(ZLIB_CFLAGS)
 
-szl_str.o: szl_str.c szl_str.inc szl_conf.h
-	$(CC) -c -o $@ $< $(CFLAGS)
-
-szl_list.o: szl_list.c szl_list.inc szl_conf.h
-	$(CC) -c -o $@ $< $(CFLAGS)
+stream.o: stream.c szl.h szl_conf.h
+	$(CC) -c -o $@ $< $(CFLAGS) $(ZLIB_CFLAGS)
 
 szl_io.o: szl_io.c szl_io.inc szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 szl_dir.o: szl_dir.c szl_dir.inc szl_conf.h
-	$(CC) -c -o $@ $< $(CFLAGS)
-
-szl_path.o: szl_path.c szl_path.inc szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 szl_szl.o: szl_szl.c szl_szl.inc szl_conf.h

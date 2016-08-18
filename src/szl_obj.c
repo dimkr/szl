@@ -22,35 +22,36 @@
  * THE SOFTWARE.
  */
 
+#include <stddef.h>
+
 #include "szl.h"
 
 static
 enum szl_res szl_obj_proc_global(struct szl_interp *interp,
-                                 const int objc,
+                                 const unsigned int objc,
                                  struct szl_obj **objv)
 {
 	/* return the value upon success - useful for one-liners */
-	if (szl_local(interp, interp->global, objv[1], objv[2]))
-		return szl_set_result(interp, szl_obj_ref(objv[2]));
+	if (szl_set(interp, interp->global, objv[1], objv[2]))
+		return szl_set_last(interp, szl_ref(objv[2]));
 
 	return SZL_ERR;
 }
 
 static
 enum szl_res szl_obj_proc_local(struct szl_interp *interp,
-                                const int objc,
+                                const unsigned int objc,
                                 struct szl_obj **objv)
 {
-	/* see the comment in szl_obj_proc_set() */
-	if (szl_local(interp, interp->current->caller, objv[1], objv[2]))
-		return szl_set_result(interp, szl_obj_ref(objv[2]));
+	if (szl_set(interp, szl_caller(interp), objv[1], objv[2]))
+		return szl_set_last(interp, szl_ref(objv[2]));
 
 	return SZL_ERR;
 }
 
 static
 enum szl_res szl_obj_proc_export(struct szl_interp *interp,
-                                const int objc,
+                                const unsigned int objc,
                                 struct szl_obj **objv)
 {
 	struct szl_obj *val;
@@ -66,29 +67,28 @@ enum szl_res szl_obj_proc_export(struct szl_interp *interp,
 		val = objv[2];
 
 	if (!interp->current->caller->caller) {
-		szl_set_result_str(interp, "cannot export from global scope", -1);
+		szl_set_last_str(interp, "cannot export from global scope", -1);
 		if (ref)
-			szl_obj_unref(val);
+			szl_unref(val);
 		return SZL_ERR;
 	}
 
-	resi = szl_local(interp, interp->current->caller->caller, objv[1], val);
+	resi = szl_set(interp, interp->current->caller->caller, objv[1], val);
 	if (ref)
-		szl_obj_unref(val);
+		szl_unref(val);
 
 	return resi ? SZL_OK : SZL_ERR;
 }
 
 static
 enum szl_res szl_obj_proc_eval(struct szl_interp *interp,
-                               const int objc,
+                               const unsigned int objc,
                                struct szl_obj **objv)
 {
-	const char *s;
+	char *s;
 	size_t len;
 
-	s = szl_obj_str(interp, objv[1], &len);
-	if (!s || !len)
+	if (!szl_as_str(interp, objv[1], &s, &len) || !len)
 		return SZL_ERR;
 
 	return szl_run(interp, s, len);
@@ -96,15 +96,15 @@ enum szl_res szl_obj_proc_eval(struct szl_interp *interp,
 
 static
 enum szl_res szl_obj_proc_echo(struct szl_interp *interp,
-                               const int objc,
+                               const unsigned int objc,
                                struct szl_obj **objv)
 {
-	return szl_set_result(interp, szl_obj_ref(objv[1]));
+	return szl_set_last(interp, szl_ref(objv[1]));
 }
 
 static
 enum szl_res szl_obj_proc_get(struct szl_interp *interp,
-                              const int objc,
+                              const unsigned int objc,
                               struct szl_obj **objv)
 {
 	struct szl_obj *obj;
@@ -112,57 +112,35 @@ enum szl_res szl_obj_proc_get(struct szl_interp *interp,
 	if (!szl_get(interp, objv[1], &obj) || !obj)
 		return SZL_ERR;
 
-	return szl_set_result(interp, obj);
+	return szl_set_last(interp, obj);
 }
+
+static
+const struct szl_ext_export obj_exports[] = {
+	{
+		SZL_PROC_INIT("global", "name val", 3, 3, szl_obj_proc_global, NULL)
+	},
+	{
+		SZL_PROC_INIT("local", "name val", 3, 3, szl_obj_proc_local, NULL)
+	},
+	{
+		SZL_PROC_INIT("export", "name ?val?", 2, 3, szl_obj_proc_export, NULL)
+	},
+	{
+		SZL_PROC_INIT("eval", "exp", 2, 2, szl_obj_proc_eval, NULL)
+	},
+	{
+		SZL_PROC_INIT("echo", "obj", 2, 2, szl_obj_proc_echo, NULL)
+	},
+	{
+		SZL_PROC_INIT("get", "name", 2, 2, szl_obj_proc_get, NULL)
+	}
+};
 
 int szl_init_obj(struct szl_interp *interp)
 {
-	return ((szl_new_proc(interp,
-	                      "global",
-	                      3,
-	                      3,
-	                      "global name val",
-	                      szl_obj_proc_global,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "local",
-	                      3,
-	                      3,
-	                      "local name val",
-	                      szl_obj_proc_local,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "export",
-	                      2,
-	                      3,
-	                      "export name ?val?",
-	                      szl_obj_proc_export,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "eval",
-	                      2,
-	                      2,
-	                      "eval exp",
-	                      szl_obj_proc_eval,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "echo",
-	                      2,
-	                      2,
-	                      "echo obj",
-	                      szl_obj_proc_echo,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "get",
-	                      2,
-	                      2,
-	                      "get name",
-	                      szl_obj_proc_get,
-	                      NULL,
-	                      NULL)));
+	return szl_new_ext(interp,
+	                   "obj",
+	                   obj_exports,
+	                   sizeof(obj_exports) / sizeof(obj_exports[0]));
 }

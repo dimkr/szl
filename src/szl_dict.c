@@ -30,81 +30,73 @@
 
 static
 enum szl_res szl_dict_proc_new(struct szl_interp *interp,
-                               const int objc,
+                               const unsigned int objc,
                                struct szl_obj **objv)
 {
-	struct szl_obj *list;
-	int i;
+	struct szl_obj *dict;
+	unsigned int i;
 
 	if (objc % 2 == 0)
-		return szl_usage(interp, objv[0]);
+		return szl_set_last_help(interp, objv[0]);
 
-	list = szl_new_empty();
-	if (!list)
+	dict = szl_new_list();
+	if (!dict)
 		return SZL_ERR;
 
 	for (i = 1; i < objc; i += 2) {
-		if (!szl_lappend(interp, list, objv[i]) ||
-		    !szl_lappend(interp, list, objv[i + 1])) {
-			szl_obj_unref(list);
+		if (!szl_dict_set(interp, dict, objv[i], objv[i + 1])) {
+			szl_unref(dict);
 			return SZL_ERR;
 		}
 	}
 
-	return szl_set_result(interp, list);
+	return szl_set_last(interp, dict);
 }
 
 static
 enum szl_res szl_dict_proc_get(struct szl_interp *interp,
-                               const int objc,
+                               const unsigned int objc,
                                struct szl_obj **objv)
 {
 	struct szl_obj *v;
 
-	if (!szl_dget(interp, objv[1], objv[2], &v))
+	if (!szl_dict_get(interp, objv[1], objv[2], &v))
 		return SZL_ERR;
 
 	if (v)
-		return szl_set_result(interp, v);
+		return szl_set_last(interp, v);
 
 	if (objc == 4)
-		return szl_set_result(interp, szl_obj_ref(objv[3]));
+		return szl_set_last(interp, szl_ref(objv[3]));
 
 	return SZL_ERR;
 }
 
 static
 enum szl_res szl_dict_proc_set(struct szl_interp *interp,
-                               const int objc,
+                               const unsigned int objc,
                                struct szl_obj **objv)
 {
-	return szl_dset(interp, objv[1], objv[2], objv[3]) ? SZL_OK : SZL_ERR;
+	return szl_dict_set(interp, objv[1], objv[2], objv[3]) ? SZL_OK : SZL_ERR;
 }
+
+static
+const struct szl_ext_export dict_exports[] = {
+	{
+		SZL_PROC_INIT("dict.new", "?k v?...", 1, -1, szl_dict_proc_new, NULL)
+	},
+	{
+		SZL_PROC_INIT("dict.get", "dict k ?v?", 3, 4, szl_dict_proc_get, NULL)
+	},
+	{
+		SZL_PROC_INIT("dict.set", "dict k v", 4, 4, szl_dict_proc_set, NULL)
+	}
+};
 
 int szl_init_dict(struct szl_interp *interp)
 {
-	return (szl_new_proc(interp,
-	                     "dict.new",
-	                     0,
-	                     -1,
-	                     "dict.new ?k v?...",
-	                     szl_dict_proc_new,
-	                     NULL,
-	                     NULL) &&
-	        szl_new_proc(interp,
-	                     "dict.get",
-	                     3,
-	                     4,
-	                     "dict.get dict k ?v?",
-	                     szl_dict_proc_get,
-	                     NULL,
-	                     NULL) &&
-	        szl_new_proc(interp,
-	                     "dict.set",
-	                     4,
-	                     4,
-	                     "dict.get dict k v",
-	                     szl_dict_proc_set,
-	                     NULL,
-	                     NULL));
+	return szl_new_ext(interp,
+	                   "dict",
+	                   dict_exports,
+	                   sizeof(dict_exports) / sizeof(dict_exports[0]));
 }

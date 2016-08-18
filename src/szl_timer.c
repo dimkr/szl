@@ -64,16 +64,16 @@ const struct szl_stream_ops szl_timer_ops = {
 
 static
 enum szl_res szl_timer_proc_timer(struct szl_interp *interp,
-                                  const int objc,
+                                  const unsigned int objc,
                                   struct szl_obj **objv)
 {
 	struct itimerspec its;
 	struct szl_stream *strm;
 	struct szl_obj *obj;
-	szl_double timeout;
+	szl_float timeout;
 	int fd;
 
-	if (!szl_obj_double(interp, objv[1], &timeout))
+	if (!szl_as_float(interp, objv[1], &timeout))
 		return SZL_ERR;
 
 	fd = timerfd_create(CLOCK_MONOTONIC, 0);
@@ -82,7 +82,7 @@ enum szl_res szl_timer_proc_timer(struct szl_interp *interp,
 
 	its.it_value.tv_sec = (time_t)floor(timeout);
 	its.it_value.tv_nsec = labs(
-	          (long)(1000000000 * (timeout - (szl_double)its.it_value.tv_sec)));
+	           (long)(1000000000 * (timeout - (szl_float)its.it_value.tv_sec)));
 	its.it_interval.tv_sec = its.it_value.tv_sec;
 	its.it_interval.tv_nsec = its.it_value.tv_nsec;
 	if (timerfd_settime(fd, 0, &its, NULL) < 0) {
@@ -109,17 +109,25 @@ enum szl_res szl_timer_proc_timer(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	return szl_set_result(interp, obj);
+	return szl_set_last(interp, obj);
 }
+
+static
+const struct szl_ext_export timer_exports[] = {
+	{
+		SZL_PROC_INIT("timer",
+		              "timeout",
+		              2,
+		              2,
+		              szl_timer_proc_timer,
+		              NULL)
+	}
+};
 
 int szl_init_timer(struct szl_interp *interp)
 {
-	return szl_new_proc(interp,
-	                    "timer",
-	                    2,
-	                    2,
-	                    "timer timeout",
-	                    szl_timer_proc_timer,
-	                    NULL,
-	                    NULL) ? 1 : 0;
+	return szl_new_ext(interp,
+	                   "timer",
+	                   timer_exports,
+	                   sizeof(timer_exports) / sizeof(timer_exports[0]));
 }

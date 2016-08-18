@@ -56,7 +56,7 @@ int szl_archive_iter(struct szl_interp *interp,
 				return 1;
 
 			default:
-				szl_set_result_str(interp, "failed to read a file header", -1);
+				szl_set_last_str(interp, "failed to read a file header", -1);
 				return 0;
 		}
 
@@ -65,7 +65,7 @@ int szl_archive_iter(struct szl_interp *interp,
 			break;
 
 		if (archive_write_header(ar->out, entry) != ARCHIVE_OK) {
-			szl_set_result_str(interp, "failed to write a file header", -1);
+			szl_set_last_str(interp, "failed to write a file header", -1);
 			break;
 		}
 
@@ -82,7 +82,7 @@ int szl_archive_append_path(struct szl_interp *interp,
                             const char *path,
                             void *arg)
 {
-	return szl_lappend_str(interp, (struct szl_obj *)arg, path, -1);
+	return szl_list_append_str(interp, (struct szl_obj *)arg, path, -1);
 }
 
 static
@@ -91,16 +91,16 @@ enum szl_res szl_archive_list(struct szl_interp *interp,
 {
 	struct szl_obj *paths;
 
-	paths = szl_new_empty();
+	paths = szl_new_list();
 	if (!paths)
 		return SZL_ERR;
 
 	if (!szl_archive_iter(interp, ar, szl_archive_append_path, paths)) {
-		szl_obj_unref(paths);
+		szl_unref(paths);
 		return SZL_ERR;
 	}
 
-	return szl_set_result(interp, paths);
+	return szl_set_last(interp, paths);
 }
 
 static
@@ -127,7 +127,7 @@ int szl_archive_extract_file(struct szl_interp *interp,
 				/* fall through */
 
 			default:
-				szl_set_result_fmt(interp, "failed to extract %s", path);
+				szl_set_last_fmt(interp, "failed to extract %s", path);
 				return 0;
 		}
 	} while (1);
@@ -147,14 +147,13 @@ enum szl_res szl_archive_extract(struct szl_interp *interp,
 
 static
 enum szl_res szl_archive_proc(struct szl_interp *interp,
-                              const int objc,
+                              const unsigned int objc,
                               struct szl_obj **objv)
 {
-	const char *op;
+	char *op;
 	size_t len;
 
-	op = szl_obj_str(interp, objv[1], &len);
-	if (!op || !len)
+	if (!szl_as_str(interp, objv[1], &op, &len) || !len)
 		return SZL_ERR;
 
 	if (strcmp("list", op) == 0)
@@ -163,7 +162,7 @@ enum szl_res szl_archive_proc(struct szl_interp *interp,
 		return szl_archive_extract(interp, (struct szl_archive *)objv[0]->priv);
 	}
 	else
-		return szl_usage(interp, objv[0]);
+		return szl_set_last_help(interp, objv[0]);
 
 	return SZL_OK;
 }
@@ -182,17 +181,15 @@ void szl_archive_del(void *priv)
 
 static
 enum szl_res szl_archive_proc_open(struct szl_interp *interp,
-                                   const int objc,
+                                   const unsigned int objc,
                                    struct szl_obj **objv)
 {
-	char name[sizeof("archive:"SZL_PASTE(SZL_INT_MIN))];
-	struct szl_obj *proc;
-	void *data;
+	struct szl_obj *name, *proc;
+	char *data;
 	struct szl_archive *ar;
 	size_t len;
 
-	data = (void *)szl_obj_str(interp, objv[1], &len);
-	if (!data || !len)
+	if (!szl_as_str(interp, objv[1], &data, &len) || !len)
 		return SZL_ERR;
 
 	ar = (struct szl_archive *)malloc(sizeof(*ar));
@@ -225,13 +222,18 @@ enum szl_res szl_archive_proc_open(struct szl_interp *interp,
 	                               ARCHIVE_EXTRACT_XATTR);
 	archive_write_disk_set_standard_lookup(ar->out);
 
-	if (archive_read_open_memory(ar->in, data, len) != 0) {
-		szl_set_result_str(interp, archive_error_string(ar->in), -1);
+	if (archive_read_open_memory(ar->in, (void *)data, len) != 0) {
+		szl_set_last_str(interp, archive_error_string(ar->in), -1);
 		szl_archive_del(ar);
 		return SZL_ERR;
 	}
 
-	szl_new_obj_name(interp, "archive", name, sizeof(name), ar);
+	name = szl_new_str_fmt("archive:%"PRIxPTR, (uintptr_t)ar);
+	if (!name) {
+		szl_archive_del(ar);
+		return SZL_ERR;
+	}
+
 	proc = szl_new_proc(interp,
 	                    name,
 	                    1,
@@ -240,22 +242,32 @@ enum szl_res szl_archive_proc_open(struct szl_interp *interp,
 	                    szl_archive_proc,
 	                    szl_archive_del,
 	                    ar);
+	szl_unref(name);
+
 	if (!proc) {
 		szl_archive_del(ar);
 		return SZL_ERR;
 	}
 
-	return szl_set_result(interp, szl_obj_ref(proc));
+	return szl_set_last(interp, proc);
 }
+
+static
+const struct szl_ext_export archive_exports[] = {
+	{
+		SZL_PROC_INIT("archive.open",
+		              "open data",
+		              2,
+		              3,
+		              szl_archive_proc_open,
+		              NULL)
+	}
+};
 
 int szl_init_archive(struct szl_interp *interp)
 {
-	return szl_new_proc(interp,
-	                    "archive.open",
-	                    2,
-	                    3,
-	                    "archive.open data",
-	                    szl_archive_proc_open,
-	                    NULL,
-	                    NULL) ? 1 : 0;
+	return szl_new_ext(interp,
+	                   "archive",
+	                   archive_exports,
+	                   sizeof(archive_exports) / sizeof(archive_exports[0]));
 }

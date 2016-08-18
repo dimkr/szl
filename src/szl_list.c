@@ -28,43 +28,37 @@
 
 #include "szl.h"
 
-static const char szl_list_inc[] = {
-#include "szl_list.inc"
-};
-
 static
 enum szl_res szl_list_proc_length(struct szl_interp *interp,
-                                  const int objc,
+                                  const unsigned int objc,
                                   struct szl_obj **objv)
 {
 	struct szl_obj **items;
 	size_t n;
 
-	if (!szl_obj_list(interp, objv[1], &items, &n))
+	if (!szl_as_list(interp, objv[1], &items, &n))
 		return SZL_ERR;
 
-	return szl_set_result_int(interp, (szl_int)n);
+	return szl_set_last_int(interp, (szl_int)n);
 }
 
 static
 enum szl_res szl_list_proc_append(struct szl_interp *interp,
-                                  const int objc,
+                                  const unsigned int objc,
                                   struct szl_obj **objv)
 {
-	return szl_lappend(interp, objv[1], objv[2]) ? SZL_OK : SZL_ERR;
+	return szl_list_append(interp, objv[1], objv[2]) ? SZL_OK : SZL_ERR;
 }
 
 static
 enum szl_res szl_list_proc_set(struct szl_interp *interp,
-                               const int objc,
+                               const unsigned int objc,
                                struct szl_obj **objv)
 {
 	szl_int index;
 
-	if (!szl_obj_int(interp, objv[2], &index))
-		return SZL_ERR;
-
-	if (!szl_lset(interp, objv[1], index, objv[3]))
+	if (!szl_as_int(interp, objv[2], &index) ||
+	    !szl_list_set(interp, objv[1], index, objv[3]))
 		return SZL_ERR;
 
 	return SZL_OK;
@@ -72,153 +66,136 @@ enum szl_res szl_list_proc_set(struct szl_interp *interp,
 
 static
 enum szl_res szl_list_proc_extend(struct szl_interp *interp,
-                                  const int objc,
+                                  const unsigned int objc,
                                   struct szl_obj **objv)
 {
-	struct szl_obj **items;
-	size_t n, i;
-
-	if (!szl_obj_list(interp, objv[2], &items, &n) || (n > SIZE_MAX))
+	if (!szl_list_extend(interp, objv[1], objv[2]))
 		return SZL_ERR;
 
-	for (i = 0; i < n; ++i) {
-		if (!szl_lappend(interp, objv[1], items[i]))
-			return SZL_ERR;
-	}
-
-	return szl_set_result(interp, szl_obj_ref(objv[1]));
+	return szl_set_last(interp, szl_ref(objv[1]));
 }
 
 static
 enum szl_res szl_list_proc_index(struct szl_interp *interp,
-                                 const int objc,
+                                 const unsigned int objc,
                                  struct szl_obj **objv)
 {
 	struct szl_obj **items;
 	szl_int i;
 	size_t n;
 
-	if (!szl_obj_int(interp, objv[2], &i))
+	if (!szl_as_int(interp, objv[2], &i))
 		return SZL_ERR;
 
 	if (i < 0) {
-		szl_set_result_fmt(interp, "bad index: "SZL_INT_FMT, i);
+		szl_set_last_fmt(interp, "bad index: "SZL_INT_FMT, i);
 		return SZL_ERR;
 	}
 
-	if (!szl_obj_list(interp, objv[1], &items, &n))
+	if (!szl_as_list(interp, objv[1], &items, &n))
 		return SZL_ERR;
 
 	if (i >= n) {
-		szl_set_result_fmt(interp, "bad index: "SZL_INT_FMT, i);
+		szl_set_last_fmt(interp, "bad index: "SZL_INT_FMT, i);
 		return SZL_ERR;
 	}
 
-	return szl_set_result(interp, szl_obj_ref(items[i]));
+	return szl_set_last(interp, szl_ref(items[i]));
 }
 
 static
 enum szl_res szl_list_proc_range(struct szl_interp *interp,
-                                 const int objc,
+                                 const unsigned int objc,
                                  struct szl_obj **objv)
 {
 	struct szl_obj *list, **items;
 	szl_int start, end, i;
 	size_t n;
 
-	if (!szl_obj_list(interp, objv[1], &items, &n) || (n > SIZE_MAX))
+	if (!szl_as_list(interp, objv[1], &items, &n) || (n > SIZE_MAX))
 		return SZL_ERR;
 
-	if (!szl_obj_int(interp, objv[2], &start))
+	if (!szl_as_int(interp, objv[2], &start))
 		return SZL_ERR;
 
 	if ((start < 0) || (start >= (szl_int)n)) {
-		szl_set_result_fmt(interp, "bad start index: "SZL_INT_FMT, start);
+		szl_set_last_fmt(interp, "bad start index: "SZL_INT_FMT, start);
 		return SZL_ERR;
 	}
 
-	if (!szl_obj_int(interp, objv[3], &end))
+	if (!szl_as_int(interp, objv[3], &end))
 		return SZL_ERR;
 
 	if ((end < start) || (end >= (szl_int)n)) {
-		szl_set_result_fmt(interp, "bad end index: "SZL_INT_FMT, end);
+		szl_set_last_fmt(interp, "bad end index: "SZL_INT_FMT, end);
 		return SZL_ERR;
 	}
 
-	list = szl_new_empty();
+	list = szl_new_list();
 	if (!list)
 		return SZL_ERR;
 
 	for (i = start; i <= end; ++i) {
-		if (!szl_lappend(interp, list, items[i])) {
-			szl_obj_unref(list);
+		if (!szl_list_append(interp, list, items[i])) {
+			szl_unref(list);
 			return SZL_ERR;
 		}
 	}
 
-	return szl_set_result(interp, list);
+	return szl_set_last(interp, list);
 }
 
 static
 enum szl_res szl_list_proc_in(struct szl_interp *interp,
-                              const int objc,
+                              const unsigned int objc,
                               struct szl_obj **objv)
 {
-	struct szl_obj **items;
-	size_t n, i;
 	int found = 0;
 
-	if (!szl_obj_list(interp, objv[1], &items, &n))
+	if (!szl_list_in(interp, objv[2], objv[1], &found))
 		return SZL_ERR;
 
-	for (i = 0; !found && (i < n); ++i) {
-		if (!szl_obj_eq(interp, items[i], objv[2], &found))
-			return SZL_ERR;
-	}
-
-	return szl_set_result_bool(interp, (szl_int)found);
+	return szl_set_last_bool(interp, found);
 }
 
 static
 enum szl_res szl_list_proc_reverse(struct szl_interp *interp,
-                                   const int objc,
+                                   const unsigned int objc,
                                    struct szl_obj **objv)
 {
 	struct szl_obj *list, **items;
 	szl_int i;
 	size_t n;
 
-	if (!szl_obj_list(interp, objv[1], &items, &n) || (n > SIZE_MAX))
+	if (!szl_as_list(interp, objv[1], &items, &n) || (n > SIZE_MAX))
 		return SZL_ERR;
 
-	list = szl_new_empty();
+	list = szl_new_list();
 	if (!list)
 		return SZL_ERR;
 
 	for (i = (szl_int)n - 1; i >= 0; --i) {
-		if (!szl_lappend(interp, list, items[i])) {
-			szl_obj_unref(list);
+		if (!szl_list_append(interp, list, items[i])) {
+			szl_unref(list);
 			return SZL_ERR;
 		}
 	}
 
-	return szl_set_result(interp, list);
+	return szl_set_last(interp, list);
 }
 
 static
 enum szl_res szl_list_proc_join(struct szl_interp *interp,
-                                const int objc,
+                                const unsigned int objc,
                                 struct szl_obj **objv)
 {
 	struct szl_obj *str, **items;
-	const char *delim, *s;
+	char *delim, *s;
 	size_t i, n, len, dlen;
 
-	delim = szl_obj_str(interp, objv[1], &dlen);
-	if (!delim)
-		return SZL_ERR;
-
-	if (!szl_obj_list(interp, objv[2], &items, &n) || (n > SIZE_MAX))
+	if (!szl_as_str(interp, objv[1], &delim, &dlen) ||
+	    !szl_as_list(interp, objv[2], &items, &n) ||
+	    (n > SIZE_MAX))
 		return SZL_ERR;
 
 	str = szl_new_empty();
@@ -226,21 +203,20 @@ enum szl_res szl_list_proc_join(struct szl_interp *interp,
 		return SZL_ERR;
 
 	for (i = 0; i < n; ++i) {
-		s = szl_obj_str(interp, items[i], &len);
-		if (!s ||
-		   !szl_append(interp, str, s, len) ||
-		   ((i < n - 1) && !szl_append(interp, str, delim, dlen))) {
-			szl_obj_unref(str);
+		if (!szl_as_str(interp, items[i], &s, &len) ||
+		    !szl_str_append_str(interp, str, s, len) ||
+		   ((i < n - 1) && !szl_str_append_str(interp, str, delim, dlen))) {
+			szl_unref(str);
 			return SZL_ERR;
 		}
 	}
 
-	return szl_set_result(interp, str);
+	return szl_set_last(interp, str);
 }
 
 static
 enum szl_res szl_list_proc_zip(struct szl_interp *interp,
-                               const int objc,
+                               const unsigned int objc,
                                struct szl_obj **objv)
 {
 	struct szl_obj *list, *item, ***items;
@@ -260,7 +236,7 @@ enum szl_res szl_list_proc_zip(struct szl_interp *interp,
 	}
 
 	for (i = 1; i < objc; ++i) {
-	    if (!szl_obj_list(interp, objv[i], &items[i - 1], &ns[i - 1])) {
+	    if (!szl_as_list(interp, objv[i], &items[i - 1], &ns[i - 1])) {
 			free(ns);
 			free(items);
 			return SZL_ERR;
@@ -271,7 +247,7 @@ enum szl_res szl_list_proc_zip(struct szl_interp *interp,
 		if (ns[i] != ns[0]) {
 			free(ns);
 			free(items);
-			szl_set_result_str(interp, "cannot zip lists of different len", -1);
+			szl_set_last_str(interp, "cannot zip lists of different len", -1);
 			return SZL_ERR;
 		}
 	}
@@ -286,121 +262,121 @@ enum szl_res szl_list_proc_zip(struct szl_interp *interp,
 	for (j = 0; j < ns[0]; ++j) {
 		item = szl_new_empty();
 		if (!item) {
-			szl_obj_unref(list);
+			szl_unref(list);
 			free(ns);
 			free(items);
 			return SZL_ERR;
 		}
 
 		for (i = 0; i < n; ++i) {
-			if (!szl_lappend(interp, item, items[i][j])) {
-				szl_obj_unref(item);
-				szl_obj_unref(list);
+			if (!szl_list_append(interp, item, items[i][j])) {
+				szl_unref(item);
+				szl_unref(list);
 				free(ns);
 				free(items);
 				return SZL_ERR;
 			}
 		}
 
-		if (!szl_lappend(interp, list, item)) {
-			szl_obj_unref(item);
-			szl_obj_unref(list);
+		if (!szl_list_append(interp, list, item)) {
+			szl_unref(item);
+			szl_unref(list);
 			free(ns);
 			free(items);
 			return SZL_ERR;
 		}
 
-		szl_obj_unref(item);
+		szl_unref(item);
 	}
 
 	free(ns);
 	free(items);
-	return szl_set_result(interp, list);
+	return szl_set_last(interp, list);
 }
+
+static
+const struct szl_ext_export list_exports[] = {
+	{
+		SZL_PROC_INIT("list.length", "list", 2, 2, szl_list_proc_length, NULL)
+	},
+	{
+		SZL_PROC_INIT("list.append",
+		              "list item",
+		              3,
+		              3,
+		              szl_list_proc_append,
+		              NULL)
+	},
+	{
+		SZL_PROC_INIT("list.set",
+		              "list index item",
+		              4,
+		              4,
+		              szl_list_proc_set,
+		              NULL)
+	},
+	{
+		SZL_PROC_INIT("list.extend",
+		              "list list",
+		              3,
+		              3,
+		              szl_list_proc_extend,
+		              NULL)
+	},
+	{
+		SZL_PROC_INIT("list.index",
+		              "list index",
+		              3,
+		              3,
+		              szl_list_proc_index,
+		              NULL)
+	},
+	{
+		SZL_PROC_INIT("list.range",
+		              "list start end",
+		              4,
+		              4,
+		              szl_list_proc_range,
+		              NULL)
+	},
+	{
+		SZL_PROC_INIT("list.in",
+		              "list item",
+		              3,
+		              3,
+		              szl_list_proc_in,
+		              NULL)
+	},
+	{
+		SZL_PROC_INIT("list.reverse",
+		              "list",
+		              2,
+		              2,
+		              szl_list_proc_reverse,
+		              NULL)
+	},
+	{
+		SZL_PROC_INIT("list.join",
+		              "delim list",
+		              3,
+		              3,
+		              szl_list_proc_join,
+		              NULL)
+	},
+	{
+		SZL_PROC_INIT("list.zip",
+		              "list list...",
+		              3,
+		              -1,
+		              szl_list_proc_zip,
+		              NULL)
+	}
+};
 
 int szl_init_list(struct szl_interp *interp)
 {
-	return ((szl_new_proc(interp,
-	                      "list.length",
-	                      2,
-	                      2,
-	                      "list.length list",
-	                      szl_list_proc_length,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "list.append",
-	                      3,
-	                      3,
-	                      "list.append list item",
-	                      szl_list_proc_append,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "list.set",
-	                      4,
-	                      4,
-	                      "list.set list index item",
-	                      szl_list_proc_set,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "list.extend",
-	                      3,
-	                      3,
-	                      "list.extend list list",
-	                      szl_list_proc_extend,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "list.index",
-	                      3,
-	                      3,
-	                      "list.index list index",
-	                      szl_list_proc_index,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "list.range",
-	                      4,
-	                      4,
-	                      "list.range list start end",
-	                      szl_list_proc_range,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "list.in",
-	                      3,
-	                      3,
-	                      "list.in list item",
-	                      szl_list_proc_in,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "list.reverse",
-	                      2,
-	                      2,
-	                      "list.reverse list",
-	                      szl_list_proc_reverse,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "list.join",
-	                      3,
-	                      3,
-	                      "list.join delim list",
-	                      szl_list_proc_join,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "list.zip",
-	                      3,
-	                      -1,
-	                      "list.zip list list...",
-	                      szl_list_proc_zip,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_run(interp,
-	                 szl_list_inc,
-	                 sizeof(szl_list_inc) - 1) == SZL_OK));
+	return szl_new_ext(interp,
+	                   "list",
+	                   list_exports,
+	                   sizeof(list_exports) / sizeof(list_exports[0]));
 }

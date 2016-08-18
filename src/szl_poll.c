@@ -32,32 +32,31 @@
 
 static
 enum szl_res szl_poll_poll_proc(struct szl_interp *interp,
-                                 const int objc,
+                                 const unsigned int objc,
                                  struct szl_obj **objv)
 {
 	struct epoll_event ev = {0}, *evs;
-	const char *op, *evtype;
+	char *op, *evtype;
 	struct szl_obj *list, *r, *w, *e;
 	szl_int fd, n, i, j;
-	int k, out, efd = (int)(intptr_t)objv[0]->priv;
+	unsigned int k;
+	int out, efd = (int)(intptr_t)objv[0]->priv;
 
-	op = szl_obj_str(interp, objv[1], NULL);
-	if (!op)
+	if (!szl_as_str(interp, objv[1], &op, NULL))
 		return SZL_ERR;
 
 	if ((objc >= 4) && (strcmp("add", op) == 0)) {
-		if (!szl_obj_int(interp, objv[2], &fd))
+		if (!szl_as_int(interp, objv[2], &fd))
 			return SZL_ERR;
 
 		if ((fd < 0) || (fd > INT_MAX)) {
-			szl_set_result_str(interp, "bad fd", -1);
+			szl_set_last_str(interp, "bad fd", -1);
 			return SZL_ERR;
 		}
 
 		ev.events = 0;
 		for (k = 3; k < objc; ++k) {
-			evtype = szl_obj_str(interp, objv[k], NULL);
-			if (!evtype)
+			if (!szl_as_str(interp, objv[k], &evtype, NULL))
 				return SZL_ERR;
 
 			if ((strcmp("in", evtype) == 0) && !(ev.events & EPOLLIN))
@@ -65,7 +64,7 @@ enum szl_res szl_poll_poll_proc(struct szl_interp *interp,
 			else if ((strcmp("out", evtype) == 0) && !(ev.events & EPOLLOUT))
 				ev.events |= EPOLLOUT;
 			else
-				return szl_usage(interp, objv[0]);
+				return szl_set_last_help(interp, objv[0]);
 		}
 
 		ev.data.fd = (int)fd;
@@ -77,11 +76,11 @@ enum szl_res szl_poll_poll_proc(struct szl_interp *interp,
 	}
 	else if (objc == 3) {
 		if (strcmp("remove", op) == 0) {
-			if (!szl_obj_int(interp, objv[2], &fd))
+			if (!szl_as_int(interp, objv[2], &fd))
 				return SZL_ERR;
 
 			if ((fd < 0) || (fd > INT_MAX)) {
-				szl_set_result_str(interp, "bad fd", -1);
+				szl_set_last_str(interp, "bad fd", -1);
 				return SZL_ERR;
 			}
 
@@ -91,11 +90,11 @@ enum szl_res szl_poll_poll_proc(struct szl_interp *interp,
 
 			return SZL_OK;
 		} else if (strcmp("wait", op) == 0) {
-			if (!szl_obj_int(interp, objv[2], &n))
+			if (!szl_as_int(interp, objv[2], &n))
 				return SZL_ERR;
 
 			if ((n < 0) || (n > INT_MAX)) {
-				szl_set_result_str(interp, "bad event list size", -1);
+				szl_set_last_str(interp, "bad event list size", -1);
 				return SZL_ERR;
 			}
 
@@ -103,51 +102,51 @@ enum szl_res szl_poll_poll_proc(struct szl_interp *interp,
 			if (!list)
 				return SZL_ERR;
 
-			r = szl_new_empty();
+			r = szl_new_list();
 			if (!r) {
-				szl_obj_unref(list);
+				szl_unref(list);
 				return SZL_ERR;
 			}
 
-			w = szl_new_empty();
+			w = szl_new_list();
 			if (!w) {
-				szl_obj_unref(r);
-				szl_obj_unref(list);
+				szl_unref(r);
+				szl_unref(list);
 				return SZL_ERR;
 			}
 
-			e = szl_new_empty();
+			e = szl_new_list();
 			if (!e) {
-				szl_obj_unref(w);
-				szl_obj_unref(r);
-				szl_obj_unref(list);
+				szl_unref(w);
+				szl_unref(r);
+				szl_unref(list);
 				return SZL_ERR;
 			}
 
-			if (!szl_lappend(interp, list, r) ||
-			    !szl_lappend(interp, list, w) ||
-			    !szl_lappend(interp, list, e)) {
-				szl_obj_unref(e);
-				szl_obj_unref(w);
-				szl_obj_unref(r);
-				szl_obj_unref(list);
+			if (!szl_list_append(interp, list, r) ||
+			    !szl_list_append(interp, list, w) ||
+			    !szl_list_append(interp, list, e)) {
+				szl_unref(e);
+				szl_unref(w);
+				szl_unref(r);
+				szl_unref(list);
 				return SZL_ERR;
 			}
 
-			szl_obj_unref(e);
-			szl_obj_unref(w);
-			szl_obj_unref(r);
+			szl_unref(e);
+			szl_unref(w);
+			szl_unref(r);
 
 			evs = (struct epoll_event *)malloc(sizeof(struct epoll_event) * n);
 			if (!evs) {
-				szl_obj_unref(list);
+				szl_unref(list);
 				return SZL_ERR;
 			}
 
 			out = epoll_wait(efd, evs, (int)n, -1);
 			if (out < 0) {
 				free(evs);
-				szl_obj_unref(list);
+				szl_unref(list);
 				return SZL_ERR;
 			}
 
@@ -157,15 +156,15 @@ enum szl_res szl_poll_poll_proc(struct szl_interp *interp,
 					continue;
 
 				if ((evs[i].events & EPOLLIN) &&
-				    !szl_lappend_int(interp, r, (szl_int)evs[i].data.fd))
+				    !szl_list_append_int(interp, r, (szl_int)evs[i].data.fd))
 					goto err;
 
 				if ((evs[i].events & EPOLLOUT) &&
-				    !szl_lappend_int(interp, w, (szl_int)evs[i].data.fd))
+				    !szl_list_append_int(interp, w, (szl_int)evs[i].data.fd))
 					goto err;
 
 				if ((evs[i].events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)) &&
-				    !szl_lappend_int(interp, e, (szl_int)evs[i].data.fd))
+				    !szl_list_append_int(interp, e, (szl_int)evs[i].data.fd))
 					goto err;
 
 				++j;
@@ -173,16 +172,16 @@ enum szl_res szl_poll_poll_proc(struct szl_interp *interp,
 
 err:
 				free(evs);
-				szl_obj_unref(list);
+				szl_unref(list);
 				return SZL_ERR;
 			}
 
 			free(evs);
-			return szl_set_result(interp, list);
+			return szl_set_last(interp, list);
 		}
 	}
 
-	return szl_usage(interp, objv[0]);
+	return szl_set_last_help(interp, objv[0]);
 }
 
 static
@@ -193,18 +192,22 @@ void szl_poll_poll_del(void *priv)
 
 static
 enum szl_res szl_poll_proc_create(struct szl_interp *interp,
-                                  const int objc,
+                                  const unsigned int objc,
                                   struct szl_obj **objv)
 {
-	char name[sizeof("poll:"SZL_PASTE(SZL_INT_MIN))];
-	struct szl_obj *proc;
+	struct szl_obj *name, *proc;
 	int fd;
 
 	fd = epoll_create1(0);
 	if (fd < 0)
 		return SZL_ERR;
 
-	szl_new_obj_name(interp, "poll", name, sizeof(name), (void *)(intptr_t)fd);
+	name = szl_new_str_fmt("poll:%d", fd);
+	if (!name) {
+		close(fd);
+		return SZL_ERR;
+	}
+
 	proc = szl_new_proc(interp,
 	                    name,
 	                    3,
@@ -213,23 +216,32 @@ enum szl_res szl_poll_proc_create(struct szl_interp *interp,
 	                    szl_poll_poll_proc,
 	                    szl_poll_poll_del,
 	                    (void *)(intptr_t)fd);
+	szl_unref(name);
+
 	if (!proc) {
 		close(fd);
 		return SZL_ERR;
 	}
 
-	return szl_set_result(interp, szl_obj_ref(proc));
+	return szl_set_last(interp, proc);
 }
+
+static
+const struct szl_ext_export poll_exports[] = {
+	{
+		SZL_PROC_INIT("poll.create",
+		              NULL,
+		              1,
+		              1,
+		              szl_poll_proc_create,
+		              NULL)
+	}
+};
 
 int szl_init_poll(struct szl_interp *interp)
 {
-	return szl_new_proc(interp,
-	                    "poll.create",
-	                    1,
-	                    1,
-	                    "poll.create",
-	                    szl_poll_proc_create,
-	                    NULL,
-	                    NULL) ? 1 : 0;
+	return szl_new_ext(interp,
+	                   "poll",
+	                   poll_exports,
+	                   sizeof(poll_exports) / sizeof(poll_exports[0]));
 }
-

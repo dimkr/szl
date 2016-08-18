@@ -20,35 +20,35 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-load linenoise
+$load linenoise
 
-proc szl.shell {
-	local interp [szl.interp]
+$proc szl.shell {
+	$local interp [$szl.interp]
 
-	local obrace [str.expand \x7b]
-	local cbrace [str.expand \x7d]
-	local obracket [str.expand \x5b]
-	local cbracket [str.expand \x5d]
+	$local obrace [$str.expand \x7b]
+	$local cbrace [$str.expand \x7d]
+	$local obracket [$str.expand \x5b]
+	$local cbracket [$str.expand \x5d]
 
-	while 1 {
-		local exp [linenoise.read {>>> }]
+	$while 1 {
+		$local exp [$linenoise.read {>>> }]
 
-		while {[|| [!= [str.count $exp $obrace] [str.count $exp $cbrace]] [!= [str.count $exp $obracket] [str.count $exp $cbracket]]]} {
-			str.append $exp [linenoise.read {... }]
+		$while {[$|| [$!= [$str.count $exp $obrace] [$str.count $exp $cbrace]] [$!= [$str.count $exp $obracket] [$str.count $exp $cbracket]]]} {
+			$str.append $exp [$linenoise.read {... }]
 		}
 
-		if $exp {
-			try {
+		$if $exp {
+			$try {
 				$interp eval $exp
-				local out $_
-				if [> [str.length $out] 0] {puts $out}
+				$local out $_
+				$if [$str.length $out] {$puts $out}
 			} except {
-				local out $_
+				$local out $_
 				$stdout write {[error] }
-				if [> [str.length $out] 0] {puts $out} else {puts {}}
+				$if $out {$puts $out} else {$puts {}}
 			}
 
-			try {linenoise.add $exp}
+			$try {$linenoise.add $exp}
 		}
 	}
 }

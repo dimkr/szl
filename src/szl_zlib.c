@@ -35,26 +35,25 @@
 
 static
 enum szl_res szl_zlib_proc_crc32(struct szl_interp *interp,
-                                 const int objc,
+                                 const unsigned int objc,
                                  struct szl_obj **objv)
 {
-	const char *s;
+	char *s;
 	szl_int init;
 	size_t len;
 
 	if (objc == 2)
 		init = (szl_int)crc32(0L, Z_NULL, 0);
-	else if (!szl_obj_int(interp, objv[2], &init))
+	else if (!szl_as_int(interp, objv[2], &init))
 		return SZL_ERR;
 
-	s = szl_obj_str(interp, objv[1], &len);
-	if (!s || !len)
+	if (!szl_as_str(interp, objv[1], &s, &len) || !len)
 		return SZL_ERR;
 
-	return szl_set_result_int(interp,
-	                          (szl_int)(crc32((uLong)init,
-	                                          (const Bytef *)s,
-	                                          (uInt)len) & 0xFFFFFFFF));
+	return szl_set_last_int(interp,
+	                        (szl_int)(crc32((uLong)init,
+	                                         (const Bytef *)s,
+	                                         (uInt)len) & 0xFFFFFFFF));
 }
 
 static
@@ -70,7 +69,7 @@ int szl_zlib_compress(struct szl_interp *interp,
 
 	if ((level != Z_DEFAULT_COMPRESSION) &&
 	    ((level < Z_NO_COMPRESSION) || (level > Z_BEST_COMPRESSION))) {
-		szl_set_result_str(interp, "level must be 0 to 9", -1);
+		szl_set_last_str(interp, "level must be 0 to 9", -1);
 		return SZL_ERR;
 	}
 
@@ -114,23 +113,22 @@ int szl_zlib_compress(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	return szl_set_result(interp, obj);
+	return szl_set_last(interp, obj);
 }
 
 static
 enum szl_res szl_zlib_proc_deflate(struct szl_interp *interp,
-                                   const int objc,
+                                   const unsigned int objc,
                                    struct szl_obj **objv)
 {
 	szl_int level = Z_DEFAULT_COMPRESSION;
-	const char *in;
+	char *in;
 	size_t len;
 
-	if ((objc == 3) && !szl_obj_int(interp, objv[2], &level))
+	if ((objc == 3) && !szl_as_int(interp, objv[2], &level))
 		return SZL_ERR;
 
-	in = szl_obj_str(interp, objv[1], &len);
-	if (!in || !len)
+	if (!szl_as_str(interp, objv[1], &in, &len) || !len)
 		return SZL_ERR;
 
 	return szl_zlib_compress(interp, in, len, level, -MAX_WBITS);
@@ -149,8 +147,7 @@ enum szl_res szl_zlib_decompress(struct szl_interp *interp,
 	int res;
 
 	if ((bufsiz <= 0) || (bufsiz > INT_MAX)) {
-		szl_set_result_str(
-		                 interp,
+		szl_set_last_str(interp,
 		                 "buffer size must be between 0 and "SZL_PASTE(INT_MAX),
 		                 -1);
 		return SZL_ERR;
@@ -184,18 +181,19 @@ enum szl_res szl_zlib_decompress(struct szl_interp *interp,
 			case Z_OK:
 			case Z_STREAM_END:
 				/* append each chunk to the output object */
-				if (szl_append(interp,
-				               out,
-				               buf,
-				               (size_t)bufsiz - (size_t)strm.avail_out))
+				if (!szl_str_append_str(
+				                       interp,
+				                       out,
+				                       buf,
+				                       (size_t)bufsiz - (size_t)strm.avail_out))
 					break;
 
 			default:
-				szl_obj_unref(out);
+				szl_unref(out);
 				free(buf);
 				inflateEnd(&strm);
 				if (strm.msg != NULL)
-					szl_set_result_str(interp, strm.msg, -1);
+					szl_set_last_str(interp, strm.msg, -1);
 				return SZL_ERR;
 			}
 		} while (strm.avail_out == 0);
@@ -205,23 +203,22 @@ enum szl_res szl_zlib_decompress(struct szl_interp *interp,
 	free(buf);
 	inflateEnd(&strm);
 
-	return szl_set_result(interp, out);
+	return szl_set_last(interp, out);
 }
 
 static
 enum szl_res szl_zlib_proc_inflate(struct szl_interp *interp,
-                                   const int objc,
+                                   const unsigned int objc,
                                    struct szl_obj **objv)
 {
-	const char *in;
+	char *in;
 	szl_int bufsiz = DEF_DECOMPRESS_BUFSIZ;
 	size_t len;
 
-	if ((objc == 3) && (!szl_obj_int(interp, objv[2], &bufsiz)))
+	if ((objc == 3) && (!szl_as_int(interp, objv[2], &bufsiz)))
 		return SZL_ERR;
 
-	in = szl_obj_str(interp, objv[1], &len);
-	if (!in || !len)
+	if (!szl_as_str(interp, objv[1], &in, &len) || !len)
 		return SZL_ERR;
 
 	return szl_zlib_decompress(interp, in, len, bufsiz, -MAX_WBITS);
@@ -229,18 +226,17 @@ enum szl_res szl_zlib_proc_inflate(struct szl_interp *interp,
 
 static
 enum szl_res szl_zlib_proc_gzip(struct szl_interp *interp,
-                                const int objc,
+                                const unsigned int objc,
                                 struct szl_obj **objv)
 {
 	szl_int level = Z_DEFAULT_COMPRESSION;
-	const char *in;
+	char *in;
 	size_t len;
 
-	if ((objc == 3) && (!szl_obj_int(interp, objv[2], &level)))
+	if ((objc == 3) && (!szl_as_int(interp, objv[2], &level)))
 		return SZL_ERR;
 
-	in = szl_obj_str(interp, objv[1], &len);
-	if (!in || !len)
+	if (!szl_as_str(interp, objv[1], &in, &len) || !len)
 		return SZL_ERR;
 
 	return szl_zlib_compress(interp, in, len, level, WBITS_GZIP);
@@ -248,66 +244,72 @@ enum szl_res szl_zlib_proc_gzip(struct szl_interp *interp,
 
 static
 enum szl_res szl_zlib_proc_gunzip(struct szl_interp *interp,
-                                  const int objc,
+                                  const unsigned int objc,
                                   struct szl_obj **objv)
 {
-	const char *in;
+	char *in;
 	szl_int bufsiz = DEF_DECOMPRESS_BUFSIZ;
 	size_t len;
 
-
 	/* although the buffer can be up to LONG_MAX bytes, we want to limit it to
 	 * INT_MAX because we create a string object later */
-	if ((objc == 3) && !szl_obj_int(interp, objv[2], &bufsiz))
+	if ((objc == 3) && !szl_as_int(interp, objv[2], &bufsiz))
 		return SZL_ERR;
 
-	in = szl_obj_str(interp, objv[1], &len);
-	if (!in)
+	if (!szl_as_str(interp, objv[1], &in, &len))
 		return SZL_ERR;
 
 	return szl_zlib_decompress(interp, in, len, bufsiz, WBITS_GZIP);
 }
 
+static
+const struct szl_ext_export zlib_exports[] = {
+	{
+		SZL_PROC_INIT("zlib.crc32",
+		              "str ?init?",
+		              2,
+		              3,
+		              szl_zlib_proc_crc32,
+		              NULL)
+	},
+	{
+		SZL_PROC_INIT("zlib.deflate",
+		              "str ?level?",
+		              2,
+		              3,
+		              szl_zlib_proc_deflate,
+		              NULL)
+	},
+	{
+		SZL_PROC_INIT("zlib.inflate",
+		              "str ?bufsiz?",
+		              2,
+		              3,
+		              szl_zlib_proc_inflate,
+		              NULL)
+	},
+	{
+		SZL_PROC_INIT("zlib.gzip",
+		              "str ?level?",
+		              2,
+		              3,
+		              szl_zlib_proc_gzip,
+		              NULL)
+	},
+	{
+		SZL_PROC_INIT("zlib.gunzip",
+		              "str ?bufsiz?",
+		              2,
+		              3,
+		              szl_zlib_proc_gunzip,
+		              NULL)
+	}
+};
+
 int szl_init_zlib(struct szl_interp *interp)
 {
-	return ((szl_new_proc(interp,
-	                      "zlib.crc32",
-	                      2,
-	                      3,
-	                      "zlib.crc32 str ?init?",
-	                      szl_zlib_proc_crc32,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "zlib.deflate",
-	                      2,
-	                      3,
-	                      "zlib.deflate str ?level?",
-	                      szl_zlib_proc_deflate,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "zlib.inflate",
-	                      2,
-	                      3,
-	                      "zlib.inflate str ?bufsiz?",
-	                      szl_zlib_proc_inflate,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "zlib.gzip",
-	                      2,
-	                      3,
-	                      "zlib.gzip str ?level?",
-	                      szl_zlib_proc_gzip,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "zlib.gunzip",
-	                      2,
-	                      3,
-	                      "zlib.gunzip str ?bufsiz?",
-	                      szl_zlib_proc_gunzip,
-	                      NULL,
-	                      NULL)));
+	return szl_new_ext(interp,
+	                   "zlib",
+	                   zlib_exports,
+	                   sizeof(zlib_exports) / sizeof(zlib_exports[0]));
 }

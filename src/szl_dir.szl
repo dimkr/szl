@@ -20,29 +20,26 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-proc dir.rdelete {
-	if [!= [list.length $@] 1] {throw {bad dir.rdelete usage: dir.rdelete path}}
+$proc dir.rdelete {
+	$local dirs {}
+	$local files {}
+	$local subdirs $1
 
-	local names [dir.list $1]
-	local dirs {}
-	local files {}
-	local subdirs $1
+	$while 1 {
+		$local next_subdirs {}
 
-	while 1 {
-		local next_subdirs {}
+		$for dir $subdirs {
+			$local subnames [$dir.list $dir]
+			$list.extend $next_subdirs [$map name [$list.index $subnames 0] {$str.join $path.sep $dir $name}]
+			$list.extend $files [$map name [$list.index $subnames 1] {$str.join $path.sep $dir $name}]
 
-		for dir $subdirs {
-			local subnames [dir.list $dir]
-			list.extend $next_subdirs [map name [list.index $subnames 0] {str.join $path.sep $dir $name}]
-			list.extend $files [map name [list.index $subnames 1] {str.join $path.sep $dir $name}]
-
-			list.append $dirs $dir
+			$list.append $dirs $dir
 		}
 
-		if [! $next_subdirs] break
-		local subdirs $next_subdirs
+		$if [$! $next_subdirs] {$break}
+		$local subdirs $next_subdirs
 	}
 
-	for file $files {file.delete $file}
-	for dir [list.reverse $dirs] {dir.delete $dir}
+	$for file $files {$file.delete $file}
+	$for dir [$list.reverse $dirs] {$dir.delete $dir}
 }

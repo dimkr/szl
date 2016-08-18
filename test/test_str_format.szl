@@ -20,23 +20,23 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-load test
+$load test
 
-test.run {no format} 0 {str.format} {bad str.format call: 'str.format', should be 'str.format fmt obj...'}
-test.run {empty format} 0 {str.format {} x y} {empty fmt}
-test.run {no markers} 0 {str.format {a b} x y} {too many args for fmt: a b}
+$test.run {no format} 0 {$str.format} {bad usage, should be 'str.format fmt obj...'}
+$test.run {empty format} 0 {$str.format {} x y} {empty fmt}
+$test.run {no markers} 0 {$str.format {a b} x y} {extra args for fmt: a b}
 
-test.run {no args} 0 {str.format {a {} b {} c}} {bad str.format call: 'str.format {a {} b {} c}', should be 'str.format fmt obj...'}
-test.run {too few args} 0 {str.format {a {} b {} c} x} {too few args for fmt: a {} b {} c}
-test.run {happy flow} 1 {str.format {a {} b {} c} x y} {a x b y c}
-test.run {too many args} 0 {str.format {a {} b {} c} x y z} {too many args for fmt: a {} b {} c}
+$test.run {no args} 0 {$str.format {a {} b {} c}} {bad usage, should be 'str.format fmt obj...'}
+$test.run {missing args} 0 {$str.format {a {} b {} c} x} {missing args for fmt: a {} b {} c}
+$test.run {happy flow} 1 {$str.format {a {} b {} c} x y} {a x b y c}
+$test.run {extra args} 0 {$str.format {a {} b {} c} x y z} {extra args for fmt: a {} b {} c}
 
-test.run {leading marker} 1 {str.format {{} a {} b} x y} {x a y b}
-test.run {trailing marker} 1 {str.format {a {} b {}} x y} {a x b y}
-test.run {two leading markers} 1 {str.format {{}{} a b} x y} {xy a b}
-test.run {two trailing markers} 1 {str.format {a b {}{}} x y} {a b xy}
-test.run {two markers} 1 {str.format {a {}{} b} x y} {a xy b}
+$test.run {leading marker} 1 {$str.format {{} a {} b} x y} {x a y b}
+$test.run {trailing marker} 1 {$str.format {a {} b {}} x y} {a x b y}
+$test.run {two leading markers} 1 {$str.format {{}{} a b} x y} {xy a b}
+$test.run {two trailing markers} 1 {$str.format {a b {}{}} x y} {a b xy}
+$test.run {two markers} 1 {$str.format {a {}{} b} x y} {a xy b}
 
-test.run {leading whitespace} 1 {str.format {	a {} b {} c} x y} {	a x b y c}
-test.run {trailing whitespace} 1 {str.format {a {} b {} c	} x y} {a x b y c	}
-test.run {leading and trailing whitespace} 1 {str.format { a {} b {} c	} x y} { a x b y c	}
+$test.run {leading whitespace} 1 {$str.format {	a {} b {} c} x y} {	a x b y c}
+$test.run {trailing whitespace} 1 {$str.format {a {} b {} c	} x y} {a x b y c	}
+$test.run {leading and trailing whitespace} 1 {$str.format { a {} b {} c	} x y} { a x b y c	}

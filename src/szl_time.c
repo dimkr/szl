@@ -31,18 +31,18 @@
 
 static
 enum szl_res szl_time_proc_sleep(struct szl_interp *interp,
-                                 const int objc,
+                                 const unsigned int objc,
                                  struct szl_obj **objv)
 {
 	struct timespec req, rem;
-	szl_double d;
+	szl_float f;
 
 	/* we assume sizeof(time_t) == 4 */
-	if (!szl_obj_double(interp, objv[1], &d) || (d < 0) || (d > INT_MAX))
+	if (!szl_as_float(interp, objv[1], &f) || (f < 0) || (f > INT_MAX))
 		return SZL_ERR;
 
-	req.tv_sec = (time_t)floor(d);
-	req.tv_nsec = labs((long)(1000000000 * (d - (szl_double)req.tv_sec)));
+	req.tv_sec = (time_t)floor(f);
+	req.tv_nsec = labs((long)(1000000000 * (f - (szl_float)req.tv_sec)));
 
 	do {
 		if (nanosleep(&req, &rem) == 0)
@@ -58,14 +58,17 @@ enum szl_res szl_time_proc_sleep(struct szl_interp *interp,
 	return SZL_OK;
 }
 
+static
+const struct szl_ext_export time_exports[] = {
+	{
+		SZL_PROC_INIT("sleep", "sec", 2, 2, szl_time_proc_sleep, NULL)
+	}
+};
+
 int szl_init_time(struct szl_interp *interp)
 {
-	return szl_new_proc(interp,
-	                    "sleep",
-	                    2,
-	                    2,
-	                    "sleep sec",
-	                    szl_time_proc_sleep,
-	                    NULL,
-	                    NULL) ? 1 : 0;
+	return szl_new_ext(interp,
+	                   "time",
+	                   time_exports,
+	                   sizeof(time_exports) / sizeof(time_exports[0]));
 }

@@ -20,53 +20,53 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-load test
+$load test
 
-test.run {no args} 0 for {bad for call: 'for', should be 'for names list exp'}
-test.run {one arg} 0 {for a} {bad for call: 'for a', should be 'for names list exp'}
-test.run {2 args} 0 {for a b} {bad for call: 'for a b', should be 'for names list exp'}
-test.run {too many args} 0 {for a b c d} {bad for call: 'for a b c d', should be 'for names list exp'}
+$test.run {no args} 0 {$for} {bad usage, should be 'for names list exp'}
+$test.run {one arg} 0 {$for a} {bad usage, should be 'for names list exp'}
+$test.run {2 args} 0 {$for a b} {bad usage, should be 'for names list exp'}
+$test.run {too many args} 0 {$for a b c d} {bad usage, should be 'for names list exp'}
 
-test.run {no names} 0 {for {} {1 2 3} {calc $i + 1}} {bad for call: 'for {} {1 2 3} {calc $i + 1}', should be 'for names list exp'}
-test.run {empty list} 1 {for i {} {calc $i + 1}} {}
-test.run {short list} 0 {for {x y z} {1 2} {calc $x + 1}} {bad number of values}
+$test.run {no names} 0 {$for {} {1 2 3} {calc $i + 1}} {bad usage, should be 'for names list exp'}
+$test.run {empty list} 1 {$for i {} {calc $i + 1}} {}
+$test.run {short list} 0 {$for {x y z} {1 2} {calc $x + 1}} {bad number of values}
 
-test.run {exact list} 1 {
-	local a 0
-	for {x y z} {1 2 3} {
-		str.append a $z
-		str.append a $y
-		str.append a $x
+$test.run {exact list} 1 {
+	$local a 0
+	$for {x y z} {1 2 3} {
+		$str.append $a $z
+		$str.append $a $y
+		$str.append $a $x
 	}
-	echo $a
+	$echo $a
 } 0321
 
-test.run {long list} 0 {
-	local a 0
-	for {x y z} {1 2 3 4} {
-		str.append a $z
-		str.append a $y
-		str.append a $x
+$test.run {long list} 0 {
+	$local a 0
+	$for {x y z} {1 2 3 4} {
+		$str.append $a $z
+		$str.append $a $y
+		$str.append $a $x
 	}
-	echo $a
+	$echo $a
 } {bad number of values}
 
-test.run {two iterations, short list} 0 {
-	local a 0
-	for {x y z} {1 2 3 4 5 6 7 8} {
-		str.append a $z
-		str.append a $y
-		str.append a $x
+$test.run {two iterations, short list} 0 {
+	$local a 0
+	$for {x y z} {1 2 3 4 5 6 7 8} {
+		$str.append $a $z
+		$str.append $a $y
+		$str.append $a $x
 	}
-	echo $a
+	$echo $a
 } {bad number of values}
 
-test.run {two iterations, exact list} 1 {
-	local a 0
-	for {x y z} {1 2 3 4 5 6} {
-		str.append a $z
-		str.append a $y
-		str.append a $x
+$test.run {two iterations, exact list} 1 {
+	$local a 0
+	$for {x y z} {1 2 3 4 5 6} {
+		$str.append $a $z
+		$str.append $a $y
+		$str.append $a $x
 	}
-	echo $a
+	$echo $a
 } 0321654

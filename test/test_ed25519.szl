@@ -20,32 +20,32 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-load ed25519
-load test
+$load ed25519
+$load test
 
-test.run {too many keypair args} 0 {ed25519.keypair a} {bad ed25519.keypair call: 'ed25519.keypair a', should be 'ed25519.keypair'}
-test.run {keypair length} 1 {list.length [ed25519.keypair]} 2
-test.run {private key length} 1 {str.length [list.index [ed25519.keypair] 0]} 64
-test.run {public key length} 1 {str.length [list.index [ed25519.keypair] 1]} 32
-test.run {keypair randomness} 1 {test [ed25519.keypair] != [ed25519.keypair]} 1
+$test.run {too many keypair args} 0 {$ed25519.keypair a} {bad usage, should be 'ed25519.keypair'}
+$test.run {keypair length} 1 {$list.length [$ed25519.keypair]} 2
+$test.run {private key length} 1 {$str.length [$list.index [$ed25519.keypair] 0]} 64
+$test.run {public key length} 1 {$str.length [$list.index [$ed25519.keypair] 1]} 32
+$test.run {keypair randomness} 1 {$!= [$ed25519.keypair] [$ed25519.keypair]} 1
 
-local keypair [ed25519.keypair]
-local priv [list.index $keypair 0]
-local pub [list.index $keypair 1]
+$local keypair [$ed25519.keypair]
+$local priv [$list.index $keypair 0]
+$local pub [$list.index $keypair 1]
 
-test.run {too few sign args 1} 0 {ed25519.sign} {bad ed25519.sign call: 'ed25519.sign', should be 'ed25519.sign data priv pub'}
-test.run {too few sign args 2} 0 {ed25519.sign hello} {bad ed25519.sign call: 'ed25519.sign hello', should be 'ed25519.sign data priv pub'}
-test.run {too few sign args 3} 0 {ed25519.sign hello $priv} {bad ed25519.sign call: 'ed25519.sign hello $priv', should be 'ed25519.sign data priv pub'}
-test.run {too many sign args} 0 {ed25519.sign hello $priv $pub $pub} {bad ed25519.sign call: 'ed25519.sign hello $priv $pub $pub', should be 'ed25519.sign data priv pub'}
+$test.run {too few sign args 1} 0 {$ed25519.sign} {bad usage, should be 'ed25519.sign data priv pub'}
+$test.run {too few sign args 2} 0 {$ed25519.sign hello} {bad usage, should be 'ed25519.sign data priv pub'}
+$test.run {too few sign args 3} 0 {$ed25519.sign hello $priv} {bad usage, should be 'ed25519.sign data priv pub'}
+$test.run {too many sign args} 0 {$ed25519.sign hello $priv $pub $pub} {bad usage, should be 'ed25519.sign data priv pub'}
 
-test.run {signature length} 1 {str.length [ed25519.sign hello $priv $pub]} 64
+$test.run {signature length} 1 {$str.length [$ed25519.sign hello $priv $pub]} 64
 
-test.run {too few verify args 1} 0 {ed25519.verify} {bad ed25519.verify call: 'ed25519.verify', should be 'ed25519.verify data sig pub'}
-test.run {too few verify args 2} 0 {ed25519.verify hello} {bad ed25519.verify call: 'ed25519.verify hello', should be 'ed25519.verify data sig pub'}
-test.run {too few verify args 3} 0 {ed25519.verify hello [ed25519.sign hello $priv $pub]} {bad ed25519.verify call: 'ed25519.verify hello [ed25519.sign hello $priv $pub]', should be 'ed25519.verify data sig pub'}
-test.run {too many verify args} 0 {ed25519.verify hello [ed25519.sign hello $priv $pub] $pub $pub} {bad ed25519.verify call: 'ed25519.verify hello [ed25519.sign hello $priv $pub] $pub $pub', should be 'ed25519.verify data sig pub'}
+$test.run {too few verify args 1} 0 {$ed25519.verify} {bad usage, should be 'ed25519.verify data sig pub'}
+$test.run {too few verify args 2} 0 {$ed25519.verify hello} {bad usage, should be 'ed25519.verify data sig pub'}
+$test.run {too few verify args 3} 0 {$ed25519.verify hello [$ed25519.sign hello $priv $pub]} {bad usage, should be 'ed25519.verify data sig pub'}
+$test.run {too many verify args} 0 {$ed25519.verify hello [$ed25519.sign hello $priv $pub] $pub $pub} {bad usage, should be 'ed25519.verify data sig pub'}
 
-test.run {verify small signature} 0 {ed25519.verify hello [str.range [ed25519.sign hello $priv $pub] 0 62] $pub} {the signature must be 64 bytes long}
-test.run {verify big signature} 0 {ed25519.verify hello [str.join {} [ed25519.sign hello $priv $pub] a] $pub} {the signature must be 64 bytes long}
-test.run {verify valid signature} 1 {ed25519.verify hello [ed25519.sign hello $priv $pub] $pub} {}
-test.run {verify invalid signature} 0 {ed25519.verify hello [ed25519.sign {hello world} $priv $pub] $pub} {the digital signature is invalid}
+$test.run {verify small signature} 0 {$ed25519.verify hello [$str.range [$ed25519.sign hello $priv $pub] 0 62] $pub} {the signature must be 64 bytes long}
+$test.run {verify big signature} 0 {$ed25519.verify hello [$str.join {} [$ed25519.sign hello $priv $pub] a] $pub} {the signature must be 64 bytes long}
+$test.run {verify valid signature} 1 {$ed25519.verify hello [$ed25519.sign hello $priv $pub] $pub} {}
+$test.run {verify invalid signature} 0 {$ed25519.verify hello [$ed25519.sign {hello world} $priv $pub] $pub} {the digital signature is invalid}

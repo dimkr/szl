@@ -28,29 +28,26 @@
 
 static
 enum szl_res szl_ed25519_proc_verify(struct szl_interp *interp,
-                                     const int objc,
+                                     const unsigned int objc,
                                      struct szl_obj **objv)
 {
-	const char *sig, *data, *pub;
+	char *sig, *data, *pub;
 	size_t len;
 
-	pub = szl_obj_str(interp, objv[3], &len);
-	if (!pub || (len != 32)) {
-		szl_set_result_str(interp,
+	if (!szl_as_str(interp, objv[3], &pub, &len) || (len != 32)) {
+		szl_set_last_str(interp,
 		                   "the public key must be 32 bytes long",
 		                   -1);
 		return SZL_ERR;
 	}
 
-	sig = szl_obj_str(interp, objv[2], &len);
-	if (!sig || (len != 64)) {
-		szl_set_result_str(interp, "the signature must be 64 bytes long", -1);
+	if (!szl_as_str(interp, objv[2], &sig, &len) || (len != 64)) {
+		szl_set_last_str(interp, "the signature must be 64 bytes long", -1);
 		return SZL_ERR;
 	}
 
-	data = szl_obj_str(interp, objv[1], &len);
-	if (!data || !len) {
-		szl_set_result_str(interp, "the data cannot be an empty buffer", -1);
+	if (!szl_as_str(interp, objv[1], &data, &len) || !len) {
+		szl_set_last_str(interp, "the data cannot be an empty buffer", -1);
 		return SZL_ERR;
 	}
 
@@ -58,7 +55,7 @@ enum szl_res szl_ed25519_proc_verify(struct szl_interp *interp,
 	                    (const unsigned char *)data,
 	                    len,
 	                    (const unsigned char *)pub)) {
-		szl_set_result_str(interp, "the digital signature is invalid", -1);
+		szl_set_last_str(interp, "the digital signature is invalid", -1);
 		return SZL_ERR;
 	}
 
@@ -67,28 +64,33 @@ enum szl_res szl_ed25519_proc_verify(struct szl_interp *interp,
 
 static
 enum szl_res szl_ed25519_proc_sign(struct szl_interp *interp,
-                                   const int objc,
+                                   const unsigned int objc,
                                    struct szl_obj **objv)
 {
-	char sig[64];
-	const char *data, *priv, *pub;
+	char sig[64], *data, *priv, *pub;
 	size_t len, klen;
 
-	data = szl_obj_str(interp, objv[1], &len);
+	if (!szl_as_str(interp, objv[1], &data, &len))
+		return SZL_ERR;
+
 	if (!len) {
-		szl_set_result_str(interp, "the data cannot be an empty buffer", -1);
+		szl_set_last_str(interp, "the data cannot be an empty buffer", -1);
 		return SZL_ERR;
 	}
 
-	priv = szl_obj_str(interp, objv[2], &klen);
+	if (!szl_as_str(interp, objv[2], &priv, &klen))
+		return SZL_ERR;
+
 	if (klen != 64) {
-		szl_set_result_str(interp, "the private key must be 64 bytes long", -1);
+		szl_set_last_str(interp, "the private key must be 64 bytes long", -1);
 		return SZL_ERR;
 	}
 
-	pub = szl_obj_str(interp, objv[3], &klen);
+	if (!szl_as_str(interp, objv[3], &pub, &klen))
+		return SZL_ERR;
+
 	if (klen != 32) {
-		szl_set_result_str(interp, "the public key must be 32 bytes long", -1);
+		szl_set_last_str(interp, "the public key must be 32 bytes long", -1);
 		return SZL_ERR;
 	}
 
@@ -98,63 +100,69 @@ enum szl_res szl_ed25519_proc_sign(struct szl_interp *interp,
 	             (const unsigned char *)pub,
 	             (const unsigned char *)priv);
 
-	return szl_set_result_str(interp, sig, sizeof(sig));
+	return szl_set_last_str(interp, sig, sizeof(sig));
 }
 
 static
 enum szl_res szl_ed25519_proc_keypair(struct szl_interp *interp,
-                                      const int objc,
+                                      const unsigned int objc,
                                       struct szl_obj **objv)
 {
 	unsigned char buf[128] = {0};
-	struct szl_obj *items[2];
-	enum szl_res res;
+	struct szl_obj *list;
 
-	if (ed25519_create_seed(buf + 96) != 0)
+	list = szl_new_list();
+	if (!list)
 		return SZL_ERR;
 
-	ed25519_create_keypair(buf, buf + 32, buf + 96);
-
-	items[0] = szl_new_str((char *)buf + 32, 64);
-	if (!items[0])
-		return SZL_ERR;
-
-	items[1] = szl_new_str((char *)buf, 32);
-	if (!items[1]) {
-		szl_obj_unref(items[0]);
+	if (ed25519_create_seed(buf + 96) != 0) {
+		szl_unref(list);
 		return SZL_ERR;
 	}
 
-	res = szl_set_result_list(interp, items, 2);
-	szl_obj_unref(items[1]);
-	szl_obj_unref(items[0]);
-	return res;
+	ed25519_create_keypair(buf, buf + 32, buf + 96);
+
+	if (!szl_list_append_str(interp, list, (const char *)buf + 32, 64) ||
+	    !szl_list_append_str(interp, list, (const char *)buf, 32)) {
+		szl_unref(list);
+		return SZL_ERR;
+	}
+
+	return szl_set_last(interp, list);
 }
+
+static
+const struct szl_ext_export ed25519_exports[] = {
+	{
+		SZL_PROC_INIT("ed25519.verify",
+		              "data sig pub",
+		              4,
+		              4,
+		              szl_ed25519_proc_verify,
+		              NULL)
+	},
+	{
+		SZL_PROC_INIT("ed25519.sign",
+		              "data priv pub",
+		              4,
+		              4,
+		              szl_ed25519_proc_sign,
+		              NULL)
+	},
+	{
+		SZL_PROC_INIT("ed25519.keypair",
+		              NULL,
+		              1,
+		              1,
+		              szl_ed25519_proc_keypair,
+		              NULL)
+	}
+};
 
 int szl_init_ed25519(struct szl_interp *interp)
 {
-	return ((szl_new_proc(interp,
-	                      "ed25519.verify",
-	                      4,
-	                      4,
-	                      "ed25519.verify data sig pub",
-	                      szl_ed25519_proc_verify,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "ed25519.sign",
-	                      4,
-	                      4,
-	                      "ed25519.sign data priv pub",
-	                      szl_ed25519_proc_sign,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "ed25519.keypair",
-	                      1,
-	                      1,
-	                      "ed25519.keypair",
-	                      szl_ed25519_proc_keypair,
-	                      NULL,
-	                      NULL)));
+	return szl_new_ext(interp,
+	                   "ed25519",
+	                   ed25519_exports,
+	                   sizeof(ed25519_exports) / sizeof(ed25519_exports[0]));
 }

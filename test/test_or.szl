@@ -20,26 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-proc str.trim {
-	str.ltrim [str.rtrim $1]
-}
+$load test
 
-proc str.tail {
-	local objc [list.length $@]
-	local length [str.length $1]
-	if [== $objc 1] {
-		if $length {
-			local end [- $length 1]
-			str.range $1 $end $end
-		} else {
-			return {}
-		}
-	} else {
-		if [== $objc 2] {
-			local end [- $length 1]
-			str.range $1 [- $length $2] $end
-		} else {
-			throw {bad str.tail usage: str.tail str ?count?}
-		}
-	}
-}
+$test.run {no args} 0 {$||} {bad usage, should be '|| obj obj...'}
+$test.run {one arg} 0 {$|| 1} {bad usage, should be '|| obj obj...'}
+$test.run {true false} 1 {$|| 1 0} 1
+$test.run {false true} 1 {$|| 0 1} 1
+$test.run {false true false} 1 {$|| 0 1 0} 1
+$test.run {false false true} 1 {$|| 0 0 1} 1

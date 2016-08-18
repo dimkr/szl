@@ -33,16 +33,16 @@
 
 static
 enum szl_res szl_linenoise_proc_read(struct szl_interp *interp,
-                                     const int objc,
+                                     const unsigned int objc,
                                      struct szl_obj **objv)
 {
 	struct szl_obj *obj;
-	const char *prompt;
+	char *prompt;
 	char *s;
 
-	prompt = szl_obj_str(interp, objv[1], NULL);
-	if (!prompt)
+	if (!szl_as_str(interp, objv[1], &prompt, NULL)) {
 		return SZL_ERR;
+	}
 
 	s = linenoise(prompt);
 	if (!s)
@@ -56,19 +56,18 @@ enum szl_res szl_linenoise_proc_read(struct szl_interp *interp,
 
 	/* we assume linenoiseFree() calls free(), since we don't use a custom
 	 * allocator */
-	return szl_set_result(interp, obj);
+	return szl_set_last(interp, obj);
 }
 
 static
 enum szl_res szl_linenoise_proc_add(struct szl_interp *interp,
-                                    const int objc,
+                                    const unsigned int objc,
                                     struct szl_obj **objv)
 {
-	const char *line;
+	char *line;
 	size_t len;
 
-	line = szl_obj_str(interp, objv[1], &len);
-	if (!line || !len)
+	if (!szl_as_str(interp, objv[1], &line, &len) || !len)
 		return SZL_ERR;
 
 	return linenoiseHistoryAdd(line) ? SZL_OK : SZL_ERR;
@@ -76,14 +75,13 @@ enum szl_res szl_linenoise_proc_add(struct szl_interp *interp,
 
 static
 enum szl_res szl_linenoise_proc_save(struct szl_interp *interp,
-                                     const int objc,
+                                     const unsigned int objc,
                                      struct szl_obj **objv)
 {
-	const char *path;
+	char *path;
 	size_t len;
 
-	path = szl_obj_str(interp, objv[1], &len);
-	if (!path || !len)
+	if (!szl_as_str(interp, objv[1], &path, &len) || !len)
 		return SZL_ERR;
 
 	return (linenoiseHistorySave(path) == 0) ? SZL_OK : SZL_ERR;
@@ -91,54 +89,60 @@ enum szl_res szl_linenoise_proc_save(struct szl_interp *interp,
 
 static
 enum szl_res szl_linenoise_proc_load(struct szl_interp *interp,
-                                     const int objc,
+                                     const unsigned int objc,
                                      struct szl_obj **objv)
 {
-	const char *path;
+	char *path;
 	size_t len;
 
-	path = szl_obj_str(interp, objv[1], &len);
-	if (!path || !len)
+	if (!szl_as_str(interp, objv[1], &path, &len) || !len)
 		return SZL_ERR;
 
 	return (linenoiseHistoryLoad(path) == 0) ? SZL_OK : SZL_ERR;
 }
 
+static
+const struct szl_ext_export linenoise_exports[] = {
+	{
+		SZL_PROC_INIT("linenoise.read",
+		              "prompt",
+		              2,
+		              2,
+		              szl_linenoise_proc_read,
+		              NULL)
+	},
+	{
+		SZL_PROC_INIT("linenoise.add",
+		              "line",
+		              2,
+		              2,
+		              szl_linenoise_proc_add,
+		              NULL)
+	},
+	{
+		SZL_PROC_INIT("linenoise.save",
+		              "path",
+		              2,
+		              2,
+		              szl_linenoise_proc_save,
+		              NULL)
+	},
+	{
+		SZL_PROC_INIT("linenoise.load",
+		              "path",
+		              2,
+		              2,
+		              szl_linenoise_proc_load,
+		              NULL)
+	}
+};
+
 int szl_init_linenoise(struct szl_interp *interp)
 {
-	if (!linenoiseHistorySetMaxLen(SZL_LINENOISE_HISTORY_SIZE))
-		return SZL_ERR;
-
-	return ((szl_new_proc(interp,
-	                      "linenoise.read",
-	                      2,
-	                      2,
-	                      "linenoise.read prompt",
-	                      szl_linenoise_proc_read,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "linenoise.add",
-	                      2,
-	                      2,
-	                      "linenoise.add line",
-	                      szl_linenoise_proc_add,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "linenoise.save",
-	                      2,
-	                      2,
-	                      "linenoise.save path",
-	                      szl_linenoise_proc_save,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "linenoise.load",
-	                      2,
-	                      2,
-	                      "linenoise.load path",
-	                      szl_linenoise_proc_load,
-	                      NULL,
-	                      NULL)));
+	return (linenoiseHistorySetMaxLen(SZL_LINENOISE_HISTORY_SIZE) &&
+	        szl_new_ext(
+	                 interp,
+	                 "linenoise",
+	                 linenoise_exports,
+	                 sizeof(linenoise_exports) / sizeof(linenoise_exports[0])));
 }

@@ -28,36 +28,39 @@
 
 static
 enum szl_res szl_env_proc_get(struct szl_interp *interp,
-                              const int objc,
+                              const unsigned int objc,
                               struct szl_obj **objv)
 {
-	const char *name, *val;
+	char *name, *val;
 	size_t len;
 
-	name = szl_obj_str(interp, objv[1], &len);
-	if (!name || !len)
+	if (!szl_as_str(interp, objv[1], &name, &len) || !len)
 		return SZL_ERR;
 
 	val = getenv(name);
 	if (!val)
 		return SZL_ERR;
 
-	return szl_set_result_str(interp, val, -1);
+	return szl_set_last_str(interp, val, -1);
 }
+
+static
+const struct szl_ext_export env_exports[] = {
+	{
+		SZL_STR_INIT("env.ver", SZL_VERSION)
+	},
+	{
+		SZL_INT_INIT("env.intmax", INT_MAX)
+	},
+	{
+		SZL_PROC_INIT("env.get", "name", 2, 2, szl_env_proc_get, NULL)
+	}
+};
 
 int szl_init_env(struct szl_interp *interp)
 {
-	return (szl_new_const_str(interp,
-	                          "env.ver",
-	                          SZL_VERSION,
-	                          sizeof(SZL_VERSION) - 1) &&
-	        szl_new_const_int(interp, "env.intmax", INT_MAX) &&
-	        szl_new_proc(interp,
-	                     "env.get",
-	                     2,
-	                     2,
-	                     "env.get name",
-	                     szl_env_proc_get,
-	                     NULL,
-	                     NULL));
+	return szl_new_ext(interp,
+	                   "env",
+	                   env_exports,
+	                   sizeof(env_exports) / sizeof(env_exports[0]));
 }

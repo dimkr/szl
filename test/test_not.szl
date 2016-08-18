@@ -20,9 +20,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-load test
+$load test
 
-test.run {no args} 0 not {bad not call: 'not', should be 'not obj'}
-test.run {too many args} 0 {not x y} {bad not call: 'not x y', should be 'not obj'}
-test.run {not true} 1 {not 1} 0
-test.run {not false} 1 {not 0} 1
+$test.run {no args} 0 {$!} {bad usage, should be '! obj'}
+$test.run {too many args} 0 {$! x y} {bad usage, should be '! obj'}
+$test.run {not true} 1 {$! 1} 0
+$test.run {not false} 1 {$! 0} 1

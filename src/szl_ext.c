@@ -22,57 +22,62 @@
  * THE SOFTWARE.
  */
 
+#include <stddef.h>
+
 #include "szl.h"
 
 static
 enum szl_res szl_ext_proc_load(struct szl_interp *interp,
-                               const int objc,
+                               const unsigned int objc,
                                struct szl_obj **objv)
 {
-	const char *name;
+	char *name;
 	size_t len;
 
-	name = szl_obj_str(interp, objv[1], &len);
-	if (!name || !len)
+	if (!szl_as_str(interp, objv[1], &name, &len) || !len)
 		return SZL_ERR;
 
-	if (szl_load(interp, name))
-		return SZL_OK;
-
-	return SZL_ERR;
+	return szl_load(interp, name) ? SZL_OK : SZL_ERR;
 }
 
 static
 enum szl_res szl_ext_proc_source(struct szl_interp *interp,
-                                 const int objc,
+                                 const unsigned int objc,
                                  struct szl_obj **objv)
 {
-	const char *path;
+	char *path;
 	size_t len;
 
-	path = szl_obj_str(interp, objv[1], &len);
-	if (!path || !len)
+	if (!szl_as_str(interp, objv[1], &path, &len) || !len)
 		return SZL_ERR;
 
 	return szl_source(interp, path);
 }
 
+static
+const struct szl_ext_export ext_exports[] = {
+	{
+		SZL_PROC_INIT("load",
+		              "name",
+		              2,
+		              2,
+		              szl_ext_proc_load,
+		              NULL)
+	},
+	{
+		SZL_PROC_INIT("source",
+		              "path",
+		              2,
+		              2,
+		              szl_ext_proc_source,
+		              NULL)
+	}
+};
+
 int szl_init_ext(struct szl_interp *interp)
 {
-	return ((szl_new_proc(interp,
-	                      "load",
-	                      2,
-	                      2,
-	                      "load name",
-	                      szl_ext_proc_load,
-	                      NULL,
-	                      NULL)) &&
-	        (szl_new_proc(interp,
-	                      "source",
-	                      2,
-	                      2,
-	                      "source path",
-	                      szl_ext_proc_source,
-	                      NULL,
-	                      NULL)));
+	return szl_new_ext(interp,
+	                   "ext",
+	                   ext_exports,
+	                   sizeof(ext_exports) / sizeof(ext_exports[0]));
 }

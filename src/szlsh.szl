@@ -20,14 +20,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-load linenoise
+$load linenoise
 
-local history [path.join [env.get HOME] .szl_history]
-if [path.exists $history] {linenoise.load $history}
+$local history [$path.join [$env.get HOME] .szl_history]
+$if [$path.exists $history] {$linenoise.load $history}
 
-try {
-	puts [str.format {szl {}} $env.ver]
-	szl.shell
+$try {
+	$puts [$str.join { } szl $env.ver]
+	$szl.shell
 } finally {
-	try {linenoise.save $history}
+	$try {$linenoise.save $history}
 }

@@ -26,10 +26,9 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/types.h>
-#include <ifaddrs.h>
-#include <string.h>
 #include <errno.h>
 #include <signal.h>
+#include <string.h>
 
 #include <curl/curl.h>
 
@@ -40,23 +39,21 @@
 
 static
 enum szl_res szl_curl_proc_encode(struct szl_interp *interp,
-                                  const int objc,
+                                  const unsigned int objc,
                                   struct szl_obj **objv)
 {
-	const char *s;
-	char *out;
+	char *s, *out;
 	size_t len;
 	enum szl_res res;
 
-	s = szl_obj_str(interp, objv[1], &len);
-	if (!s)
+	if (!szl_as_str(interp, objv[1], &s, &len) || (len >= INT_MAX))
 		return SZL_ERR;
 
 	out = curl_easy_escape((CURL *)objv[0]->priv, s, (int)len);
 	if (!out)
 		return SZL_ERR;
 
-	res = szl_set_result_str(interp, out, -1);
+	res = szl_set_last_str(interp, out, -1);
 	curl_free(out);
 	return res;
 }
@@ -68,39 +65,15 @@ void szl_curl_encode_del(void *priv)
 }
 
 static
-int szl_curl_net_reachable(void)
-{
-	struct ifaddrs *ifap, *ifa;
-
-	if (getifaddrs(&ifap) == -1)
-		return 0;
-
-	for (ifa = ifap; ifa != NULL; ifa = ifa->ifa_next) {
-		if ((!ifa->ifa_addr) || (strcmp("lo", ifa->ifa_name) == 0))
-			continue;
-
-		if ((ifa->ifa_addr->sa_family == AF_INET) ||
-		    (ifa->ifa_addr->sa_family == AF_INET6)) {
-			freeifaddrs(ifap);
-			return 1;
-		}
-	}
-
-	freeifaddrs(ifap);
-	return 0;
-}
-
-
-static
 enum szl_res szl_curl_proc_get(struct szl_interp *interp,
-                               const int objc,
+                               const unsigned int objc,
                                struct szl_obj **objv)
 {
 	sigset_t set, oldset, pend;
 	CURLM *cm;
 	CURL **cs;
 	FILE **fhs;
-	const char **urls, **paths;
+	char **urls, **paths;
 	const struct CURLMsg *info;
 	size_t len;
 	int n, i, j, act, nfds, q, err;
@@ -108,12 +81,7 @@ enum szl_res szl_curl_proc_get(struct szl_interp *interp,
 	enum szl_res res = SZL_ERR;
 
 	if (objc % 2 == 0)
-		return szl_usage(interp, objv[0]);
-
-	if (!szl_curl_net_reachable()) {
-		szl_set_result_str(interp, "network is unreachable", -1);
-		return SZL_ERR;
-	}
+		return szl_set_last_help(interp, objv[0]);
 
 	n = (objc - 1) / 2;
 
@@ -127,14 +95,14 @@ enum szl_res szl_curl_proc_get(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	urls = (const char **)malloc(sizeof(char *) * n);
+	urls = (char **)malloc(sizeof(char *) * n);
 	if (!urls) {
 		free(fhs);
 		free(cs);
 		return SZL_ERR;
 	}
 
-	paths = (const char **)malloc(sizeof(char *) * n);
+	paths = (char **)malloc(sizeof(char *) * n);
 	if (!paths) {
 		free(urls);
 		free(fhs);
@@ -149,12 +117,10 @@ enum szl_res szl_curl_proc_get(struct szl_interp *interp,
 	i = 1;
 	j = 0;
 	while (i < objc) {
-		urls[j] = szl_obj_str(interp, objv[i], &len);
-		if (!urls[j] || !len)
-			goto cleanup_cm;
-
-		paths[j] = szl_obj_str(interp, objv[i + 1], &len);
-		if (!paths[j] || !len)
+		if (!szl_as_str(interp, objv[i], &urls[j], &len) ||
+		    !len ||
+		    !szl_as_str(interp, objv[i + 1], &paths[j], &len) ||
+		    !len)
 			goto cleanup_cm;
 
 		i += 2;
@@ -177,7 +143,7 @@ enum szl_res szl_curl_proc_get(struct szl_interp *interp,
 				unlink(paths[j]);
 			}
 
-			szl_set_result_fmt(interp,
+			szl_set_last_fmt(interp,
 			                   "failed to open %s: %s",
 			                   paths[i],
 			                   strerror(err));
@@ -224,7 +190,7 @@ enum szl_res szl_curl_proc_get(struct szl_interp *interp,
 
 		m = curl_multi_perform(cm, &act);
 		if (m != CURLM_OK) {
-			szl_set_result_str(interp, curl_multi_strerror(m), -1);
+			szl_set_last_str(interp, curl_multi_strerror(m), -1);
 			break;
 		}
 
@@ -234,16 +200,16 @@ enum szl_res szl_curl_proc_get(struct szl_interp *interp,
 				if (info->data.result == CURLE_OK)
 					res = SZL_OK;
 				else
-					szl_set_result_str(interp,
-					                   curl_easy_strerror(info->data.result),
-					                   -1);
+					szl_set_last_str(interp,
+					                 curl_easy_strerror(info->data.result),
+					                 -1);
 			}
 			break;
 		}
 
 		m = curl_multi_wait(cm, NULL, 0, 1000, &nfds);
 		if (m != CURLM_OK) {
-			szl_set_result_str(interp, curl_multi_strerror(m), -1);
+			szl_set_last_str(interp, curl_multi_strerror(m), -1);
 			break;
 		}
 
@@ -284,33 +250,36 @@ free_arrs:
 
 int szl_init_curl(struct szl_interp *interp)
 {
-	CURL *curl;
+	static struct szl_ext_export curl_exports[] = {
+		{
+			SZL_PROC_INIT("curl.encode",
+			              "str",
+			              2,
+			              2,
+			              szl_curl_proc_encode,
+			              szl_curl_encode_del)
+		},
+		{
+			SZL_PROC_INIT("curl.get",
+			              "url path...",
+			              3,
+			              -1,
+			              szl_curl_proc_get,
+			              NULL)
+		}
+	};
 
-	curl = curl_easy_init();
-	if (!curl)
+	curl_exports[0].val.proc.priv = curl_easy_init();
+	if (!curl_exports[0].val.proc.priv)
 		return 0;
 
-	if (!szl_new_proc(interp,
-	                  "curl.encode",
-	                  2,
-	                  2,
-	                  "curl.encode str",
-	                  szl_curl_proc_encode,
-	                  szl_curl_encode_del,
-	                  curl)) {
-		curl_easy_cleanup(curl);
+	if (!szl_new_ext(interp,
+	                 "curl",
+	                 curl_exports,
+	                 sizeof(curl_exports) / sizeof(curl_exports[0]))) {
+		curl_easy_cleanup((CURL *)curl_exports[0].val.proc.priv);
 		return 0;
 	}
-
-	if (!szl_new_proc(interp,
-	                  "curl.get",
-	                  3,
-	                  -1,
-	                  "curl.get url path...",
-	                  szl_curl_proc_get,
-	                  NULL,
-	                  NULL))
-		return 0;
 
 	return 1;
 }
