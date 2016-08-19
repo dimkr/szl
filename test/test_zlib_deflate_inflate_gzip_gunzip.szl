@@ -25,39 +25,32 @@ $load test
 
 $local bad_size [$str.format {buffer size must be between 0 and {}} $env.intmax]
 
-$for {comp decomp raw_buf} {zlib.deflate zlib.inflate \xcb\x48\xcd\xc9\xc9\x07\x00 zlib.gzip zlib.gunzip \x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x03\xcbH\xcd\xc9\xc9\x07\x00\x86\xa6\x106\x05\x00\x00\x00} {
-	$local comp [$get $comp]
-	$local decomp [$get $decomp]
-	$local buf [$str.expand $raw_buf]
+$for {comp decomp} {zlib.deflate zlib.inflate zlib.gzip zlib.gunzip} {
+	$test.run [$str.format {no {} args} $decomp] 0 [$str.format {${}} $decomp] [$str.format {bad usage, should be '{} str ?bufsiz?'} $decomp]
+	$test.run [$str.format {too many {} args} $decomp] 0 [$str.format {${} hello 64 64} $decomp] [$str.format {bad usage, should be '{} str ?bufsiz?'} $decomp]
 
-	$test.run [$str.format {no {} args} $decomp] 0 $decomp [$str.format {bad usage, should be '{} str ?bufsiz?'} $decomp]
-	$test.run [$str.format {too many {} args} $decomp] 0 [$str.format {{} hello 64 64} $decomp] [$str.format {bad usage, should be '{} str ?bufsiz?'} $decomp]
+	$test.run [$str.format {no {} args} $comp] 0 [$str.format {${}} $comp] [$str.format {bad usage, should be '{} str ?level?'} $comp]
+	$test.run [$str.format {too many {} args} $comp] 0 [$str.format {${} hello 9 9} $comp] [$str.format {bad usage, should be '{} str ?level?'} $comp]
+	$test.run [$str.format {bad {} level 1} $comp] 0 [$str.format {${} hello 10} $comp] {level must be 0 to 9}
+	$test.run [$str.format {bad {} level 2} $comp] 0 [$str.format {${} hello a} $comp] {bad int: a}
 
-	$test.run $comp 1 [$str.format {{} hello} $comp] $buf
-	$test.run $decomp 1 [$str.format {{} $buf} $decomp] hello
+	$test.run [$str.format {{} and {}} $comp $decomp] 1 [$str.format {${} [${} hello]} $decomp $comp] hello
+	$test.run [$str.format {{} and {} with whitespace} $comp $decomp] 1 [$str.format {${} [${} {hello world}]} $decomp $comp] {hello world}
+	$test.run [$str.format {{} and {} with small buffer size} $comp $decomp] 1 [$str.format {${} [${} {hello world}] 4} $decomp $comp] {hello world}
+	$test.run [$str.format {{} and {} with big buffer size} $comp $decomp] 1 [$str.format {${} [${} {hello world}] 512} $decomp $comp] {hello world}
 
-	$test.run [$str.format {no {} args} $comp] 0 $comp [$str.format {bad usage, should be '{} str ?level?'} $comp]
-	$test.run [$str.format {too many {} args} $comp] 0 [$str.format {{} hello 9 9} $comp] [$str.format {bad usage, should be '{} str ?level?'} $comp]
-	$test.run [$str.format {bad {} level 1} $comp] 0 [$str.format {{} hello 10} $comp] {level must be 0 to 9}
-	$test.run [$str.format {bad {} level 2} $comp] 0 [$str.format {{} hello a} $comp] {bad int: a}
+	$test.run [$str.format {{} and {} with bad buffer size 1} $comp $decomp] 0 [$str.format {${} [${} {hello world}] 0} $decomp $comp] $bad_size
+	$test.run [$str.format {{} and {} with bad buffer size 2} $comp $decomp] 0 [$str.format {${} [${} {hello world}] -2} $decomp $comp] $bad_size
+	$test.run [$str.format {{} and {} with bad buffer size 3} $comp $decomp] 0 [$str.format {${} [${} {hello world}] a} $decomp $comp] {bad int: a}
 
-	$test.run [$str.format {{} and {}} $comp $decomp] 1 [$str.format {{} [{} hello]} $decomp $comp] hello
-	$test.run [$str.format {{} and {} with whitespace} $comp $decomp] 1 [$str.format {{} [{} {hello world}]} $decomp $comp] {hello world}
-	$test.run [$str.format {{} and {} with small buffer size} $comp $decomp] 1 [$str.format {{} [{} {hello world}] 4} $decomp $comp] {hello world}
-	$test.run [$str.format {{} and {} with big buffer size} $comp $decomp] 1 [$str.format {{} [{} {hello world}] 512} $decomp $comp] {hello world}
-
-	$test.run [$str.format {{} and {} with bad buffer size 1} $comp $decomp] 0 [$str.format {{} [{} {hello world}] 0} $decomp $comp] $bad_size
-	$test.run [$str.format {{} and {} with bad buffer size 2} $comp $decomp] 0 [$str.format {{} [{} {hello world}] -2} $decomp $comp] $bad_size
-	$test.run [$str.format {{} and {} with bad buffer size 3} $comp $decomp] 0 [$str.format {{} [{} {hello world}] a} $decomp $comp] {bad int: a}
-
-	$test.run [$str.format {{} and {} with level -1} $comp $decomp] 1 [$str.format {{} [{} hello -1]} $decomp $comp] hello
-	$test.run [$str.format {{} and {} with level 1} $comp $decomp] 1 [$str.format {{} [{} hello 1]} $decomp $comp] hello
-	$test.run [$str.format {{} and {} with level 2} $comp $decomp] 1 [$str.format {{} [{} hello 2]} $decomp $comp] hello
-	$test.run [$str.format {{} and {} with level 3} $comp $decomp] 1 [$str.format {{} [{} hello 3]} $decomp $comp] hello
-	$test.run [$str.format {{} and {} with level 4} $comp $decomp] 1 [$str.format {{} [{} hello 4]} $decomp $comp] hello
-	$test.run [$str.format {{} and {} with level 5} $comp $decomp] 1 [$str.format {{} [{} hello 5]} $decomp $comp] hello
-	$test.run [$str.format {{} and {} with level 6} $comp $decomp] 1 [$str.format {{} [{} hello 6]} $decomp $comp] hello
-	$test.run [$str.format {{} and {} with level 7} $comp $decomp] 1 [$str.format {{} [{} hello 7]} $decomp $comp] hello
-	$test.run [$str.format {{} and {} with level 8} $comp $decomp] 1 [$str.format {{} [{} hello 8]} $decomp $comp] hello
-	$test.run [$str.format {{} and {} with level 9} $comp $decomp] 1 [$str.format {{} [{} hello 9]} $decomp $comp] hello
+	$test.run [$str.format {{} and {} with level -1} $comp $decomp] 1 [$str.format {${} [${} hello -1]} $decomp $comp] hello
+	$test.run [$str.format {{} and {} with level 1} $comp $decomp] 1 [$str.format {${} [${} hello 1]} $decomp $comp] hello
+	$test.run [$str.format {{} and {} with level 2} $comp $decomp] 1 [$str.format {${} [${} hello 2]} $decomp $comp] hello
+	$test.run [$str.format {{} and {} with level 3} $comp $decomp] 1 [$str.format {${} [${} hello 3]} $decomp $comp] hello
+	$test.run [$str.format {{} and {} with level 4} $comp $decomp] 1 [$str.format {${} [${} hello 4]} $decomp $comp] hello
+	$test.run [$str.format {{} and {} with level 5} $comp $decomp] 1 [$str.format {${} [${} hello 5]} $decomp $comp] hello
+	$test.run [$str.format {{} and {} with level 6} $comp $decomp] 1 [$str.format {${} [${} hello 6]} $decomp $comp] hello
+	$test.run [$str.format {{} and {} with level 7} $comp $decomp] 1 [$str.format {${} [${} hello 7]} $decomp $comp] hello
+	$test.run [$str.format {{} and {} with level 8} $comp $decomp] 1 [$str.format {${} [${} hello 8]} $decomp $comp] hello
+	$test.run [$str.format {{} and {} with level 9} $comp $decomp] 1 [$str.format {${} [${} hello 9]} $decomp $comp] hello
 }

@@ -181,8 +181,7 @@ enum szl_res szl_zlib_decompress(struct szl_interp *interp,
 			case Z_OK:
 			case Z_STREAM_END:
 				/* append each chunk to the output object */
-				if (!szl_str_append_str(
-				                       interp,
+				if (szl_str_append_str(interp,
 				                       out,
 				                       buf,
 				                       (size_t)bufsiz - (size_t)strm.avail_out))

@@ -23,7 +23,10 @@
 all: .src .doc
 install: all
 
-.src:
+.test:
+	cd test; $(MAKE)
+
+.src: .test
 	cd src; $(MAKE)
 
 .doc:
