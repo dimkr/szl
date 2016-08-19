@@ -285,6 +285,27 @@ enum szl_res szl_io_proc_open(struct szl_interp *interp,
 }
 
 static
+enum szl_res szl_io_proc_isatty(struct szl_interp *interp,
+                                const unsigned int objc,
+                                struct szl_obj **objv)
+{
+	szl_int fd;
+	int tty;
+
+	if (!szl_as_int(interp, objv[1], &fd) || (fd < 0) || (fd > INT_MAX))
+		return SZL_ERR;
+
+	tty = isatty((int)fd);
+	if (tty)
+		return szl_set_last_bool(interp, 1);
+
+	if ((errno == EINVAL) || (errno == ENOTTY))
+		return szl_set_last_bool(interp, 0);
+
+	return szl_set_last_str(interp, strerror(errno), -1);
+}
+
+static
 struct szl_stream *szl_io_wrap_pipe(struct szl_interp *interp, FILE *fp)
 {
 	struct szl_stream *strm;
@@ -322,6 +343,9 @@ int szl_init_io(struct szl_interp *interp)
 		},
 		{
 			SZL_PROC_INIT("open", "path mode", 3, 3, szl_io_proc_open, NULL)
+		},
+		{
+			SZL_PROC_INIT("isatty", "handle", 2, 2, szl_io_proc_isatty, NULL)
 		}
 	};
 

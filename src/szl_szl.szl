@@ -23,6 +23,15 @@
 $load linenoise
 
 $proc szl.shell {
+	$local in_tty [$isatty [$stdin handle]]
+
+	$if $in_tty {
+		$local history [$path.join [$env.get HOME] .szl_history]
+		$if [$path.exists $history] {$linenoise.load $history}
+		$export history
+		$puts [$str.join { } szl $env.ver]
+	}
+
 	$local interp [$szl.interp]
 
 	$local obrace [$str.expand \x7b]
@@ -30,25 +39,44 @@ $proc szl.shell {
 	$local obracket [$str.expand \x5b]
 	$local cbracket [$str.expand \x5d]
 
-	$while 1 {
-		$local exp [$linenoise.read {>>> }]
+	$try {
+		$while 1 {
+			$if $in_tty {
+				$local exp [$linenoise.read {>>> }]
 
-		$while {[$|| [$!= [$str.count $exp $obrace] [$str.count $exp $cbrace]] [$!= [$str.count $exp $obracket] [$str.count $exp $cbracket]]]} {
-			$str.append $exp [$linenoise.read {... }]
-		}
+				$while {[$|| [$!= [$str.count $exp $obrace] [$str.count $exp $cbrace]] [$!= [$str.count $exp $obracket] [$str.count $exp $cbracket]]]} {
+					$str.append $exp [$linenoise.read {... }]
+				}
 
-		$if $exp {
-			$try {
-				$interp eval $exp
-				$local out $_
-				$if [$str.length $out] {$puts $out}
-			} except {
-				$local out $_
-				$stdout write {[error] }
-				$if $out {$puts $out} else {$puts {}}
+				$export exp
+			} else {
+				$local exp [$stdin readln]
+				$if [$== [$str.length $exp] 0] {$break}
+
+				$while {[$|| [$!= [$str.count $exp $obrace] [$str.count $exp $cbrace]] [$!= [$str.count $exp $obracket] [$str.count $exp $cbracket]]]} {
+					$str.append $exp [$stdin readln]
+				}
+
+				$export exp
 			}
 
-			$try {$linenoise.add $exp}
+			$if $exp {
+				$try {
+					$interp eval $exp
+					$local out $_
+					$if [$str.length $out] {$puts $out}
+				} except {
+					$local out $_
+					$stdout write {[error] }
+					$if $out {$puts $out} else {$puts {}}
+				}
+
+				$try {$linenoise.add $exp}
+			}
+		}
+	} finally {
+		$if $in_tty {
+			$try {$linenoise.save $history}
 		}
 	}
 }

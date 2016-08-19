@@ -21,17 +21,7 @@
 # THE SOFTWARE.
 
 $switch [$list.length $@] 1 {
-	$load linenoise
-
-	$local history [$path.join [$env.get HOME] .szl_history]
-	$if [$path.exists $history] {$linenoise.load $history}
-
-	$try {
-		$puts [$str.join { } szl $env.ver]
-		$szl.shell
-	} finally {
-		$try {$linenoise.save $history}
-	}
+	$szl.shell
 } 2 {
 	[$szl.interp] eval [$str.format {$source {}} $1]
 } 3 {

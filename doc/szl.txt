@@ -813,6 +813,9 @@ implemented as one-liners:
 $local content [[$open /etc/hosts ru] read]
 --------------------------------------
 
++isatty+ 'handle'::
+	Determines whether a file handle refers to a terminal.
+
 Sockets
 ^^^^^^^
 +stream.client+ 'host service'::
