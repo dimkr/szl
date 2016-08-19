@@ -977,7 +977,7 @@ enum szl_res szl_run(struct szl_interp *interp,
  */
 
 /**
- * @def szl_ext_export
+ * @struct szl_ext_export
  * An object exported by an extension
  */
 struct szl_ext_export {
@@ -1199,7 +1199,7 @@ void szl_stream_del(void *priv);
 #	define SZL_STREAM_HELP \
 	"read|readln|write|writeln|flush|handle|close|unblock|accept ?len?"
 
-/**<
+/**
  * @def SZL_STREAM_INIT
  * Initializes a stream @ref szl_ext_export
  */
