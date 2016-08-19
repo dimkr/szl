@@ -23,8 +23,6 @@
  */
 
 #include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
 
 #include "szl.h"
 
@@ -35,46 +33,21 @@ static const char szlsh_inc[] = {
 int main(int argc, char *argv[])
 {
 	struct szl_interp *interp;
-	FILE *strm;
-	char *s;
-	size_t len;
-	szl_int status;
-	enum szl_res res = SZL_ERR;
+	enum szl_res res;
+	szl_int code;
+	int ret;
 
 	interp = szl_new_interp(argc, argv);
 	if (!interp)
 		return SZL_ERR;
 
-	switch (argc) {
-		case 1:
-			res = szl_run(interp, szlsh_inc, sizeof(szlsh_inc) - 1);
-			break;
+	res = szl_run(interp, szlsh_inc, sizeof(szlsh_inc) - 1);
 
-		case 2:
-			res = szl_source(interp, argv[1]);
-			break;
-
-		case 3:
-			if (strcmp("-c", argv[1]) == 0) {
-				res = szl_run(interp, argv[2], strlen(argv[2]));
-				break;
-			}
-	}
-
-	if (res == SZL_EXIT) {
-		if (!szl_as_int(interp, interp->last, &status) ||
-		    (status != EXIT_SUCCESS))
-			res = SZL_ERR;
-	}
-	else {
-		strm = (res == SZL_ERR) ? stderr : stdout;
-		if (szl_as_str(interp, interp->last, &s, &len) &&
-		    len &&
-		    (fwrite(s, 1, len, strm) > 0))
-			fflush(strm);
-	}
+	if (res == SZL_EXIT)
+		ret = szl_as_int(interp, interp->last, &code) ? code : EXIT_SUCCESS;
+	else
+		ret = (res == SZL_OK) ? EXIT_SUCCESS : EXIT_FAILURE;
 
 	szl_free_interp(interp);
-
-	return ((res == SZL_OK) || (res == SZL_EXIT)) ? EXIT_SUCCESS : EXIT_FAILURE;
+	return ret;
 }

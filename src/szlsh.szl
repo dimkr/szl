@@ -20,14 +20,25 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-$load linenoise
+$switch [$list.length $@] 1 {
+	$load linenoise
 
-$local history [$path.join [$env.get HOME] .szl_history]
-$if [$path.exists $history] {$linenoise.load $history}
+	$local history [$path.join [$env.get HOME] .szl_history]
+	$if [$path.exists $history] {$linenoise.load $history}
 
-$try {
-	$puts [$str.join { } szl $env.ver]
-	$szl.shell
-} finally {
-	$try {$linenoise.save $history}
+	$try {
+		$puts [$str.join { } szl $env.ver]
+		$szl.shell
+	} finally {
+		$try {$linenoise.save $history}
+	}
+} 2 {
+	[$szl.interp] eval [$str.format {$source {}} $1]
+} 3 {
+	$if [$== -c $1] {
+		[$szl.interp] eval $2
+	}
+} * {
+	$stderr write [$str.format [$str.expand {Usage: {} {-c script | path}\n}] $0]
+	$exit 1
 }
