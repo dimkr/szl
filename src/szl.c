@@ -703,13 +703,13 @@ struct szl_obj *szl_new_call(struct szl_interp *interp,
 	if (locals)
 		obj->locals = szl_dict_copy(interp, locals);
 	else
-		obj->locals = szl_new_dict();
+		obj->locals = szl_new_dict(NULL, 0);
 	if (!obj->locals) {
 		szl_unref(obj);
 		return NULL;
 	}
 
-	obj->args = szl_new_list();
+	obj->args = szl_new_list(NULL, 0);
 	if (!obj->args) {
 		szl_unref(obj);
 		return NULL;
@@ -760,6 +760,30 @@ struct szl_obj *szl_new_float(const szl_float f)
 		SZL_OBJ_INIT(obj, SZL_TYPE_FLOAT);
 	}
 
+	return obj;
+}
+
+struct szl_obj *szl_new_list(struct szl_obj **objv, const size_t len)
+{
+	struct szl_obj *obj;
+	size_t i;
+
+	obj = (struct szl_obj *)malloc(sizeof(*obj));
+	if (!obj)
+		return obj;
+
+	obj->val.l.items = (struct szl_obj **)malloc(
+	                                            sizeof(struct szl_obj *) * len);
+	if (!obj->val.l.items) {
+		free(obj);
+		return NULL;
+	}
+	obj->val.l.len = len;
+
+	for (i = 0; i < len; ++i)
+		obj->val.l.items[i] = szl_ref(objv[i]);
+
+	SZL_OBJ_INIT(obj, SZL_TYPE_LIST);
 	return obj;
 }
 
@@ -1377,7 +1401,7 @@ struct szl_interp *szl_new_interp(int argc, char *argv[])
 		return NULL;
 	}
 
-	interp->exts = szl_new_list();
+	interp->exts = szl_new_list(NULL, 0);
 	if (!interp->exts) {
 		szl_unref(interp->args);
 		szl_unref(interp->global);
@@ -1391,7 +1415,7 @@ struct szl_interp *szl_new_interp(int argc, char *argv[])
 		return NULL;
 	}
 
-	interp->libs = szl_new_list();
+	interp->libs = szl_new_list(NULL, 0);
 	if (!interp->libs) {
 		szl_unref(interp->exts);
 		szl_unref(interp->args);
@@ -1702,7 +1726,7 @@ struct szl_obj *szl_parse_stmts(struct szl_interp *interp,
 	if (!copy)
 		return NULL;
 
-	stmts = szl_new_list();
+	stmts = szl_new_list(NULL, 0);
 	if (!stmts) {
 		free(copy);
 		return stmts;
@@ -2385,7 +2409,7 @@ enum szl_res szl_stream_accept(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	list = szl_new_list();
+	list = szl_new_list(NULL, 0);
 	if (!list)
 		return SZL_ERR;
 

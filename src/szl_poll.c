@@ -102,20 +102,20 @@ enum szl_res szl_poll_poll_proc(struct szl_interp *interp,
 			if (!list)
 				return SZL_ERR;
 
-			r = szl_new_list();
+			r = szl_new_list(NULL, 0);
 			if (!r) {
 				szl_unref(list);
 				return SZL_ERR;
 			}
 
-			w = szl_new_list();
+			w = szl_new_list(NULL, 0);
 			if (!w) {
 				szl_unref(r);
 				szl_unref(list);
 				return SZL_ERR;
 			}
 
-			e = szl_new_list();
+			e = szl_new_list(NULL, 0);
 			if (!e) {
 				szl_unref(w);
 				szl_unref(r);

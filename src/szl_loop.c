@@ -187,7 +187,7 @@ enum szl_res szl_loop_map(struct szl_interp *interp,
 		return SZL_ERR;
 
 	if (keep) {
-		obj = szl_new_list();
+		obj = szl_new_list(NULL, 0);
 		if (!obj) {
 			szl_unref(body);
 			return SZL_ERR;
@@ -275,7 +275,7 @@ enum szl_res szl_loop_proc_range(struct szl_interp *interp,
 	if (n > INT_MAX)
 		return SZL_ERR;
 
-	obj = szl_new_list();
+	obj = szl_new_list(NULL, 0);
 	if (!obj)
 		return SZL_ERR;
 

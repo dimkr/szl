@@ -111,7 +111,7 @@ enum szl_res szl_ed25519_proc_keypair(struct szl_interp *interp,
 	unsigned char buf[128] = {0};
 	struct szl_obj *list;
 
-	list = szl_new_list();
+	list = szl_new_list(NULL, 0);
 	if (!list)
 		return SZL_ERR;
 

@@ -91,7 +91,7 @@ enum szl_res szl_archive_list(struct szl_interp *interp,
 {
 	struct szl_obj *paths;
 
-	paths = szl_new_list();
+	paths = szl_new_list(NULL, 0);
 	if (!paths)
 		return SZL_ERR;
 

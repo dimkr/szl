@@ -39,11 +39,11 @@ enum szl_res szl_dict_proc_new(struct szl_interp *interp,
 	if (objc % 2 == 0)
 		return szl_set_last_help(interp, objv[0]);
 
-	dict = szl_new_list();
+	dict = szl_new_list(&objv[1], 2);
 	if (!dict)
 		return SZL_ERR;
 
-	for (i = 1; i < objc; i += 2) {
+	for (i = 3; i < objc; i += 2) {
 		if (!szl_dict_set(interp, dict, objv[i], objv[i + 1])) {
 			szl_unref(dict);
 			return SZL_ERR;

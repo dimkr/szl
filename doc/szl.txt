@@ -423,6 +423,9 @@ $puts [$str.format {the length of "{}" is {}} abcd [$str.length abcd]]
 
 List Operations
 +++++++++++++++
++list.new+ '?item...?'::
+	Creates a new list.
+
 +list.length+ 'list'::
 	Returns the number of items in a list.
 

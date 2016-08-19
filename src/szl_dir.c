@@ -97,11 +97,11 @@ enum szl_res szl_dir_proc_list(struct szl_interp *interp,
 	if (!szl_as_str(interp, objv[1], &path, &len) || !len)
 		return SZL_ERR;
 
-	names[0] = szl_new_list();
+	names[0] = szl_new_list(NULL, 0);
 	if (!names[0])
 		return SZL_ERR;
 
-	names[1] = szl_new_list();
+	names[1] = szl_new_list(NULL, 0);
 	if (!names[1])
 		return SZL_ERR;
 

@@ -451,14 +451,17 @@ struct szl_obj *szl_new_float(const szl_float f);
 #	define szl_new_empty() szl_new_str("", 0)
 
 /**
- * @def szl_new_list
- * Creates a new, empty list object
+ * @fn struct szl_obj *szl_new_list(struct szl_obj **objv, const size_t len)
+ * @brief Creates a new list object
+ * @param objv [in,out] The list items
+ * @param len [in] The list length
+ * @return A new reference to the created list object or NULL
  */
-#	define szl_new_list szl_new_empty
+struct szl_obj *szl_new_list(struct szl_obj **objv, const size_t len);
 
 /**
  * @def szl_new_dict
- * Creates a new, empty dictionary object
+ * Creates a new dictionary object
  */
 #	define szl_new_dict szl_new_list
 

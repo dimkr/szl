@@ -173,7 +173,7 @@ enum szl_res szl_str_proc_split(struct szl_interp *interp,
 	if (!slen)
 		return SZL_OK;
 
-	list = szl_new_list();
+	list = szl_new_list(NULL, 0);
 	if (!list)
 		return SZL_ERR;
 
@@ -497,7 +497,7 @@ enum szl_res szl_str_proc_ord(struct szl_interp *interp,
 	if (!szl_as_str(interp, objv[1], &s, &len))
 		return SZL_ERR;
 
-	list = szl_new_list();
+	list = szl_new_list(NULL, 0);
 	if (!list)
 		return SZL_ERR;
 

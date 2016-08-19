@@ -29,6 +29,20 @@
 #include "szl.h"
 
 static
+enum szl_res szl_list_proc_new(struct szl_interp *interp,
+                               const unsigned int objc,
+                               struct szl_obj **objv)
+{
+	struct szl_obj *list;
+
+	list = szl_new_list(&objv[1], objc - 1);
+	if (!list)
+		return SZL_ERR;
+
+	return szl_set_last(interp, list);
+}
+
+static
 enum szl_res szl_list_proc_length(struct szl_interp *interp,
                                   const unsigned int objc,
                                   struct szl_obj **objv)
@@ -131,7 +145,7 @@ enum szl_res szl_list_proc_range(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	list = szl_new_list();
+	list = szl_new_list(NULL, 0);
 	if (!list)
 		return SZL_ERR;
 
@@ -170,7 +184,7 @@ enum szl_res szl_list_proc_reverse(struct szl_interp *interp,
 	if (!szl_as_list(interp, objv[1], &items, &n) || (n > SIZE_MAX))
 		return SZL_ERR;
 
-	list = szl_new_list();
+	list = szl_new_list(NULL, 0);
 	if (!list)
 		return SZL_ERR;
 
@@ -296,6 +310,9 @@ enum szl_res szl_list_proc_zip(struct szl_interp *interp,
 
 static
 const struct szl_ext_export list_exports[] = {
+	{
+		SZL_PROC_INIT("list.new", "?item...?", 1, -1, szl_list_proc_new, NULL)
+	},
 	{
 		SZL_PROC_INIT("list.length", "list", 2, 2, szl_list_proc_length, NULL)
 	},
