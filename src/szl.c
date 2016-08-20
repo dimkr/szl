@@ -1867,7 +1867,7 @@ enum szl_res szl_run_stmts(struct szl_interp *interp, struct szl_obj *stmts)
 	size_t len, i;
 	enum szl_res res;
 
-	if (!szl_as_list(interp, stmts, &items, &len))
+	if (!szl_as_list(interp, stmts, &items, &len) || !len)
 		return SZL_ERR;
 
 	for (i = 0; i < len; ++i) {

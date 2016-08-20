@@ -99,9 +99,9 @@ $proc arg arg
 Every +szl+ statement describes an operation on one or more objects. Objects may
 be:
 
-1) Textual (strings),
-2) Numeric (integers and floating-point numbers), or
-3) Lists (a series of objects)
+1. Textual (strings),
+2. Numeric (integers and floating-point numbers), or
+3. Lists (a series of objects)
 
 Each statement is a series of space-delimited tokens, while each token
 corresponds to an object.
@@ -111,6 +111,9 @@ The procedure receives the rest of the objects as arguments (input), does
 something and returns an object (output). For example, in the following
 statement, the '+' procedure receives '1', and '2' as arguments and returns
 '3' as output:
+
+[NOTE]
+Some procedures do not receive any arguments.
 
 --------------------------------------
 $+ 1 2
@@ -122,9 +125,6 @@ prefix its name with '$'. For example, to call the 'puts' procedure:
 --------------------------------------
 $puts hello
 --------------------------------------
-
-[NOTE]
-Some procedures do not receive any arguments.
 
 To name a new object, use either 'local' or 'global'. For example, to create
 an object named 'number', with the value of '5':
@@ -186,8 +186,8 @@ Using Return Values
 To obtain the return value of a statement, wrap it with brackets. A statement
 enclosed in brackets is executed and replaced with its return value.
 
-For example, the following example executes '$+ 1 2.5' and stores the return
-value of this procedure in 'sum':
+For example, the following example executes '$+ 1 2.5' and stores '3.5' (the
+return value of '+') in 'sum':
 
 --------------------------------------
 $local sum [$+ 1 2.5]
@@ -201,7 +201,8 @@ value, it returns an empty string.
 The return value of the previously called procedure is stored in the special '_'
 object, in the calling scope.
 
-Both braces and brackets may be nested, to form more complex logic:
+Both braces and brackets may be nested, to call multiple procedures in the same
+line:
 
 --------------------------------------
 $local sum [$- [$str.length {hello world}] 3]
@@ -263,8 +264,8 @@ $print_statement a b {c d} e f {g h}
 --------------------------------------
 
 [NOTE]
-When accessed outside of a procedure, '@' specifies the command-line arguments
-+szl+ was invoked with.
+When accessed outside of a procedure, '@', '0', etc' specify the command-line
+arguments +szl+ was invoked with.
 
 The return value of a procedure is either:
 
@@ -314,14 +315,14 @@ Builtin Procedures
 ~~~~~~~~~~~~~~~~~~
 Objects
 ^^^^^^^
-+echo+ 'obj'::
++$echo+ 'obj'::
 	Returns 'obj'.
 
 --------------------------------------
 $== [$echo 5] 5
 --------------------------------------
 
-+get+ 'name'::
++$get+ 'name'::
 	Returns the object named 'name'.
 
 --------------------------------------
@@ -331,14 +332,14 @@ $== [$get a] 5
 
 Objects
 +++++++
-+local+ 'name val'::
++$local+ 'name val'::
 	Creates a new object in the local scope.
 
 [TIP]
 'local' returns the object value, which is useful for one-liners (for example,
 when one wishes to create a new object and pass its value to another procedure).
 
-+export+ 'name ?val?'::
++$export+ 'name ?val?'::
 	Creates a local object in the calling scope. If no value is specified, the
 	value of the local object with the same name is used as fallback.
 
@@ -352,7 +353,7 @@ $proc check_if_bigger_than_ten {
 $check_if_bigger_than_ten 12
 --------------------------------------
 
-+global+ 'name val'::
++$global+ 'name val'::
 	Similar to 'local', but creates the new object in the global scope. The
 	object will be accessible from all procedures.
 
@@ -363,37 +364,37 @@ within the procedure will refer to the local one.
 
 String Operations
 +++++++++++++++++
-+str.length+ 'str'::
++$str.length+ 'str'::
 	Returns the length of a string.
 
-+str.count+ 'str sub'::
++$str.count+ 'str sub'::
 	Returns the number of occurrences of 'sub' in 'str'.
 
-+str.range+ 'str start end'::
++$str.range+ 'str start end'::
 	Returns the characters in a string, between zero-based indices 'start' and
 	'end'.
 
-+str.in+ 'str sub'::
++$str.in+ 'str sub'::
 	Returns '1' if 'sub' is a substring of 'str', otherwise '0'.
 
-+str.tail+ 'str ?count?'::
++$str.tail+ 'str ?count?'::
 	Returns the last characters of a string. If the number of characters is not
 	specified, the default is '1'.
 
-+str.append+ 'name str'::
++$str.append+ 'name str'::
 	Appends a string to an existing str.
 
-+str.split+ 'str delim'::
++$str.split+ 'str delim'::
 	Splits a string consisting of tokens separated by 'delim'. 'delim' may be an
 	empty string to return a list of all characters in the string.
 
-+str.join+ 'delim str str ?...?'::
++$str.join+ 'delim str str ?...?'::
 	Joins multiple strings, with a delimiter (which may be an empty string).
 
 [NOTE]
 'str.join' is the most efficient way to concatenate more than two strings.
 
-+str.expand+ 'str'::
++$str.expand+ 'str'::
 	Expands escape sequences in a string: '\0', '\\', '\n', '\t', '\r' and
 	hexadecimal numbers in '\x' notation (e.g. '\xff').
 
@@ -401,7 +402,7 @@ String Operations
 $puts [$str.expand {this is a\n\tmulti-line strin\x67}]
 --------------------------------------
 
-+str.format+ 'fmt obj...'::
++$str.format+ 'fmt obj...'::
 	Receives a format string and replaces all occurrences of '{}' with their
 	values.
 
@@ -409,27 +410,27 @@ $puts [$str.expand {this is a\n\tmulti-line strin\x67}]
 $puts [$str.format {the length of "{}" is {}} abcd [$str.length abcd]]
 --------------------------------------
 
-+str.rtrim+ 'str'::
++$str.rtrim+ 'str'::
 	Removes whitespace at the end of a string.
 
-+str.ltrim+ 'str'::
++$str.ltrim+ 'str'::
 	Removes whitespace at the beginning of a string.
 
-+str.trim+ 'str'::
++$str.trim+ 'str'::
 	Removes whitespace at both ends of a string.
 
-+str.ord+ 'str'::
++$str.ord+ 'str'::
 	Returns the integer value of each character of a string.
 
 List Operations
 +++++++++++++++
-+list.new+ '?item...?'::
++$list.new+ '?item...?'::
 	Creates a new list.
 
-+list.length+ 'list'::
++$list.length+ 'list'::
 	Returns the number of items in a list.
 
-+list.range+ 'list start end'::
++$list.range+ 'list start end'::
 	Returns the items in a list, between zero-based indices 'start' and 'end'.
 
 --------------------------------------
@@ -437,7 +438,7 @@ $local fruits {apple orange pear}
 $puts [$str.format {the first two fruits are: {}} [$list.range $fruits 0 1]]
 --------------------------------------
 
-+list.in+ 'list item'::
++$list.in+ 'list item'::
 	Returns '1' if 'item' is an item of 'list', otherwise '0'.
 
 --------------------------------------
@@ -446,7 +447,7 @@ $puts [$list.in $fruits orange]
 $puts [$list.in $fruits melon]
 --------------------------------------
 
-+list.append+ 'list item'::
++$list.append+ 'list item'::
 	Appends an object to a list.
 
 --------------------------------------
@@ -455,14 +456,14 @@ $list.append $fruits pear
 $puts $fruits
 --------------------------------------
 
-+list.join+ 'delim list'::
++$list.join+ 'delim list'::
 	Joins the items of a list to form a string.
 
 --------------------------------------
 $puts [$str.format {three fruits: {}} [$list.join , {apple orange pear}]]
 --------------------------------------
 
-+list.set+ 'list index item'::
++$list.set+ 'list index item'::
 	Replace a list item.
 
 --------------------------------------
@@ -471,7 +472,7 @@ $list.set $fruits 1 banana
 $puts $fruits
 --------------------------------------
 
-+list.extend+ 'list list'::
++$list.extend+ 'list list'::
 	Adds all items in a list to an existing one and returns it.
 
 --------------------------------------
@@ -480,7 +481,7 @@ $puts [$list.extend $fruits {pear banana}]
 $puts $fruits
 --------------------------------------
 
-+list.zip+ 'list list...'::
++$list.zip+ 'list list...'::
 	Returns a list of lists, each containing the 'n'-th elements of given lists
 	of the same length.
 
@@ -490,13 +491,13 @@ $for pair [$list.zip {apple orange pear} {red orange green}] {
 }
 --------------------------------------
 
-+list.reverse+ 'list'::
++$list.reverse+ 'list'::
 	Returns all items in a list, in reverse order.
 
-+list.index+ 'list index'::
++$list.index+ 'list index'::
 	Returns the list item at the zero-based position 'index'.
 
-+range+ '?start? end'::
++$range+ '?start? end'::
 	Returns a list of integers in a given range. The maximum is non-inclusive.
 	If no minimum is specified, the range starts at '0'.
 
@@ -509,74 +510,74 @@ Arithmetic and Logical Operations
 +++ 'm n'::
 	Returns 'm + n'.
 
-+-+ 'm n'::
++$-+ 'm n'::
 	Returns 'm - n'.
 
-+*+ 'm n'::
++$*+ 'm n'::
 	Returns 'm * n'.
 
-+/+ 'm n'::
++$/+ 'm n'::
 	Returns 'm / n'.
 
-+%+ 'm n'::
++$%+ 'm n'::
 	Returns 'm - x', where 'x' is the floor of 'm / n'.
 
-+==+ 'obj obj'::
++$==+ 'obj obj'::
 	Returns '1' if two objects are equal, otherwise '0'.
 
-+!=+ 'obj obj'::
++$!=+ 'obj obj'::
 	Returns '1' if two objects are not equal, otherwise '0'.
 
-+>+ 'm n'::
++$>+ 'm n'::
 	Returns '1' if 'm' is greater than 'n', otherwise '0'.
 
-+>=+ 'm n'::
++$>=+ 'm n'::
 	Returns '1' if 'm' is greater than or equal to 'n', otherwise '0'.
 
-+<+ 'm n'::
++$<+ 'm n'::
 	Returns '1' if 'm' is less than 'n', otherwise '0'.
 
-+\<=+ 'm n'::
++$\<=+ 'm n'::
 	Returns '1' if 'm' is less than or equal to 'n', otherwise '0'.
 
-+&&+ 'obj obj...'::
++$&&+ 'obj obj...'::
 	Returns '1' if all conditions are true, otherwise '0'.
 
-+||+ 'obj obj...'::
++$||+ 'obj obj...'::
 	Returns '1' if at least one condition is true, otherwise '0'.
 
-+^+ 'obj obj'::
++$^+ 'obj obj'::
 	Returns '1' if one condition is true and the other is false, otherwise '0'.
 
 --------------------------------------
 $if [$&& [$== [$+ 1 1] 2] [$== [$+ 2 2] 4]] {$puts yes}
 --------------------------------------
 
-+!+ 'obj'::
++$!+ 'obj'::
 	Returns '0' if a condition is true, otherwise '1'.
 
 Procedures
 ^^^^^^^^^^
-+proc+ 'name exp'::
++$proc+ 'name exp'::
 	Defines a new procedure.
 
-+return+ '?obj?'::
++$return+ '?obj?'::
 	Stops the execution of a procedure and sets its return value. If no return
 	value is specified, the procedure returns an empty string.
 
-+stack+ '?lim?'::
++$stack+ '?lim?'::
 	Returns all statements or only the bottom 'lim' statements, in the stack of
 	procedure calls that lead to the the 'stack' call.
 
-+load+ 'name'::
++$load+ 'name'::
 	Loads a 'szl' extension, to make additional procedures available.
 
 Flow Control
 ^^^^^^^^^^^^
-+if+ 'cond exp ?else exp?'::
++$if+ 'cond exp ?else exp?'::
 	Conditionally runs a block.
 
-+switch+ 'obj val exp val exp...'::
++$switch+ 'obj val exp val exp...'::
 	For each pair of a value and a block, compares an object to the value and
 	runs the block and stops if they are equal, or if the value is '*'.
 
@@ -592,14 +593,14 @@ $switch [$+ 1 2] 2 {
 }
 --------------------------------------
 
-+while+ 'cond exp'::
++$while+ 'cond exp'::
 	Runs a block as long as a condition is met.
 
-+do+ 'exp while cond'::
++$do+ 'exp while cond'::
 	Similar to 'while', but checks the condition after the first execution of
 	the loop body.
 
-+map+ 'names list exp'::
++$map+ 'names list exp'::
 	For each series of items in a list, runs a block with local object that
 	specify the items and returns a list of the block return values.
 
@@ -611,7 +612,7 @@ $puts [$map {a b} {1 1 1 2 1 3 1 4} {$+ $a $b}]
 'map' is particularly useful for elegant one-liners, at the cost of memory
 usage (since the block return values are collected in a new list).
 
-+for+ 'name list exp'::
++$for+ 'name list exp'::
 	Same as 'map', but discards the block return values.
 
 --------------------------------------
@@ -620,28 +621,28 @@ $for {a b} {1 2 3 4 5 6 7 8} {
 }
 --------------------------------------
 
-+break+::
++$break+::
 	Stops the execution of a loop.
 
-+continue+::
++$continue+::
 	Stops the execution of a loop body and continues to the next iteration.
 
-+exit+ '?obj?'::
++$exit+ '?obj?'::
 	Stops the execution of the script and optionally, sets its return value.
 
-+sleep+ 'sec'::
++$sleep+ 'sec'::
 	Suspends the script execution for a given interval, specified in seconds.
 	The interval may be a floating-point number (e.g. '4.5').
 
-+eval+ 'exp'::
++$eval+ 'exp'::
 	Evaluates a +szl+ expression in the current scope.
 
-+source+ 'path'::
++$source+ 'path'::
 	Execute a 'szl' script in the global scope.
 
 Exceptions
 ++++++++++
-+try+ 'exp ?except exp? ?finally exp?'::
++$try+ 'exp ?except exp? ?finally exp?'::
 	Runs an block. Optionally, if a statement failed, jumps to a second, error
 	handling block. Unconditionally, a third (usually, cleanup code) block is
 	executed afterwards. The error handling block can access the error string
@@ -658,10 +659,10 @@ $try {
 --------------------------------------
 
 [TIP]
-Any set of statements can be wrapped with a 'try' block without a matching
-'except', to silently ignore errors.
+Any block can be wrapped with 'try' block without a matching 'except', to
+silently ignore errors.
 
-+throw+ '?msg?'::
++$throw+ '?msg?'::
 	Triggers an error condition and optionally specifies an explanation. The
 	error condition may be caught by a 'try' call.
 
@@ -675,18 +676,18 @@ $try {
 
 Interpreters
 ++++++++++++
-+szl.interp+::
++$szl.interp+::
 	Creates a new +szl+ interpreter.
 
 +$interp+ 'eval exp'::
 	Evaluates a +szl+ expression in an interpreter.
 
-+szl.shell+::
++$szl.shell+::
 	Runs an interactive +szl+ interpreter.
 
 I/O
 ^^^
-+puts+ 'msg'::
++$puts+ 'msg'::
 	Prints an object to standard output. If the object does not end with a line
 	break ('\n'), a line break character is appended.
 
@@ -697,15 +698,14 @@ I/O
 +$stdin+::
 +$stdout+::
 +$stderr+::
-	Streams in the global scope, representing standard input, output and error
-	output, respectively.
+	Streams representing standard input, output and error output, respectively.
 
 File System
 ^^^^^^^^^^^
 +$path.sep+::
 	The separator between path components.
 
-+path.join+ 'str...'::
++$path.join+ 'str...'::
 	Joins path components.
 
 --------------------------------------
@@ -715,22 +715,22 @@ $local path [$path.join .. something.txt]
 [TIP]
 To join path components in a portable way, use 'path.join'.
 
-+path.exists+ 'path'::
++$path.exists+ 'path'::
 	Checks whether a file exists.
 
-+path.isdir+ 'path'::
++$path.isdir+ 'path'::
 	Checks whether a path points to a directory.
 
-+path.realpath+ 'path'::
++$path.realpath+ 'path'::
 	Returns the absolute, canonical path of a file.
 
-+file.size+ 'path'::
++$file.size+ 'path'::
 	Returns the size of a file.
 
-+file.delete+ 'path'::
++$file.delete+ 'path'::
 	Deletes a file.
 
-+file.lock+ 'path'::
++$file.lock+ 'path'::
 	Creates a lock file, locks it and returns a lock file object.
 
 [NOTE]
@@ -742,24 +742,24 @@ If another process locks the file, 'file.lock' will block until it is released.
 [NOTE]
 Leftover lock files are unlocked automatically, during garbage collection.
 
-+file.locked+ 'path'::
++$file.locked+ 'path'::
 	Checks whether a lock file is locked.
 
-+dir.create+ 'path'::
++$dir.create+ 'path'::
 	Creates a directory.
 
-+dir.delete+ 'path'::
++$dir.delete+ 'path'::
 	Deletes an empty directory.
 
-+dir.rdelete+ 'path'::
++$dir.rdelete+ 'path'::
 	Recursively deletes the contents of a directory and the directory itself.
 
-+cd+ 'path'::
++$cd+ 'path'::
 	Changes the working directory.
 
 File Operations
 +++++++++++++++
-+open+ 'path mode'::
++$open+ 'path mode'::
 	Opens a file and returns a stream object. 'mode' is 'fputs()'-style: 'r',
 	'w', 'a', 'r+', 'w+' or 'a+' (see 'man fputs' for the meaning of each mode).
 	By default, reading and writing is line-buffered.
@@ -787,18 +787,19 @@ once).
 	the number of bytes written.
 
 +$stream+ 'writeln str'::
-	Writes a string to a stream. If the stream
+	Writes a string to a stream. If the string does not end with a line break
+	('\n'), a line break character is appended.
 
 [NOTE]
 Since writing operations on files may be buffered to improve efficiency, data
-passed to 'write' is not guaranteed to be written to disk immediately. To flush
-queued data to disk, call 'flush'.
-
-+$stream+ 'unblock'::
-	Enables non-blocking operation on a stream.
+passed to 'write' or 'writeln' is not guaranteed to be written to disk
+immediately. To flush queued data to disk, call 'flush'.
 
 +$stream+ 'flush'::
 	Flushes the output buffer of a file.
+
++$stream+ 'unblock'::
+	Enables non-blocking operation on a stream.
 
 +$stream+ 'handle'::
 	Returns an opaque value (an integer) that represents an open file, suitable
@@ -816,21 +817,21 @@ implemented as one-liners:
 $local content [[$open /etc/hosts ru] read]
 --------------------------------------
 
-+isatty+ 'handle'::
++$isatty+ 'handle'::
 	Determines whether a file handle refers to a terminal.
 
 Sockets
 ^^^^^^^
-+stream.client+ 'host service'::
++$stream.client+ 'host service'::
 	Creates a new TCP socket and connect to 'host:service'.
 
-+dgram.client+ 'host service'::
++$dgram.client+ 'host service'::
 	Creates a new UDP socket which sends datagrams to 'host:service'.
 
-+dgram.server+ 'host service'::
++$dgram.server+ 'host service'::
 	Creates a new UDP socket and listens on 'host:service'.
 
-+stream.server+ 'host service ?backlog?'::
++$stream.server+ 'host service ?backlog?'::
 	Creates a new TCP socket, listens on 'host:service' and holds up to
 	'backlog' pending clients (i.e. clients awaiting 'accept'). If 'backlog' is
 	not specified, the default is '5'.
@@ -849,7 +850,7 @@ data.
 
 Socket I/O Multiplexing
 +++++++++++++++++++++++
-+poll.create+::
++$poll.create+::
 	Creates a new set of polled sockets and timers.
 
 +$poll+ 'add handle event...'::
@@ -864,16 +865,16 @@ Socket I/O Multiplexing
 	Waits for up to 'lim' socket or timer events and returns three lists of
 	handles: those ready for reading, writing or error handling.
 
-+timer+ 'interval'::
++$timer+ 'interval'::
 	Creates a non-readable stream, which triggers an 'in' event after 'interval'
 	seconds.
 
 Processes
 ^^^^^^^^^
-+getpid+::
++$getpid+::
 	Returns the process ID of the +szl+ interpreter.
 
-+exec+ 'cmd'::
++$exec+ 'cmd'::
 	Runs a shell command and returns a new stream representing it. Data written
 	to the stream is passed to the shell command's standard input pipe and data
 	the shell command's  output be read through the stream.
@@ -887,7 +888,7 @@ $puts [[$exec {uname -a 2>/dev/null}] read]
 
 Signals
 ^^^^^^^
-+signal.block+ 'sig...'::
++$signal.block+ 'sig...'::
 	Blocks a list of signals and returns a signal mask object. The signals may
 	be 'term', 'int', 'usr1' or 'usr2'.
 
@@ -897,7 +898,7 @@ Signals
 
 Environment
 ^^^^^^^^^^^
-+env.get+ 'name'::
++$env.get+ 'name'::
 	Returns the value of an environment variable.
 
 +$env.ver+::
@@ -917,25 +918,25 @@ zlib
 The 'zlib' extension is a +szl+ wrapper for http://zlib.net/[zlib], a general
 purpose data compression library.
 
-+zlib.crc32+ 'str ?init?'::
++$zlib.crc32+ 'str ?init?'::
 	Returns the CRC32 checksum of a buffer. Optionally, an initial value may be
 	specified; this is most useful for calculating the checksum of chunked data
 	read from a stream (for instance, a pipe).
 
-+zlib.deflate+ 'str ?level?'::
++$zlib.deflate+ 'str ?level?'::
 	Compresses a buffer and outputs a raw, Deflate-compressed stream.
 	Optionally, a compression level ('1'-'9') may be specified to choose the
 	desired speed vs. compression rate ratio.
 
-+zlib.inflate+ 'str ?bufsiz?'::
++$zlib.inflate+ 'str ?bufsiz?'::
 	Decompresses a raw, Deflate-compressed stream. When the uncompressed data
 	size is known and specified, memory allocation is *more efficient*.
 	Otherwise, decomperssion is chunked and therefore slower.
 
-+zlib.gzip+ 'str ?level?'::
++$zlib.gzip+ 'str ?level?'::
 	Compresses a buffer and adds a gzip header.
 
-+zlib.gunzip+ 'str ?bufsiz?'::
++$zlib.gunzip+ 'str ?bufsiz?'::
 	Decompresses a gzip-compressed buffer. Decompression is chunked, with a
 	default, *small* buffer size of 64K which guarantees lower memory
 	footprint at the cost of speed. It is *highly recommended* to use a bigger
@@ -946,10 +947,10 @@ lzfse
 The 'lzfse' extension is a +szl+ wrapper for
 https://github.com/lzfse/lzfse/[lzfse], a data compression library.
 
-+lzfse.compress+ 'str'::
++$lzfse.compress+ 'str'::
 	Compresses a buffer.
 
-+lzfse.decompress+ 'str'::
++$lzfse.decompress+ 'str'::
 	Decompresses a buffer.
 
 Network
@@ -960,8 +961,8 @@ The 'tls' extension implements secure, Transport Layer Security (TLS) wrapped
 TCP sockets, through http://www.openssl.org/[OpenSSL] or a compatible library
 such as http://www.libressl.org/[LibreSSL].
 
-+tls.connect+ 'handle'::
-+tls.accept+ 'handle cert priv'::
++$tls.connect+ 'handle'::
++$tls.accept+ 'handle cert priv'::
 	Starts a TLS handshake via an existing, connected socket and returns a new
 	stream.
 
@@ -970,10 +971,10 @@ curl
 The 'curl' extension implements file download via multiple protocols, through
 https://curl.haxx.se/[cURL].
 
-+curl.encode+ 'str'::
++$curl.encode+ 'str'::
 	URL-encodes a string.
 
-+curl.get+ 'url path...'::
++$curl.get+ 'url path...'::
 	Downloads multiple files in parallel.
 
 http
@@ -981,7 +982,7 @@ http
 The 'http' extension is a high-level interface for sending HTTP requests, mostly
 useful for working with REST APIs.
 
-+http.get+ 'host port tls url params'::
++$http.get+ 'host port tls url params'::
 	Sends a 'GET' request to 'host:port/url' with 'params'. If 'tls' is true,
 	the request is sent over HTTPS. 'params' should be a dictionary that maps
 	parameter names to their values. The return value is a list of two items:
@@ -993,15 +994,15 @@ $load http
 $puts [$list.index [$http.get httpbin.org 443 1 /get [$dict.new a {123 456} b 789]] 1]
 --------------------------------------
 
-+http.post+ 'host port tls url params'::
++$http.post+ 'host port tls url params'::
 	Similar to 'http.get', but sends a 'POST' request instead.
 
-+http.server+ 'host port backlog timeout'::
++$http.server+ 'host port backlog timeout'::
 	Runs a HTTP server which listens on 'host:port', with a queue of up to
 	'backlog' incoming clients and a timeout of 'timeout' seconds for each
 	connection.
 
-+http.tls_server+ 'host port backlog timeout cert priv'::
++$http.tls_server+ 'host port backlog timeout cert priv'::
 	Runs a HTTPS server.
 
 +$http.codes+::
@@ -1013,14 +1014,14 @@ dict
 The 'dict' extension is a O(n), trivial +szl+ implementation of associative
 arrays on top of lists.
 
-+dict.new+ ?k v...?::
++$dict.new+ ?k v...?::
 	Creates a new dictionary. If no initial contents are specified, the
 	dictionary will be empty.
 
-+dict.set+ 'dict k v'::
++$dict.set+ 'dict k v'::
 	Sets the dictionary value associated with a key.
 
-+dict.get+ 'dict k ?v?'::
++$dict.get+ 'dict k ?v?'::
 	Returns the dictionary value associated with a key. If the key is missing
 	and no fallback value is specified, an exception is thrown.
 
@@ -1028,7 +1029,7 @@ test
 ^^^^
 The 'test' extension provides test helpers.
 
-+test.run+ 'desc throws exp result'::
++$test.run+ 'desc throws exp result'::
 	Runs 'exp' and compares its result or the error it throws (depending on the
 	'throws' flag) to 'result'.
 
@@ -1040,24 +1041,24 @@ raw memory operations and C function calls through +szl+ scripts.
 
 Data Types
 ++++++++++
-+ffi.int8+ '?val?'::
-+ffi.uint8+ '?val?'::
-+ffi.int16+ '?val?'::
-+ffi.uint16+ '?val?'::
-+ffi.int32+ '?val?'::
-+ffi.uint32+ '?val?'::
-+ffi.dword+ '?val?'::
-+ffi.int64+ '?val?'::
-+ffi.uint64+ '?val?'::
-+ffi.char+ '?val?'::
-+ffi.uchar+ '?val?'::
-+ffi.short+ '?val?'::
-+ffi.ushort+ '?val?'::
-+ffi.int+ '?val?'::
-+ffi.uint+ '?val?'::
-+ffi.long+ '?val?'::
-+ffi.ulong+ '?val?'::
-+ffi.pointer+ '?val?'::
++$ffi.int8+ '?val?'::
++$ffi.uint8+ '?val?'::
++$ffi.int16+ '?val?'::
++$ffi.uint16+ '?val?'::
++$ffi.int32+ '?val?'::
++$ffi.uint32+ '?val?'::
++$ffi.dword+ '?val?'::
++$ffi.int64+ '?val?'::
++$ffi.uint64+ '?val?'::
++$ffi.char+ '?val?'::
++$ffi.uchar+ '?val?'::
++$ffi.short+ '?val?'::
++$ffi.ushort+ '?val?'::
++$ffi.int+ '?val?'::
++$ffi.uint+ '?val?'::
++$ffi.long+ '?val?'::
++$ffi.ulong+ '?val?'::
++$ffi.pointer+ '?val?'::
 	Creates a new object which represents a C variable of a specific type. If no
 	initial value is specified, the default is '0'.
 
@@ -1069,7 +1070,7 @@ Data Types
 To convert a 'ffi.char' to its 1-length string representation, use
 'ffi.string at'.
 
-+ffi.void+::
++$ffi.void+::
 	Creates a new dummy object, for use with 'ffi.function' against functions
 	which return 'void'.
 
@@ -1094,7 +1095,7 @@ strings).
 
 Strings and Memory Operations
 +++++++++++++++++++++++++++++
-+ffi.string+ 'at addr ?len?'::
++$ffi.string+ 'at addr ?len?'::
 	Reads the string at a given memory address. If no length is specified, data
 	is read up to the first '\0' byte found.
 
@@ -1106,10 +1107,10 @@ offset after the given address, +szl+ will crash.
 'ffi.string at' can be used as a C to +szl+ 'memcpy()'; read data is guaranteed
 to be '\0'-terminated.
 
-+ffi.string+ 'copy obj'::
++$ffi.string+ 'copy obj'::
 	Creates a C string with a given initial value.
 
-+ffi.cast+ 'addr type'::
++$ffi.cast+ 'addr type'::
 	Reads a C variable at a given address and returns a new object. The type
 	shall be one of 'int8', 'uint8', 'int16', 'uint16', 'int32', 'uint32',
 	'dword', 'int64', 'uint64', 'char', 'uchar', 'short', 'ushort', 'int',
@@ -1120,7 +1121,7 @@ Use 'ffi.cast' to dereference pointers.
 
 Data Structures
 +++++++++++++++
-+ffi.struct+ 'raw type...'::
++$ffi.struct+ 'raw type...'::
 	Creates a new 'struct', which can be optionally initialized by specifying
 	its raw contents instead of an empty string.
 
@@ -1129,7 +1130,7 @@ Data Structures
 
 Libraries
 +++++++++
-+ffi.dlopen+ 'path'::
++$ffi.dlopen+ 'path'::
 	Loads a shared object.
 
 [NOTE]
@@ -1145,7 +1146,7 @@ string as the path (equivalent to 'dlopen()' with 'NULL').
 
 Functions
 +++++++++
-+ffi.function+ 'addr rtype ?type...?'::
++$ffi.function+ 'addr rtype ?type...?'::
 	Wraps a C function with a +szl+ procedure. The return value type may be
 	'void', in addition to the types recognized by 'ffi.cast'.
 
@@ -1158,7 +1159,7 @@ archive
 The 'archive' extension is a +szl+ wrapper for
 http://www.libarchive.org/[libarchive].
 
-+archive.open+ 'data'::
++$archive.open+ 'data'::
 	Opens an archive.
 
 +$archive+ 'list'::
@@ -1172,16 +1173,16 @@ linenoise
 The 'linenoise' extension provides command-line editing and history through
 https://github.com/antirez/linenoise[linenoise].
 
-+linenoise.read+ 'prompt'::
++$linenoise.read+ 'prompt'::
 	Displays a prompt and reads a line.
 
-+linenoise.add+ 'line'::
++$linenoise.add+ 'line'::
 	Adds a line to history.
 
-+linenoise.save+ 'path'::
++$linenoise.save+ 'path'::
 	Saves history to a file.
 
-+linenoise.load+ 'path'::
++$linenoise.load+ 'path'::
 	Loads a previously saved history file.
 
 ed25519
@@ -1189,14 +1190,14 @@ ed25519
 The 'ed25519' extension implements a public key security system, using
 https://github.com/orlp/ed25519[Ed25519].
 
-+ed25519.keypair+::
++$ed25519.keypair+::
 	Generates a key pair and returns a list of two items: the first is the
 	private key and the second is the public one.
 
-+ed25519.sign+ 'data priv pub'::
++$ed25519.sign+ 'data priv pub'::
 	Digitally-signs a buffer.
 
-+ed25519.verify+ 'data sig pub'::
++$ed25519.verify+ 'data sig pub'::
 	Verifies the digital signature of a buffer.
 
 Best Practices
