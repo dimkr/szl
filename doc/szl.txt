@@ -507,7 +507,7 @@ $for i [range 1 11] {$puts $i}
 
 Arithmetic and Logical Operations
 +++++++++++++++++++++++++++++++++
-+++ 'm n'::
++$++ 'm n'::
 	Returns 'm + n'.
 
 +$-+ 'm n'::
@@ -692,8 +692,8 @@ I/O
 	break ('\n'), a line break character is appended.
 
 +$null+::
-	A fake, empty file. Every attempt to read from it returns an empty string
-	every attempt to write to it succeeds.
+	A stream that acts like an empty file. Every attempt to read from it returns
+	an empty string every attempt to write to it succeeds.
 
 +$stdin+::
 +$stdout+::
@@ -778,7 +778,7 @@ once).
 	non-blocking and less than 'len' bytes are available for reading without
 	waiting, that will be the number of bytes returned.
 
-+$stream+ 'readln str'::
++$stream+ 'readln'::
 	Reads from a stream, until line end or until no more data can be read.
 
 +$stream+ 'write str'::
@@ -823,7 +823,7 @@ $local content [[$open /etc/hosts ru] read]
 Sockets
 ^^^^^^^
 +$stream.client+ 'host service'::
-	Creates a new TCP socket and connect to 'host:service'.
+	Creates a new TCP socket and connects to 'host:service'.
 
 +$dgram.client+ 'host service'::
 	Creates a new UDP socket which sends datagrams to 'host:service'.
@@ -845,8 +845,7 @@ During testing, sockets can be easily swapped with files to simulate incoming
 data.
 
 +$socket+ 'accept'::
-	Waits for a client to connect to a 'stream.server' socket and returns a new
-	socket.
+	Waits for a client to connect the socket and returns a new socket.
 
 Socket I/O Multiplexing
 +++++++++++++++++++++++
@@ -881,7 +880,7 @@ Processes
 
 [TIP]
 'exec' passes 'cmd' to the default shell, so 'cmd' may rely on shell features
-such as redirection (e.g. '2>&1'):
+such as redirection:
 --------------------------------------
 $puts [[$exec {uname -a 2>/dev/null}] read]
 --------------------------------------

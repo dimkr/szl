@@ -311,7 +311,7 @@ static
 int szl_list_to_int(struct szl_interp *interp, struct szl_val *val)
 {
 	if (val->l.len) {
-		szl_set_last_str(interp, "bad int", sizeof("bad int"));
+		szl_set_last_str(interp, "bad int", sizeof("bad int") - 1);
 		return 0;
 	}
 
@@ -325,7 +325,7 @@ static
 int szl_list_to_float(struct szl_interp *interp, struct szl_val *val)
 {
 	if (val->l.len) {
-		szl_set_last_str(interp, "bad float", sizeof("bad float"));
+		szl_set_last_str(interp, "bad float", sizeof("bad float") - 1);
 		return 0;
 	}
 
@@ -374,7 +374,7 @@ int szl_float_to_str(struct szl_interp *interp, struct szl_val *val)
 		return 0;
 
 	val->s.len = (size_t)len;
-	if (len > 0) {
+	if (val->s.len) {
 		for (i = len - 1; i >= 0; --i) {
 			if (val->s.buf[i] == '0')
 				--val->s.len;
@@ -536,12 +536,12 @@ int szl_as_bool(struct szl_obj *obj, int *b)
 		return 1;
 	}
 
-	if (obj->types & (1 << SZL_TYPE_FLOAT)) {
+	if (szl_unlikely(obj->types & (1 << SZL_TYPE_FLOAT))) {
 		*b = obj->val.f != 0;
 		return 1;
 	}
 
-	if (obj->types & (1 << SZL_TYPE_STR)) {
+	if (szl_likely(obj->types & (1 << SZL_TYPE_STR))) {
 		/* "0" is false, anything else is true */
 		if (obj->val.s.len == 1)
 			*b = (obj->val.s.buf[0] == '0') ? 0 : 1;
@@ -595,7 +595,7 @@ struct szl_obj *szl_new_str(const char *buf, ssize_t len)
 	struct szl_obj *obj;
 	size_t rlen;
 
-	if (len > 0)
+	if (szl_likely(len > 0))
 		rlen = (size_t)len;
 	else {
 		rlen = strlen(buf);
@@ -669,7 +669,7 @@ struct szl_obj *szl_new_str_fmt(const char *fmt, ...)
 }
 
 static
-struct szl_obj *szl_dict_copy(struct szl_interp *interp, struct szl_obj *dict);
+struct szl_obj *szl_copy_dict(struct szl_interp *interp, struct szl_obj *dict);
 
 static
 void szl_call_del(void *priv)
@@ -701,7 +701,7 @@ struct szl_obj *szl_new_call(struct szl_interp *interp,
 	}
 
 	if (locals)
-		obj->locals = szl_dict_copy(interp, locals);
+		obj->locals = szl_copy_dict(interp, locals);
 	else
 		obj->locals = szl_new_dict(NULL, 0);
 	if (!obj->locals) {
@@ -862,7 +862,7 @@ int szl_hash(struct szl_interp *interp, struct szl_obj *obj, uint32_t *hash)
 	char *buf;
 	size_t len, i;
 
-	if (!obj->hashed) {
+	if (szl_unlikely(!obj->hashed)) {
 		if (!szl_as_str(interp, obj, &buf, &len))
 			return 0;
 
@@ -894,13 +894,13 @@ int szl_eq(struct szl_interp *interp,
 	uint32_t ah, bh;
 
 	/* optimization: could be the same object */
-	if (a != b) {
+	if (szl_likely(a != b)) {
 		if (!szl_hash(interp, a, &ah) || !szl_hash(interp, b, &bh))
 			return 0;
 
 		/* if the hashes match, compare the string representations to ensure
 		 * this is not a collision */
-		if (ah != bh)
+		if (szl_likely(ah != bh))
 			*eq = 0;
 		else {
 			if (!szl_as_str(interp, a, &as, &alen) ||
@@ -1152,8 +1152,8 @@ struct szl_obj *szl_join(struct szl_interp *interp,
 {
 	struct szl_obj *obj;
 	char *delims, *s, *ws;
-	size_t slen, dlen;
-	unsigned i, j, last = objc - 1, mw = 0, wlen;
+	size_t slen, dlen, i, j, last = objc - 1;
+	int mw = 0, wlen;
 
 	if (!szl_as_str(interp, delim, &delims, &dlen))
 		return NULL;
@@ -1234,7 +1234,7 @@ int szl_dict_set(struct szl_interp *interp,
 		if (!szl_eq(interp, items[i], k, &eq))
 			return 0;
 
-		if (eq) {
+		if (szl_unlikely(eq)) {
 			if (!szl_list_set(interp, dict, (szl_int)i + 1, v))
 				return 0;
 
@@ -1269,7 +1269,7 @@ int szl_dict_get(struct szl_interp *interp,
 		if (!szl_eq(interp, items[i], k, &eq))
 			return 0;
 
-		if (eq) {
+		if (szl_unlikely(eq)) {
 			*v = szl_ref(items[i + 1]);
 			return 1;
 		}
@@ -1280,32 +1280,15 @@ int szl_dict_get(struct szl_interp *interp,
 }
 
 static
-struct szl_obj *szl_dict_copy(struct szl_interp *interp, struct szl_obj *dict)
+struct szl_obj *szl_copy_dict(struct szl_interp *interp, struct szl_obj *dict)
 {
-	struct szl_obj **items, *copy;
-	size_t i;
+	struct szl_obj **items;
+	size_t len;
 
-	copy = (struct szl_obj *)malloc(sizeof(*copy));
-	if (!copy)
-		return copy;
-
-	if (!szl_as_dict(interp, dict, &items, &copy->val.l.len)) {
-		free(copy);
+	if (!szl_as_dict(interp, dict, &items, &len))
 		return NULL;
-	}
 
-	copy->val.l.items = (struct szl_obj **)malloc(
-	                                sizeof(struct szl_obj *) * copy->val.l.len);
-	if (!copy->val.l.items) {
-		free(copy);
-		return NULL;
-	}
-
-	for (i = 0; i < copy->val.l.len; ++i)
-		copy->val.l.items[i] = szl_ref(items[i]);
-
-	SZL_OBJ_INIT(copy, SZL_TYPE_LIST);
-	return copy;
+	return szl_new_list(items, len);
 }
 
 /*

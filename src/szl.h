@@ -58,6 +58,18 @@
 #	define SZL_PASTE(x) _SZL_PASTE(x)
 
 /**
+ * @def szl_likely
+ * Improves branch prediction when a condition is likely to be met
+ */
+#	define szl_likely(cond) __builtin_expect((cond), 1)
+
+/**
+ * @def szl_unlikely
+ * Improves branch prediction when a condition is unlikely
+ */
+#	define szl_unlikely(cond) __builtin_expect((cond), 0)
+
+/**
  * @}
  *
  * @defgroup limits Artificial Limits
