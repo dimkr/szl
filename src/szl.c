@@ -1249,38 +1249,6 @@ struct szl_obj *szl_join(struct szl_interp *interp,
  * dict operations
  */
 
-__attribute__((nonnull(1, 2, 3, 4)))
-int szl_dict_set(struct szl_interp *interp,
-                 struct szl_obj *dict,
-                 struct szl_obj *k,
-                 struct szl_obj *v)
-{
-	struct szl_obj **items;
-	size_t n, i;
-	int eq;
-
-	if (!szl_as_dict(interp, dict, &items, &n))
-		return 0;
-
-	for (i = 0; i < n; i += 2) {
-		if (!szl_eq(interp, items[i], k, &eq))
-			return 0;
-
-		if (szl_unlikely(eq)) {
-			if (!szl_list_set(interp, dict, (szl_int)i + 1, v))
-				return 0;
-
-			return 1;
-		}
-	}
-
-	if (!szl_list_append(interp, dict, k) || !szl_list_append(interp, dict, v))
-		return 0;
-
-	szl_set_ro(k);
-	return 1;
-}
-
 static
 int szl_cmp(const void *p1, const void *p2)
 {
@@ -1297,12 +1265,12 @@ int szl_cmp(const void *p1, const void *p2)
 }
 
 __attribute__((nonnull(1, 2, 3, 4)))
-int szl_dict_get(struct szl_interp *interp,
-                 struct szl_obj *dict,
-                 struct szl_obj *k,
-                 struct szl_obj **v)
+int szl_dict_get_key(struct szl_interp *interp,
+                     struct szl_obj *dict,
+                     struct szl_obj *k,
+                     struct szl_obj ***pos)
 {
-	struct szl_obj **items, *p, **out;
+	struct szl_obj **items, *p;
 	size_t len, i;
 
 	if (!szl_as_dict(interp, dict, &items, &len))
@@ -1311,7 +1279,7 @@ int szl_dict_get(struct szl_interp *interp,
 	if (!szl_hash(interp, k, NULL))
 		return 0;
 
-			*v = NULL;
+	*pos = NULL;
 	if (len) {
 		if (!dict->sorted) {
 			for (i = 0; i < len; ++i) {
@@ -1324,16 +1292,56 @@ int szl_dict_get(struct szl_interp *interp,
 		}
 
 		p = k;
-		out = (struct szl_obj **)bsearch(&p,
-										 items,
-										 len / 2,
-										 sizeof(struct szl_obj *) * 2,
-										 szl_cmp);
-		if (out)
-			*v = szl_ref(*(out + 1));
-		else
-			*v = NULL;
+		*pos = (struct szl_obj **)bsearch(&p,
+		                                  items,
+		                                  len / 2,
+		                                  sizeof(struct szl_obj *) * 2,
+		                                  szl_cmp);
 	}
+
+	return 1;
+}
+
+__attribute__((nonnull(1, 2, 3, 4)))
+int szl_dict_set(struct szl_interp *interp,
+                 struct szl_obj *dict,
+                 struct szl_obj *k,
+                 struct szl_obj *v)
+{
+	struct szl_obj **items, **pos;
+	size_t len;
+
+	if (!szl_as_dict(interp, dict, &items, &len) ||
+	    !szl_dict_get_key(interp, dict, k, &pos))
+		return 0;
+
+	if (szl_unlikely(pos != NULL)) {
+		if (!szl_list_set(interp, dict, (pos - items) + 1, v))
+			return 0;
+	}
+	else if (!szl_list_append(interp, dict, k) ||
+	         !szl_list_append(interp, dict, v))
+		return 0;
+
+	szl_set_ro(k);
+	return 1;
+}
+
+__attribute__((nonnull(1, 2, 3, 4)))
+int szl_dict_get(struct szl_interp *interp,
+                 struct szl_obj *dict,
+                 struct szl_obj *k,
+                 struct szl_obj **v)
+{
+	struct szl_obj **pos;
+
+	if (!szl_dict_get_key(interp, dict, k, &pos))
+		return 0;
+
+	if (pos)
+		*v = szl_ref(*(pos + 1));
+	else
+		*v = NULL;
 
 	return 1;
 }
@@ -1341,13 +1349,17 @@ int szl_dict_get(struct szl_interp *interp,
 static
 struct szl_obj *szl_copy_dict(struct szl_interp *interp, struct szl_obj *dict)
 {
-	struct szl_obj **items;
+	struct szl_obj **items, *copy;
 	size_t len;
 
 	if (!szl_as_dict(interp, dict, &items, &len))
 		return NULL;
 
-	return szl_new_list(items, len);
+	copy = szl_new_list(items, len);
+	if (copy)
+		copy->sorted = dict->sorted;
+
+	return copy;
 }
 
 /*
