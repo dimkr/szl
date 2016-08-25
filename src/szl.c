@@ -585,6 +585,8 @@ enum szl_res szl_bad_proc(struct szl_interp *interp,
 	obj->max_objc = -1;         \
 	obj->del = NULL;            \
 	obj->hashed = 0;            \
+	obj->ro = 0;                \
+	obj->sorted = 0;            \
 	obj->caller = NULL;         \
 	obj->locals = NULL;         \
 	obj->args = NULL
@@ -879,7 +881,8 @@ int szl_hash(struct szl_interp *interp, struct szl_obj *obj, uint32_t *hash)
 		obj->hashed = 1;
 	}
 
-	*hash = obj->hash;
+	if (hash)
+		*hash = obj->hash;
 	return 1;
 }
 
@@ -962,6 +965,13 @@ int szl_str_append_str(struct szl_interp *interp,
 	char *dbuf;
 	size_t dlen, nlen, i;
 
+	if (dest->ro) {
+		szl_set_last_str(interp,
+		                 "append to ro str",
+		                 sizeof("append to ro str") - 1);
+		return 0;
+	}
+
 	if (!szl_as_str(interp, dest, &dbuf, &dlen))
 		return 0;
 
@@ -1000,6 +1010,13 @@ int szl_list_append(struct szl_interp *interp,
 	struct szl_obj **items;
 	size_t len;
 
+	if (list->ro) {
+		szl_set_last_str(interp,
+		                 "append to ro list",
+		                 sizeof("append to ro list") - 1);
+		return 0;
+	}
+
 	if (!szl_as_list(interp, list, &items, &len))
 		return 0;
 
@@ -1019,6 +1036,7 @@ int szl_list_append(struct szl_interp *interp,
 	list->types = 1 << SZL_TYPE_LIST;
 
 	list->hashed = 0;
+	list->sorted = 0;
 	return 1;
 }
 
@@ -1066,6 +1084,13 @@ int szl_list_set(struct szl_interp *interp,
 	struct szl_obj **items;
 	size_t len;
 
+	if (list->ro) {
+		szl_set_last_str(interp,
+		                 "set in ro list",
+		                 sizeof("set in ro list") - 1);
+		return 0;
+	}
+
 	if (index < 0) {
 		szl_set_last_fmt(interp, "bad index: "SZL_INT_FMT, index);
 		return 0;
@@ -1092,6 +1117,13 @@ int szl_list_extend(struct szl_interp *interp,
 {
 	struct szl_obj **di, **si;
 	size_t dlen, slen, i;
+
+	if (dest->ro) {
+		szl_set_last_str(interp,
+		                 "extend ro list",
+		                 sizeof("extend ro list") - 1);
+		return 0;
+	}
 
 	if (!szl_as_list(interp, dest, &di, &dlen) ||
 	    !szl_as_list(interp, src, &si, &slen))
@@ -1245,7 +1277,23 @@ int szl_dict_set(struct szl_interp *interp,
 	if (!szl_list_append(interp, dict, k) || !szl_list_append(interp, dict, v))
 		return 0;
 
+	szl_set_ro(k);
 	return 1;
+}
+
+static
+int szl_cmp(const void *p1, const void *p2)
+{
+	uint32_t h1 = (*((struct szl_obj **)p1))->hash,
+	         h2 = (*((struct szl_obj **)p2))->hash;
+
+	if (h1 > h2)
+		return 1;
+
+	if (h1 < h2)
+		return -1;
+
+	return 0;
 }
 
 __attribute__((nonnull(1, 2, 3, 4)))
@@ -1254,28 +1302,39 @@ int szl_dict_get(struct szl_interp *interp,
                  struct szl_obj *k,
                  struct szl_obj **v)
 {
-	struct szl_obj **items;
-	size_t len;
-	ssize_t i;
-	int eq;
+	struct szl_obj **items, *p, **out;
+	size_t len, i;
 
 	if (!szl_as_dict(interp, dict, &items, &len))
 		return 0;
 
-	/* scan the list in reversed order - we assume the important stuff was added
-	 * recently (for example, local variables of a procedure come after
-	 * inherited objects) */
-	for (i = len - 2; i >= 0; i -= 2) {
-		if (!szl_eq(interp, items[i], k, &eq))
-			return 0;
+	if (!szl_hash(interp, k, NULL))
+		return 0;
 
-		if (szl_unlikely(eq)) {
-			*v = szl_ref(items[i + 1]);
-			return 1;
+			*v = NULL;
+	if (len) {
+		if (!dict->sorted) {
+			for (i = 0; i < len; ++i) {
+				if (!szl_hash(interp, items[i], NULL))
+					return 0;
+			}
+
+			qsort(items, len / 2, sizeof(struct szl_obj *) * 2, szl_cmp);
+			dict->sorted = 1;
 		}
+
+		p = k;
+		out = (struct szl_obj **)bsearch(&p,
+										 items,
+										 len / 2,
+										 sizeof(struct szl_obj *) * 2,
+										 szl_cmp);
+		if (out)
+			*v = szl_ref(*(out + 1));
+		else
+			*v = NULL;
 	}
 
-	*v = NULL;
 	return 1;
 }
 
@@ -1335,6 +1394,7 @@ struct szl_interp *szl_new_interp(int argc, char *argv[])
 			free(interp);
 			return NULL;
 		}
+		szl_set_ro(interp->nums[i]);
 	}
 
 	interp->sep = szl_new_str("/", 1);
@@ -1414,6 +1474,11 @@ struct szl_interp *szl_new_interp(int argc, char *argv[])
 	}
 
 	interp->last = szl_ref(interp->empty);
+
+	szl_set_ro(interp->empty);
+	szl_set_ro(interp->space);
+	szl_set_ro(interp->sep);
+	szl_set_ro(interp->args);
 
 	if (!szl_init_builtin_exts(interp)) {
 		szl_free_interp(interp);

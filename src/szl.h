@@ -245,6 +245,8 @@ struct szl_obj {
 	unsigned int refc; /**< The object reference count; the object is freed when it drops to zero */
 	uint32_t hash; /**< The object's string representation hash */
 	int hashed; /**< A flag set when the object is hashed and unset upon modification */
+	int ro; /**< A flag set when an object is marked as read-only */
+	int sorted; /**< A flag set when a dictionary is sorted */
 
 	enum szl_types types; /**< Available representations of the object */
 	struct szl_val val; /**< The object values */
@@ -527,6 +529,12 @@ int szl_set_args(struct szl_interp *interp,
  * @ingroup high_level
  * @{
  */
+
+/**
+ * @def szl_set_ro
+ * Marks an object as read-only
+ */
+#	define szl_set_ro(obj) obj->ro = 1
 
 /**
  * @defgroup str_op String Operations
