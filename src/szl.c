@@ -1282,7 +1282,7 @@ int szl_dict_get_key(struct szl_interp *interp,
 	*pos = NULL;
 	if (len) {
 		if (!dict->sorted) {
-			for (i = 0; i < len; ++i) {
+			for (i = 0; i < len; i += 2) {
 				if (!szl_hash(interp, items[i], NULL))
 					return 0;
 			}
