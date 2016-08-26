@@ -502,9 +502,8 @@ int szl_as_dict(struct szl_interp *interp,
 	if (!szl_as_list(interp, obj, items, len))
 		return 0;
 
-	/* we limit to SSIZE_MAX to allow reversed lookup */
-	if ((*len % 2 == 1) || (*len > SSIZE_MAX)) {
-		szl_set_last_str(interp, "bad dict", -1);
+	if (*len % 2 == 1) {
+		szl_set_last_str(interp, "bad dict", sizeof("bad dict") - 1);
 		return 0;
 	}
 
@@ -2179,7 +2178,9 @@ enum szl_res szl_stream_read(struct szl_interp *interp,
 	int more = 1;
 
 	if (!strm->ops->read) {
-		szl_set_last_str(interp, "read from unsupported stream", -1);
+		szl_set_last_str(interp,
+		                 "read from unsupported stream",
+		                 sizeof("read from unsupported stream") - 1);
 		return SZL_ERR;
 	}
 
@@ -2206,7 +2207,9 @@ enum szl_res szl_stream_read(struct szl_interp *interp,
 		if (out < 0)
 			return SZL_ERR;
 		else if (!more) {
-			szl_set_last_str(interp, "read from closed stream", -1);
+			szl_set_last_str(interp,
+			                 "read from closed stream",
+			                 sizeof("read from closed stream") - 1);
 			return SZL_ERR;
 		}
 	}
@@ -2223,7 +2226,9 @@ enum szl_res szl_stream_read_all(struct szl_interp *interp,
 	ssize_t len = SZL_STREAM_BUFSIZ, tot, more, cont = 1;
 
 	if (!strm->ops->read) {
-		szl_set_last_str(interp, "read from unsupported stream", -1);
+		szl_set_last_str(interp,
+		                 "read from unsupported stream",
+		                 sizeof("read from unsupported stream") - 1);
 		return SZL_ERR;
 	}
 
@@ -2286,7 +2291,9 @@ enum szl_res szl_stream_read_all(struct szl_interp *interp,
 
 		return szl_set_last(interp, obj);
 	} else if (!cont)
-		szl_set_last_str(interp, "read from closed stream", -1);
+		szl_set_last_str(interp,
+		                 "read from closed stream",
+		                 sizeof("read from closed stream") - 1);
 
 	free(buf);
 	return (tot <= 0) ? SZL_ERR : SZL_OK;
@@ -2303,7 +2310,9 @@ enum szl_res szl_stream_readln(struct szl_interp *interp,
 	int more;
 
 	if (!strm->ops->read) {
-		szl_set_last_str(interp, "read from unsupported stream", -1);
+		szl_set_last_str(interp,
+		                 "read from unsupported stream",
+		                 sizeof("read from unsupported stream") - 1);
 		return SZL_ERR;
 	}
 
@@ -2356,12 +2365,16 @@ enum szl_res szl_stream_write(struct szl_interp *interp,
 	ssize_t out, chunk;
 
 	if (!strm->ops->write) {
-		szl_set_last_str(interp, "write to unsupported stream", -1);
+		szl_set_last_str(interp,
+		                 "write to unsupported stream",
+		                 sizeof("write to unsupported stream") - 1);
 		return SZL_ERR;
 	}
 
 	if (strm->closed) {
-		szl_set_last_str(interp, "write to closed stream", -1);
+		szl_set_last_str(interp,
+		                 "write to closed stream",
+		                 sizeof("write to closed stream") - 1);
 		return SZL_ERR;
 	}
 
@@ -2420,7 +2433,9 @@ enum szl_res szl_stream_flush(struct szl_interp *interp,
 		return SZL_OK;
 
 	if (strm->closed) {
-		szl_set_last_str(interp, "flush of closed stream", -1);
+		szl_set_last_str(interp,
+		                 "flush of closed stream",
+		                 sizeof("flush of closed stream") - 1);
 		return SZL_ERR;
 	}
 
@@ -2466,12 +2481,16 @@ enum szl_res szl_stream_accept(struct szl_interp *interp,
 	struct szl_stream *cstrm;
 
 	if (!strm->ops->accept) {
-		szl_set_last_str(interp, "accept from unsupported stream", -1);
+		szl_set_last_str(interp,
+		                 "accept from unsupported stream",
+		                 sizeof("accept from unsupported stream") - 1);
 		return SZL_ERR;
 	}
 
 	if (strm->closed) {
-		szl_set_last_str(interp, "accept from closed stream", -1);
+		szl_set_last_str(interp,
+		                 "accept from closed stream",
+		                 sizeof("accept from closed stream") - 1);
 		return SZL_ERR;
 	}
 
@@ -2514,12 +2533,16 @@ enum szl_res szl_stream_unblock(struct szl_interp *interp,
 	enum szl_res res;
 
 	if (!strm->ops->unblock) {
-		szl_set_last_str(interp, "unblock on unsupported stream", -1);
+		szl_set_last_str(interp,
+		                 "unblock on unsupported stream",
+		                 sizeof("unblock on unsupported stream") - 1);
 		return SZL_ERR;
 	}
 
 	if (strm->closed) {
-		szl_set_last_str(interp, "unblock on closed stream", -1);
+		szl_set_last_str(interp,
+		                 "unblock on closed stream",
+		                 sizeof("unblock on closed stream") -1);
 		return SZL_ERR;
 	}
 
