@@ -201,6 +201,7 @@ struct szl_val {
 	struct {
 		struct szl_obj **items;
 		size_t len;
+		int sorted;
 	} l; /**< List value */
 	szl_int i; /**< Integer value */
 	szl_float f; /**< Floating-point value */
@@ -246,7 +247,6 @@ struct szl_obj {
 	uint32_t hash; /**< The object's string representation hash */
 	int hashed; /**< A flag set when the object is hashed and unset upon modification */
 	int ro; /**< A flag set when an object is marked as read-only */
-	int sorted; /**< A flag set when a dictionary is sorted */
 
 	enum szl_types types; /**< Available representations of the object */
 	struct szl_val val; /**< The object values */

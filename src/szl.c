@@ -256,6 +256,8 @@ int szl_str_to_list(struct szl_interp *interp, struct szl_val *val)
 	if (!val->s.len) {
 		val->l.items = NULL;
 		val->l.len = 0;
+		/* an empty dictionary is sorted */
+		val->l.sorted = 1;
 		return 1;
 	}
 
@@ -265,6 +267,7 @@ int szl_str_to_list(struct szl_interp *interp, struct szl_val *val)
 
 	ret = szl_split(interp, buf2, &val->l.items, &val->l.len);
 	free(buf2);
+	val->l.sorted = 0;
 	return ret;
 }
 
@@ -586,7 +589,6 @@ enum szl_res szl_bad_proc(struct szl_interp *interp,
 	obj->del = NULL;            \
 	obj->hashed = 0;            \
 	obj->ro = 0;                \
-	obj->sorted = 0;            \
 	obj->caller = NULL;         \
 	obj->locals = NULL;         \
 	obj->args = NULL
@@ -781,6 +783,7 @@ struct szl_obj *szl_new_list(struct szl_obj **objv, const size_t len)
 		return NULL;
 	}
 	obj->val.l.len = len;
+	obj->val.l.sorted = 0;
 
 	for (i = 0; i < len; ++i)
 		obj->val.l.items[i] = szl_ref(objv[i]);
@@ -1028,6 +1031,7 @@ int szl_list_append(struct szl_interp *interp,
 	items[list->val.l.len] = szl_ref(item);
 	++list->val.l.len;
 	list->val.l.items = items;
+	list->val.l.sorted = 0;
 
 	/* invalidate all other representations */
 	if (list->types & (1 << SZL_TYPE_STR))
@@ -1036,7 +1040,6 @@ int szl_list_append(struct szl_interp *interp,
 	list->types = 1 << SZL_TYPE_LIST;
 
 	list->hashed = 0;
-	list->sorted = 0;
 	return 1;
 }
 
@@ -1145,6 +1148,7 @@ int szl_list_extend(struct szl_interp *interp,
 
 	dest->val.l.items = di;
 	dest->val.l.len += slen;
+	dest->val.l.sorted = 0;
 
 	/* invalidate all other representations */
 	if (dest->types & (1 << SZL_TYPE_STR))
@@ -1281,15 +1285,15 @@ int szl_dict_get_key(struct szl_interp *interp,
 		return 0;
 
 	*pos = NULL;
-	if (len) {
-		if (!dict->sorted) {
+	if (szl_likely(len)) {
+		if (!dict->val.l.sorted) {
 			for (i = 0; i < len; i += 2) {
 				if (!szl_hash(interp, items[i], NULL))
 					return 0;
 			}
 
 			qsort(items, len / 2, sizeof(struct szl_obj *) * 2, szl_cmp);
-			dict->sorted = 1;
+			dict->val.l.sorted = 1;
 		}
 
 		p = k;
@@ -1357,8 +1361,9 @@ struct szl_obj *szl_copy_dict(struct szl_interp *interp, struct szl_obj *dict)
 		return NULL;
 
 	copy = szl_new_list(items, len);
+	/* if the copied dictionary is sorted, we don't want to sort it again */
 	if (copy)
-		copy->sorted = dict->sorted;
+		copy->val.l.sorted = dict->val.l.sorted;
 
 	return copy;
 }
