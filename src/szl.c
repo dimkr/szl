@@ -1265,6 +1265,7 @@ int szl_cmp(const void *p1, const void *p2)
 }
 
 __attribute__((nonnull(1, 2, 3, 4)))
+static
 int szl_dict_get_key(struct szl_interp *interp,
                      struct szl_obj *dict,
                      struct szl_obj *k,
