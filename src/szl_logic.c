@@ -178,7 +178,6 @@ enum szl_res szl_logic_proc_if(struct szl_interp *interp,
                                struct szl_obj **objv)
 {
 	char *s;
-	size_t len;
 	int b;
 
 	switch (objc) {
@@ -200,19 +199,11 @@ enum szl_res szl_logic_proc_if(struct szl_interp *interp,
 	if (!szl_as_bool(objv[1], &b))
 		return SZL_ERR;
 
-	if (b) {
-		if (!szl_as_str(interp, objv[2], &s, &len))
-			return SZL_ERR;
+	if (b)
+		return szl_run_obj(interp, objv[2]);
 
-		return szl_run(interp, s, len);
-	}
-
-	if (objc == 5) {
-		if (!szl_as_str(interp, objv[4], &s, &len))
-			return SZL_ERR;
-
-		return szl_run(interp, s, len);
-	}
+	if (objc == 5)
+		return szl_run_obj(interp, objv[4]);
 
 	return SZL_OK;
 }
@@ -222,7 +213,7 @@ enum szl_res szl_logic_proc_switch(struct szl_interp *interp,
                                    const unsigned int objc,
                                    struct szl_obj **objv)
 {
-	char *s, *exp;
+	char *s;
 	size_t len;
 	int i, eq;
 
@@ -241,12 +232,8 @@ enum szl_res szl_logic_proc_switch(struct szl_interp *interp,
 				eq = 1;
 		}
 
-		if (eq) {
-			if (!szl_as_str(interp, objv[i + 1], &exp, &len) || !len)
-				return SZL_ERR;
-
-			return szl_run(interp, exp, len);
-		}
+		if (eq)
+			return szl_run_obj(interp, objv[i + 1]);
 	}
 
 	return SZL_OK;

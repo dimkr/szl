@@ -31,9 +31,8 @@ enum szl_res szl_exc_proc_try(struct szl_interp *interp,
                               const unsigned int objc,
                               struct szl_obj **objv)
 {
-	struct szl_obj *obj;
-	char *s, *try = NULL, *except = NULL, *finally = NULL;
-	size_t tlen, elen = 0, flen;
+	struct szl_obj *obj, *except = NULL, *finally = NULL;
+	char *s;
 	enum szl_res res, eres = SZL_OK, fres;
 
 	switch (objc) {
@@ -42,8 +41,7 @@ enum szl_res szl_exc_proc_try(struct szl_interp *interp,
 			   (strcmp("finally", s) != 0))
 				return SZL_ERR;
 
-			if (!szl_as_str(interp, objv[5], &finally, &flen))
-				return SZL_ERR;
+			finally = objv[5];
 
 			/* fall through */
 
@@ -51,34 +49,24 @@ enum szl_res szl_exc_proc_try(struct szl_interp *interp,
 			if (!szl_as_str(interp, objv[2], &s, NULL))
 				return SZL_ERR;
 
-			if (strcmp("except", s) == 0) {
-				if (!szl_as_str(interp, objv[3], &except, &elen))
-					return SZL_ERR;
-
-				/* fall through */
-
-			}
-			else if (strcmp("finally", s) == 0) {
-				if (!szl_as_str(interp, objv[3], &finally, &flen))
-					return SZL_ERR;
-
-			} else
+			if (strcmp("except", s) == 0)
+				except = objv[3];
+			else if (strcmp("finally", s) == 0)
+				finally = objv[3];
+			else
 				return SZL_ERR;
 
 		case 2:
-			if (!szl_as_str(interp, objv[1], &try, &tlen))
-				return SZL_ERR;
-
 			break;
 
 		default:
 			return szl_set_last_help(interp, objv[0]);
 	}
 
-	res = szl_run(interp, try, tlen);
+	res = szl_run_obj(interp, objv[1]);
 	obj = szl_ref(interp->last);
-	if ((res == SZL_ERR) && elen) {
-		eres = szl_run(interp, except, elen);
+	if ((res == SZL_ERR) && except) {
+		eres = szl_run_obj(interp, except);
 		if (eres == SZL_ERR) {
 			szl_unref(obj);
 			obj = szl_ref(interp->last);
@@ -87,7 +75,7 @@ enum szl_res szl_exc_proc_try(struct szl_interp *interp,
 	}
 
 	if (finally) {
-		fres = szl_run(interp, finally, flen);
+		fres = szl_run_obj(interp, finally);
 		if (fres == SZL_EXIT)
 			res = SZL_EXIT;
 	}

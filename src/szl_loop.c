@@ -44,36 +44,26 @@ enum szl_res szl_loop_check(struct szl_interp *interp,
 static
 enum szl_res szl_loop_do_while(struct szl_interp *interp,
                                struct szl_obj *cond,
-                               const char *body,
-                               const size_t blen)
+                               struct szl_obj *body)
 {
-	struct szl_obj *stmts;
 	enum szl_res res;
 	int istrue;
 
-	stmts = szl_parse_stmts(interp, body, blen);
-	if (!stmts)
-		return SZL_ERR;
-
 	do {
 		res = szl_loop_check(interp, cond, &istrue);
-		if ((res != SZL_OK) || !istrue) {
-			szl_unref(stmts);
+		if ((res != SZL_OK) || !istrue)
 			return res;
-		}
 
 		/* we pass the block return value */
-		res = szl_run_stmts(interp, stmts);
+		res = szl_run_obj(interp, body);
 		switch (res) {
 			case SZL_ERR:
 			case SZL_EXIT:
 			case SZL_RET:
-				szl_unref(stmts);
 				return res;
 
 			/* do not propagate SZL_BREAK */
 			case SZL_BREAK:
-				szl_unref(stmts);
 				return SZL_OK;
 
 			default:
@@ -81,7 +71,6 @@ enum szl_res szl_loop_do_while(struct szl_interp *interp,
 		}
 	} while (1);
 
-	szl_unref(stmts);
 	return SZL_ERR;
 }
 
@@ -90,17 +79,13 @@ enum szl_res szl_loop_proc_while(struct szl_interp *interp,
                                  const unsigned int objc,
                                  struct szl_obj **objv)
 {
-	char *body;
-	size_t blen;
 	int istrue;
 	enum szl_res res;
 
-	if (!szl_as_str(interp, objv[2], &body, &blen))
-		return SZL_ERR;
 
 	res = szl_loop_check(interp, objv[1], &istrue);
 	if ((res == SZL_OK) && istrue)
-		res = szl_loop_do_while(interp, objv[1], body, blen);
+		res = szl_loop_do_while(interp, objv[1], objv[2]);
 
 	return res;
 }
@@ -110,8 +95,7 @@ enum szl_res szl_loop_proc_do(struct szl_interp *interp,
                               const unsigned int objc,
                               struct szl_obj **objv)
 {
-	char *s, *body;
-	size_t blen;
+	char *s;
 	enum szl_res res;
 
 	if (!szl_as_str(interp, objv[2], &s, NULL))
@@ -120,10 +104,7 @@ enum szl_res szl_loop_proc_do(struct szl_interp *interp,
 	if (strcmp(s, "while") != 0)
 		return szl_set_last_help(interp, objv[0]);
 
-	if (!szl_as_str(interp, objv[1], &body, &blen))
-		return SZL_ERR;
-
-	res = szl_loop_do_while(interp, objv[3], body, blen);
+	res = szl_loop_do_while(interp, objv[3], objv[1]);
 	return res;
 }
 
@@ -161,7 +142,7 @@ enum szl_res szl_loop_map(struct szl_interp *interp,
                            const int keep)
 {
 	char *exp;
-	struct szl_obj *body, **names, **toks, *obj = NULL;
+	struct szl_obj **names, **toks, *obj = NULL;
 	size_t elen, i, j, ntoks, nnames;
 	enum szl_res res;
 
@@ -179,19 +160,10 @@ enum szl_res szl_loop_map(struct szl_interp *interp,
 	if (!ntoks)
 		return SZL_OK;
 
-	if (!szl_as_str(interp, objv[3], &exp, &elen) || !elen)
-		return SZL_ERR;
-
-	body = szl_parse_stmts(interp, exp, elen);
-	if (!body)
-		return SZL_ERR;
-
 	if (keep) {
 		obj = szl_new_list(NULL, 0);
-		if (!obj) {
-			szl_unref(body);
+		if (!obj)
 			return SZL_ERR;
-		}
 	}
 
 	for (i = 0; i <= ntoks - nnames; i += nnames) {
@@ -199,12 +171,11 @@ enum szl_res szl_loop_map(struct szl_interp *interp,
 			if (!szl_set(interp, interp->current, names[j], toks[i + j])) {
 				if (obj)
 					szl_unref(obj);
-				szl_unref(body);
 				return SZL_ERR;
 			}
 		}
 
-		res = szl_run_stmts(interp, body);
+		res = szl_run_obj(interp, objv[3]);
 		if (res == SZL_CONT)
 			continue;
 
@@ -214,27 +185,22 @@ enum szl_res szl_loop_map(struct szl_interp *interp,
 		if (res == SZL_RET) {
 			if (obj)
 				szl_unref(obj);
-			szl_unref(body);
 			return SZL_RET;
 		}
 
 		if (res != SZL_OK) {
 			if (obj)
 				szl_unref(obj);
-			szl_unref(body);
 			return res;
 		}
 
 		if (obj) {
 			if (!szl_list_append(interp, obj, interp->last)) {
 				szl_unref(obj);
-				szl_unref(body);
 				return SZL_ERR;
 			}
 		}
 	}
-
-	szl_unref(body);
 
 	if (obj)
 		return szl_set_last(interp, obj);

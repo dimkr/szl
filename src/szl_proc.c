@@ -46,7 +46,7 @@ enum szl_res szl_proc_eval_proc(struct szl_interp *interp,
 	if (!szl_set_args(interp, interp->current, interp->current->args))
 		return SZL_ERR;
 
-	res = szl_run_stmts(interp, (struct szl_obj *)objv[0]->priv);
+	res = szl_run_obj(interp, (struct szl_obj *)objv[0]->priv);
 	return (res == SZL_RET) ? SZL_OK : res;
 }
 
@@ -61,16 +61,7 @@ enum szl_res szl_proc_proc_proc(struct szl_interp *interp,
                                 const unsigned int objc,
                                 struct szl_obj **objv)
 {
-	char *s;
-	struct szl_obj *proc, *stmts;
-	size_t len;
-
-	if (!szl_as_str(interp, objv[2], &s, &len))
-		return SZL_ERR;
-
-	stmts = szl_parse_stmts(interp, s, len);
-	if (!stmts)
-		return SZL_ERR;
+	struct szl_obj *proc;
 
 	proc = szl_new_proc(interp,
 	                    objv[1],
@@ -79,12 +70,11 @@ enum szl_res szl_proc_proc_proc(struct szl_interp *interp,
 	                    NULL,
 	                    szl_proc_eval_proc,
 	                    szl_proc_del,
-	                    stmts);
-	if (!proc) {
-		szl_unref(stmts);
+	                    objv[2]);
+	if (!proc)
 		return SZL_ERR;
-	}
 
+	szl_ref(objv[2]);
 	return szl_set_last(interp, proc);
 }
 

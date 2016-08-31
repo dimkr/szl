@@ -185,8 +185,11 @@ enum szl_types {
 	SZL_TYPE_INT    = 3, /**< Integer */
 	SZL_TYPE_FLOAT  = 4, /**< Floating-point number */
 
+	/* used internally during code evaluation */
+	SZL_TYPE_CODE   = 5, /**< Code block */
+
 	/* only used by szl_new_ext() */
-	SZL_TYPE_PROC   = 5 /**< Procedure */
+	SZL_TYPE_PROC   = 6 /**< Procedure */
 };
 
 /**
@@ -203,6 +206,7 @@ struct szl_val {
 		size_t len;
 		int sorted;
 	} l; /**< List value */
+	struct szl_obj *c;
 	szl_int i; /**< Integer value */
 	szl_float f; /**< Floating-point value */
 };
@@ -990,6 +994,8 @@ enum szl_res szl_run_stmts(struct szl_interp *interp, struct szl_obj *stmts);
 enum szl_res szl_run(struct szl_interp *interp,
                      const char *buf,
                      const size_t len);
+
+enum szl_res szl_run_obj(struct szl_interp *interp, struct szl_obj *obj);
 
 /**
  * @}

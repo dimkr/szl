@@ -61,6 +61,9 @@ void szl_unref(struct szl_obj *obj)
 			free(obj->val.l.items);
 		}
 
+		if (obj->types & (1 << SZL_TYPE_CODE))
+			szl_unref(obj->val.c);
+
 		if (obj->args)
 			szl_unref(obj->args);
 
@@ -292,6 +295,86 @@ int szl_str_to_float(struct szl_interp *interp, struct szl_val *val)
 }
 
 static
+int szl_str_to_code(struct szl_interp *interp, struct szl_val *val)
+{
+	struct szl_obj *stmt;
+	char *copy, *line, *next = NULL;
+	const char *fmt = NULL;
+	size_t i = 0;
+	int nbraces = 0, nbrackets = 0;
+
+	copy = (char *)strndup(val->s.buf, val->s.len);
+	if (!copy)
+		return 0;
+
+	val->c = szl_new_list(NULL, 0);
+	if (!val->c) {
+		free(copy);
+		return 0;
+	}
+
+	line = copy;
+	while (i < val->s.len) {
+		if (copy[i] == '{')
+			++nbraces;
+		else if (copy[i] == '}')
+			--nbraces;
+		else if (copy[i] == '[')
+			++nbrackets;
+		else if (copy[i] == ']')
+			--nbrackets;
+
+		if (i == val->s.len - 1) {
+			if (nbraces != 0)
+				fmt = "unbalanced {}: %s\n";
+			else if (nbrackets != 0)
+				fmt = "unbalanced []: %s\n";
+
+			if (fmt) {
+				szl_set_last_fmt(interp, fmt, val->s.buf);
+				szl_unref(val->c);
+				free(copy);
+				return 0;
+			}
+		}
+		else if ((copy[i] != '\n') || (nbraces != 0) || (nbrackets != 0)) {
+			++i;
+			continue;
+		}
+
+		if (copy[i] == '\n')
+			copy[i] = '\0';
+		next = &copy[i + 1];
+
+		/* if the line contains nothing but whitespace, skip it */
+		for (; szl_isspace(*line); ++line);
+		if (line[0] != '\0' && line[0] != SZL_COMMENT_PFIX) {
+			stmt = szl_new_str(line, next - line);
+			if (!stmt) {
+				szl_unref(val->c);
+				free(copy);
+				return 0;
+			}
+
+			if (!szl_list_append(interp, val->c, stmt)) {
+				szl_unref(stmt);
+				szl_unref(val->c);
+				free(copy);
+				return 0;
+			}
+
+			szl_unref(stmt);
+		}
+
+		line = next;
+		++i;
+	}
+
+	free(copy);
+	return 1;
+}
+
+static
 int szl_list_to_str(struct szl_interp *interp, struct szl_val *val)
 {
 	struct szl_obj *str;
@@ -339,6 +422,13 @@ int szl_list_to_float(struct szl_interp *interp, struct szl_val *val)
 }
 
 static
+int szl_list_to_code(struct szl_interp *interp, struct szl_val *val)
+{
+	val->c = szl_new_list(val->l.items, val->l.len);
+	return val->c ? 1 : 0;
+}
+
+static
 int szl_int_to_str(struct szl_interp *interp, struct szl_val *val)
 {
 	int len;
@@ -365,6 +455,15 @@ int szl_int_to_float(struct szl_interp *interp, struct szl_val *val)
 {
 	val->f = (szl_float)val->i;
 	return 1;
+}
+
+static
+int szl_int_to_code(struct szl_interp *interp, struct szl_val *val)
+{
+	if (!szl_int_to_str(interp, val))
+		return 0;
+
+	return szl_str_to_code(interp, val);
 }
 
 static
@@ -410,33 +509,46 @@ int szl_float_to_int(struct szl_interp *interp, struct szl_val *val)
 	return 1;
 }
 
+static
+int szl_float_to_code(struct szl_interp *interp, struct szl_val *val)
+{
+	if (!szl_float_to_str(interp, val))
+		return 0;
+
+	return szl_str_to_code(interp, val);
+}
+
 typedef int (*szl_cast_t)(struct szl_interp *, struct szl_val *);
 
 static
-const szl_cast_t szl_cast_table[4][4] = {
+const szl_cast_t szl_cast_table[5][5] = {
 	{ /* SZL_TYPE_STR */
 		szl_no_cast,
 		szl_str_to_list,
 		szl_str_to_int,
-		szl_str_to_float
+		szl_str_to_float,
+		szl_str_to_code
 	},
 	{ /* SZL_TYPE_LIST */
 		szl_list_to_str,
 		szl_no_cast,
 		szl_list_to_int,
-		szl_list_to_float
+		szl_list_to_float,
+		szl_list_to_code
 	},
 	{ /* SZL_TYPE_INT */
 		szl_int_to_str,
 		szl_int_to_list,
 		szl_no_cast,
-		szl_int_to_float
+		szl_int_to_float,
+		szl_int_to_code
 	},
 	{ /* SZL_TYPE_FLOAT */
 		szl_float_to_str,
 		szl_float_to_list,
 		szl_float_to_int,
-		szl_no_cast
+		szl_no_cast,
+		szl_float_to_code
 	}
 };
 
@@ -558,6 +670,18 @@ int szl_as_bool(struct szl_obj *obj, int *b)
 	}
 
 	return 0;
+}
+
+static
+int szl_as_code(struct szl_interp *interp,
+                struct szl_obj *obj,
+                struct szl_obj ***stmts,
+                size_t *len)
+{
+	if (!szl_cast(interp, obj, SZL_TYPE_CODE))
+		return 0;
+
+	return szl_as_list(interp, obj->val.c, stmts, len);
 }
 
 /*
@@ -1960,6 +2084,26 @@ enum szl_res szl_run(struct szl_interp *interp,
 
 	return res;
 }
+
+__attribute__((nonnull(1, 2)))
+enum szl_res szl_run_obj(struct szl_interp *interp, struct szl_obj *obj)
+{
+	struct szl_obj **stmts;
+	size_t len, i;
+	enum szl_res res = SZL_ERR;
+
+	if (!szl_as_code(interp, obj, &stmts, &len))
+		return SZL_ERR;
+
+	for (i = 0; i < len; ++i) {
+		res = szl_run_stmt(interp, stmts[i]);
+		if (res != SZL_OK)
+			break;
+	}
+
+	return res;
+}
+
 
 /*
  * extensions
