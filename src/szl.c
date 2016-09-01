@@ -1118,6 +1118,10 @@ int szl_str_append_str(struct szl_interp *interp,
 
 		free(dest->val.l.items);
 	}
+
+	if (dest->types & (1 << SZL_TYPE_CODE))
+		szl_unref(dest->val.c);
+
 	dest->types = 1 << SZL_TYPE_STR;
 
 	dest->hashed = 0;
@@ -1159,6 +1163,9 @@ int szl_list_append(struct szl_interp *interp,
 	/* invalidate all other representations */
 	if (list->types & (1 << SZL_TYPE_STR))
 		free(list->val.s.buf);
+
+	if (list->types & (1 << SZL_TYPE_CODE))
+		szl_unref(list->val.c);
 
 	list->types = 1 << SZL_TYPE_LIST;
 
@@ -1276,6 +1283,9 @@ int szl_list_extend(struct szl_interp *interp,
 	/* invalidate all other representations */
 	if (dest->types & (1 << SZL_TYPE_STR))
 		free(dest->val.s.buf);
+
+	if (dest->types & (1 << SZL_TYPE_CODE))
+		szl_unref(dest->val.c);
 
 	dest->types = 1 << SZL_TYPE_LIST;
 
@@ -2050,36 +2060,17 @@ enum szl_res szl_run_stmt(struct szl_interp *interp, struct szl_obj *stmt)
 }
 
 __attribute__((nonnull(1, 2)))
-enum szl_res szl_run_stmts(struct szl_interp *interp, struct szl_obj *stmts)
-{
-	struct szl_obj **items;
-	size_t len, i;
-	enum szl_res res;
-
-	if (!szl_as_list(interp, stmts, &items, &len) || !len)
-		return SZL_ERR;
-
-	for (i = 0; i < len; ++i) {
-		res = szl_run_stmt(interp, items[i]);
-		if (res != SZL_OK)
-			break;
-	}
-
-	return res;
-}
-
-__attribute__((nonnull(1, 2)))
 enum szl_res szl_run(struct szl_interp *interp,
                      const char *buf,
                      const size_t len)
 {
-	struct szl_obj *stmts;
+	struct szl_obj *obj;
 	enum szl_res res = SZL_ERR;
 
-	stmts = szl_parse_stmts(interp, buf, len);
-	if (stmts) {
-		res = szl_run_stmts(interp, stmts);
-		szl_unref(stmts);
+	obj = szl_new_str(buf, (ssize_t)len);
+	if (obj) {
+		res = szl_run_obj(interp, obj);
+		szl_unref(obj);
 	}
 
 	return res;

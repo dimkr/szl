@@ -42,8 +42,7 @@ enum szl_res szl_szl_proc(struct szl_interp *interp,
                           struct szl_obj **objv)
 {
 	struct szl_interp *interp2 = (struct szl_interp *)objv[0]->priv;
-	char *op, *s;
-	size_t len;
+	char *op;
 	enum szl_res res;
 
 	if (!szl_as_str(interp, objv[1], &op, NULL))
@@ -52,12 +51,8 @@ enum szl_res szl_szl_proc(struct szl_interp *interp,
 	if (strcmp("eval", op) != 0)
 		return szl_set_last_help(interp, objv[0]);
 
-	if (szl_as_str(interp, objv[2], &s, &len)) {
-		res = szl_run(interp2, s, len);
-		szl_set_last(interp, szl_ref(interp2->last));
-	}
-	else
-		res = SZL_ERR;
+	res = szl_run_obj(interp2, objv[2]);
+	szl_set_last(interp, szl_ref(interp2->last));
 
 	return res;
 }

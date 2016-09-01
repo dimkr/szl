@@ -955,30 +955,6 @@ enum szl_res szl_eval(struct szl_interp *interp, struct szl_obj *obj);
  */
 
 /**
- * @fn struct szl_obj *szl_parse_stmts(struct szl_interp *interp,
- *                                     const char *buf,
- *                                     const size_t len)
- * @brief Prepares a block for execution
- * @param interp [in,out] An interpreter
- * @param buf [in] The block
- * @param len [in] The block length
- * @return A new list object or NULL
- */
-struct szl_obj *szl_parse_stmts(struct szl_interp *interp,
-                                const char *buf,
-                                const size_t len);
-
-/**
- * @fn enum szl_res szl_run_stmts(struct szl_interp *interp,
- *                                struct szl_obj *stmts)
- * @brief Runs a block
- * @param interp [in,out] An interpreter
- * @param stmts [in] A parsed block
- * @return A member of @ref szl_res
- */
-enum szl_res szl_run_stmts(struct szl_interp *interp, struct szl_obj *stmts);
-
-/**
  * @fn enum enum szl_res szl_run(struct szl_interp *interp,
  *                               const char *buf,
  *                               const size_t len)
@@ -987,14 +963,21 @@ enum szl_res szl_run_stmts(struct szl_interp *interp, struct szl_obj *stmts);
  * @param buf [in] The snippet
  * @param len [in] The snippet length
  * @return A member of @ref szl_res
- * @note This function is a wrapper around @ref szl_parse_stmts
- *       @ref szl_run_stmts and should not be used when the snippet should run
- *       more than once
+ * @note This function should not be used when the snippet should run more than
+ *       once; use @ref szl_run_obj instead
  */
 enum szl_res szl_run(struct szl_interp *interp,
                      const char *buf,
                      const size_t len);
 
+/**
+ * @fn enum enum szl_res szl_run_obj(struct szl_interp *interp,
+ *                                   struct szl_obj *obj)
+ * @brief Runs a szl snippet contained in a string object
+ * @param interp [in,out] An interpreter
+ * @param obj [in,out] The snippet
+ * @return A member of @ref szl_res
+ */
 enum szl_res szl_run_obj(struct szl_interp *interp, struct szl_obj *obj);
 
 /**

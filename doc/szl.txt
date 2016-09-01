@@ -1309,21 +1309,24 @@ collected only upon termination of the interpreter.
 
 Type System
 ~~~~~~~~~~~
-Each +szl+ object may be represented internally using one or more of four
+Each +szl+ object may be represented internally using one or more of five
 types:
 
 1. String
 2. Integer
 3. Floating-point integer
 4. List
+5. Code
 
 Most +szl+ objects start their lifetime as strings. When a string is passed to a
 procedure that performs a numeric operation, a numeric representation is added
 to the passed object (i.e. so it has two representations, textual and numeric).
 
-In addition, a statement is represented as a list object. When a procedure is
-invoked more than once (e.g. inside a 'for' block), the list representation of
-the statement is preserved to eliminate parsing overhead, while the procedure
+In addition, each statement is represented as a list object and multiple
+statements (like the block passed to 'if') are represented as code objects,
+which are lists of statements. When a code block is invoked more than once (e.g.
+a loop body), its code representation and the list representation of each
+statement are preserved to eliminate parsing overhead, while the procedure
 call object is discarded to free its local objects.
 
 Objects are hashed during comparison or lookup of local objects (which is done

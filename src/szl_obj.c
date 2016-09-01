@@ -85,13 +85,7 @@ enum szl_res szl_obj_proc_eval(struct szl_interp *interp,
                                const unsigned int objc,
                                struct szl_obj **objv)
 {
-	char *s;
-	size_t len;
-
-	if (!szl_as_str(interp, objv[1], &s, &len) || !len)
-		return SZL_ERR;
-
-	return szl_run(interp, s, len);
+	return szl_run_obj(interp, objv[1]);
 }
 
 static
