@@ -7,3 +7,6 @@
 [submodule "src/lzfse"]
 	path = src/lzfse
 	url = https://github.com/lzfse/lzfse/
+[submodule "src/zstd"]
+	path = src/zstd
+	url = https://github.com/facebook/zstd/

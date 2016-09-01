@@ -141,9 +141,8 @@ enum szl_res szl_loop_map(struct szl_interp *interp,
                            struct szl_obj **objv,
                            const int keep)
 {
-	char *exp;
 	struct szl_obj **names, **toks, *obj = NULL;
-	size_t elen, i, j, ntoks, nnames;
+	size_t i, j, ntoks, nnames;
 	enum szl_res res;
 
 	if (!szl_as_list(interp, objv[1], &names, &nnames) || !nnames)

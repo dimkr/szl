@@ -952,6 +952,19 @@ https://github.com/lzfse/lzfse/[lzfse], a data compression library.
 +$lzfse.decompress+ 'str'::
 	Decompresses a buffer.
 
+zstd
+++++
+The 'zstd' extension is a +szl+ wrapper for
+https://github.com/facebook/zstd[Zstandard], a data compression library.
+
++$zstd.compress+ 'str ?level?'::
+	Compresses a buffer. Optionally, a compression level may be specified to
+	choose the desired speed vs. compression rate ratio.
+
++$zstd.decompress+ 'str ?size?'::
+	Decompresses a buffer. If the uncompressed data size is known, it should be
+	specified. Otherwise, the procedure attempts to guess it.
+
 Network
 ^^^^^^^
 tls

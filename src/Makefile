@@ -61,7 +61,7 @@ LIBSZL_DEPS =
 SZLSH_LIBS =
 
 STATIC_LIB = libszl.a
-STATIC_LIBS = $(STATIC_LIB) liblinenoise.a libed25519.a liblzfse.a
+STATIC_LIBS = $(STATIC_LIB) liblinenoise.a libed25519.a liblzfse.a libzstd.a
 SHARED_LIB = libszl.so
 PROGS = szlsh
 
@@ -81,6 +81,7 @@ ifeq ($(STATIC_ALL), 1)
 	STATIC_LINENOISE = 1
 	STATIC_ED25519 = 1
 	STATIC_LZFSE = 1
+	STATIC_ZSTD = 1
 	STATIC_SERVER = 1
 	STATIC_HTTP = 1
 else
@@ -155,6 +156,14 @@ ifeq ($(STATIC_LZFSE), 1)
 	LIBSZL_LIBS += -llzfse
 else
 	EXTERNAL_EXT_NAMES += lzfse
+endif
+
+ifeq ($(STATIC_ZSTD), 1)
+	BUILTIN_EXT_NAMES += zstd
+	LIBSZL_DEPS += libzstd.a
+	LIBSZL_LIBS += -lzstd
+else
+	EXTERNAL_EXT_NAMES += zstd
 endif
 
 ifeq ($(STATIC_SERVER), 1)
@@ -331,6 +340,26 @@ liblzfse.a: lzfse/src/lzfse_decode.o \
 
 szl_lzfse.so: szl_lzfse.o liblzfse.a $(SZL_LIB)
 	$(CC) -o $@ $< $(LDFLAGS) -shared $(EXT_LIBS) -llzfse
+
+
+zstd/lib/%.o: zstd/lib/%.c
+	$(CC) -c -o $@ $< $(CFLAGS) -Izstd/lib/common -Izstd/lib
+
+libzstd.a: zstd/lib/compress/huf_compress.o \
+           zstd/lib/compress/zstd_compress.o \
+           zstd/lib/compress/fse_compress.o \
+           zstd/lib/compress/zbuff_compress.o \
+           zstd/lib/common/zstd_common.o \
+           zstd/lib/common/fse_decompress.o \
+           zstd/lib/common/entropy_common.o \
+           zstd/lib/common/xxhash.o \
+           zstd/lib/decompress/zbuff_decompress.o \
+           zstd/lib/decompress/zstd_decompress.o \
+           zstd/lib/decompress/huf_decompress.o
+	$(AR) rcs $@ $^
+
+szl_zstd.so: szl_zstd.o libzstd.a $(SZL_LIB)
+	$(CC) -o $@ $< $(LDFLAGS) -shared $(EXT_LIBS) -lzstd
 
 install: all
 	$(INSTALL) -D -m 755 szlsh $(DESTDIR)/$(BIN_DIR)/szlsh
