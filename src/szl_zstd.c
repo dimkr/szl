@@ -47,7 +47,7 @@ enum szl_res szl_zstd_proc_compress(struct szl_interp *interp,
 	if ((objc == 3) &&
 		((!szl_as_int(interp, objv[2], &level)) ||
 		 (level < 0) ||
-		 (level > (szl_int)ZSTD_maxCLevel()) ||
+		 (level > (szl_int)(intptr_t)objv[0]->priv) ||
 		 (level > INT_MAX))) {
 		szl_set_last_fmt(interp, "bad zstd level: "SZL_INT_FMT, level);
 		return SZL_ERR;
@@ -125,28 +125,36 @@ enum szl_res szl_zstd_proc_decompress(struct szl_interp *interp,
 	return szl_set_last(interp, obj);
 }
 
-static
-const struct szl_ext_export zstd_exports[] = {
-	{
-		SZL_PROC_INIT("zstd.compress",
-		              "str ?level?",
-		              2,
-		              3,
-		              szl_zstd_proc_compress,
-		              NULL)
-	},
-	{
-		SZL_PROC_INIT("zstd.decompress",
-		              "str ?size?",
-		              2,
-		              3,
-		              szl_zstd_proc_decompress,
-		              NULL)
-	}
-};
-
 int szl_init_zstd(struct szl_interp *interp)
 {
+	static
+	struct szl_ext_export zstd_exports[] = {
+		{
+			SZL_PROC_INIT("zstd.compress",
+			              "str ?level?",
+			              2,
+			              3,
+			              szl_zstd_proc_compress,
+			              NULL)
+		},
+		{
+			SZL_PROC_INIT("zstd.decompress",
+			              "str ?size?",
+			              2,
+			              3,
+			              szl_zstd_proc_decompress,
+			              NULL)
+		},
+		{
+			SZL_INT_INIT("zstd.max", 0)
+		}
+	};
+	int max;
+
+	max = ZSTD_maxCLevel();
+	zstd_exports[0].val.proc.priv = (void *)(intptr_t)max;
+	zstd_exports[2].val.i = (szl_int)max;
+
 	return szl_new_ext(interp,
 	                   "zstd",
 	                   zstd_exports,

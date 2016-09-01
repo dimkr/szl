@@ -957,9 +957,12 @@ zstd
 The 'zstd' extension is a +szl+ wrapper for
 https://github.com/facebook/zstd[Zstandard], a data compression library.
 
++$zstd.max+::
+	The maximum 'Zstandard' compression level.
+
 +$zstd.compress+ 'str ?level?'::
-	Compresses a buffer. Optionally, a compression level may be specified to
-	choose the desired speed vs. compression rate ratio.
+	Compresses a buffer. Optionally, a compression level ('0' to '$zstd.max')
+	may be specified to choose the desired speed vs. compression rate ratio.
 
 +$zstd.decompress+ 'str ?size?'::
 	Decompresses a buffer. If the uncompressed data size is known, it should be
