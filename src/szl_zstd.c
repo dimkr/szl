@@ -33,8 +33,8 @@
 
 static
 enum szl_res szl_zstd_proc_compress(struct szl_interp *interp,
-	                                 const unsigned int objc,
-	                                 struct szl_obj **objv)
+	                                const unsigned int objc,
+	                                struct szl_obj **objv)
 {
 	struct szl_obj *obj;
 	char *in, *out;
@@ -76,13 +76,13 @@ enum szl_res szl_zstd_proc_compress(struct szl_interp *interp,
 
 static
 enum szl_res szl_zstd_proc_decompress(struct szl_interp *interp,
-	                                   const unsigned int objc,
-	                                   struct szl_obj **objv)
+	                                  const unsigned int objc,
+	                                  struct szl_obj **objv)
 {
 	struct szl_obj *obj;
 	char *in, *out;
-	unsigned long long blen;
 	szl_int klen;
+	unsigned long long blen;
 	size_t inlen, outlen;
 
 	if (!szl_as_str(interp, objv[1], &in, &inlen))
@@ -92,7 +92,7 @@ enum szl_res szl_zstd_proc_decompress(struct szl_interp *interp,
 		if (!szl_as_int(interp, objv[2], &klen))
 			return SZL_ERR;
 
-		if ((klen <= 0) || (klen > ULONG_LONG_MAX)) {
+		if ((klen <= 0) || (klen > ULONG_LONG_MAX) || (klen > SIZE_MAX)) {
 			szl_set_last_str(interp, "bad size: "SZL_INT_FMT, klen);
 			return SZL_ERR;
 		}
