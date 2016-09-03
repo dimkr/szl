@@ -126,6 +126,9 @@ prefix its name with '$'. For example, to call the 'puts' procedure:
 $puts hello
 --------------------------------------
 
+Since 'hello' is not prefixed with '$', a temporary object containing 'hello' is
+passed to 'puts'.
+
 To name a new object, use either 'local' or 'global'. For example, to create
 an object named 'number', with the value of '5':
 
@@ -186,8 +189,8 @@ Using Return Values
 To obtain the return value of a statement, wrap it with brackets. A statement
 enclosed in brackets is executed and replaced with its return value.
 
-For example, the following example executes '$+ 1 2.5' and stores '3.5' (the
-return value of '+') in 'sum':
+For example, the following example executes '$+ 1 2.5' and passes '3.5' (the
+return value of '+') to 'local', as its second argument:
 
 --------------------------------------
 $local sum [$+ 1 2.5]
@@ -265,7 +268,7 @@ $print_statement a b {c d} e f {g h}
 
 [NOTE]
 When accessed outside of a procedure, '@', '0', etc' specify the command-line
-arguments +szl+ was invoked with.
+arguments +szlsh+ was invoked with.
 
 The return value of a procedure is either:
 
