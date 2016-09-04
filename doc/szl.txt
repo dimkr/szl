@@ -795,21 +795,21 @@ once).
 
 [NOTE]
 Since writing operations on files may be buffered to improve efficiency, data
-passed to 'write' or 'writeln' is not guaranteed to be written to disk
+passed to 'write' or 'writeln' is not guaranteed to be written to the stream
 immediately. To flush queued data to disk, call 'flush'.
 
 +$stream+ 'flush'::
-	Flushes the output buffer of a file.
+	Flushes the output buffer of a stream.
 
 +$stream+ 'unblock'::
 	Enables non-blocking operation on a stream.
 
 +$stream+ 'handle'::
-	Returns an opaque value (an integer) that represents an open file, suitable
-	for 'poll'.
+	Returns an opaque value (an integer) that represents a stream, suitable for
+	'poll'.
 
 +$stream+ 'close'::
-	Closes a file.
+	Closes a stream.
 
 [NOTE]
 'close' is called automatically during garbage collection. In many cases, an
