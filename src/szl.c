@@ -868,11 +868,11 @@ struct szl_obj *fname(const ctype *buf, ssize_t len)           \
                                                                \
 	if (szl_likely(len > 0))                                   \
 		rlen = (size_t)len;                                    \
-	else {                                                     \
+	else                                                       \
 		rlen = lenproc(buf);                                   \
-		if (rlen > SSIZE_MAX)                                  \
-			return NULL;                                       \
-	}                                                          \
+                                                               \
+	if (rlen >= (SSIZE_MAX / sizeof(ctype)))                   \
+		return NULL;                                           \
                                                                \
 	obj = (struct szl_obj *)malloc(sizeof(*obj));              \
 	if (!obj)                                                  \
