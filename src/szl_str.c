@@ -25,6 +25,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <wchar.h>
+#include <errno.h>
 
 #include "szl.h"
 
@@ -35,9 +37,10 @@ enum szl_res szl_str_proc_length(struct szl_interp *interp,
                                  const unsigned int objc,
                                  struct szl_obj **objv)
 {
+	wchar_t *ws;
 	size_t len;
 
-	if (!szl_len(interp, objv[1], &len))
+	if (!szl_as_wstr(interp, objv[1], &ws, &len))
 		return SZL_ERR;
 
 	return szl_set_last_int(interp, (szl_int)len);
@@ -105,11 +108,11 @@ enum szl_res szl_str_proc_range(struct szl_interp *interp,
                                 const unsigned int objc,
                                 struct szl_obj **objv)
 {
-	char *s;
+	wchar_t *ws;
 	szl_int start, end;
 	size_t len;
 
-	if (!szl_as_str(interp, objv[1], &s, &len))
+	if (!szl_as_wstr(interp, objv[1], &ws, &len))
 		return SZL_ERR;
 
 	if (!szl_as_int(interp, objv[2], &start) ||
@@ -126,7 +129,7 @@ enum szl_res szl_str_proc_range(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	return szl_set_last_str(interp, s + start, end - start + 1);
+	return szl_set_last_wstr(interp, ws + start, end - start + 1);
 }
 
 static
@@ -134,18 +137,18 @@ enum szl_res szl_str_proc_tail(struct szl_interp *interp,
                                const unsigned int objc,
                                struct szl_obj **objv)
 {
-	char *s;
+	wchar_t *ws;
 	szl_int n = 1;
 	size_t len;
 
 	if (((objc == 3) && !szl_as_int(interp, objv[2], &n)) ||
 	    (n <= 0) ||
 	    (n >= SIZE_MAX) ||
-	    !szl_as_str(interp, objv[1], &s, &len) ||
+	    !szl_as_wstr(interp, objv[1], &ws, &len) ||
 	    (n > len))
 		return SZL_ERR;
 
-	return szl_set_last_str(interp, s + len - n, n);
+	return szl_set_last_wstr(interp, ws + len - n, n);
 }
 
 static
@@ -315,9 +318,7 @@ enum szl_res szl_str_proc_expand(struct szl_interp *interp,
 						s2[out] = ((s[i + 2] - 'A' + 10) << 4);
 					else {
 						free(s2);
-						szl_set_last_fmt(interp,
-						                   "bad hex digit: %c",
-						                   s[i + 2]);
+						szl_set_last_fmt(interp, "bad hex digit: %c", s[i + 2]);
 						return SZL_ERR;
 					}
 

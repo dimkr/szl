@@ -1332,14 +1332,17 @@ Each +szl+ object may be represented internally using one or more of five
 types:
 
 1. String
-2. Integer
-3. Floating-point integer
-4. List
-5. Code
+2. Wide-character string
+3. Integer
+4. Floating-point integer
+5. List
+6. Code
 
-Most +szl+ objects start their lifetime as strings. When a string is passed to a
-procedure that performs a numeric operation, a numeric representation is added
-to the passed object (i.e. so it has two representations, textual and numeric).
+Most +szl+ objects start their lifetime as 'UTF-8' strings. When a string is
+passed to a procedure that performs a numeric operation, a numeric
+representation is added to the passed object (i.e. so it has two
+representations, textual and numeric). During string operations which require
+character-based indexing (such as 'str.tail'), strings are decoded.
 
 In addition, each statement is represented as a list object and multiple
 statements (like the block passed to 'if') are represented as code objects,

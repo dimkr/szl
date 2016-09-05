@@ -35,6 +35,7 @@
 #	include <limits.h>
 #	include <stdarg.h>
 #	include <stdio.h>
+#	include <wchar.h>
 
 /**
  * @mainpage Welcome
@@ -181,15 +182,16 @@ typedef double szl_float;
 enum szl_types {
 	/* must correspond to szl_cast_table[][] */
 	SZL_TYPE_STR    = 1, /**< String */
-	SZL_TYPE_LIST   = 2, /**< List */
-	SZL_TYPE_INT    = 3, /**< Integer */
-	SZL_TYPE_FLOAT  = 4, /**< Floating-point number */
+	SZL_TYPE_WSTR   = 2, /**< Wide-character string; used by string procedures */
+	SZL_TYPE_LIST   = 3, /**< List */
+	SZL_TYPE_INT    = 4, /**< Integer */
+	SZL_TYPE_FLOAT  = 5, /**< Floating-point number */
 
 	/* used internally during code evaluation */
-	SZL_TYPE_CODE   = 5, /**< Code block */
+	SZL_TYPE_CODE   = 6, /**< Code block */
 
 	/* only used by szl_new_ext() */
-	SZL_TYPE_PROC   = 6 /**< Procedure */
+	SZL_TYPE_PROC   = 7 /**< Procedure */
 };
 
 /**
@@ -201,6 +203,10 @@ struct szl_val {
 		char *buf;
 		size_t len;
 	} s; /**< String value */
+	struct {
+		wchar_t *buf;
+		size_t len;
+	} ws; /**< Wide-character string value */
 	struct {
 		struct szl_obj **items;
 		size_t len;
@@ -339,6 +345,24 @@ int szl_as_str(struct szl_interp *interp,
                size_t *len);
 
 /**
+ * @fn int szl_as_wstr(struct szl_interp *interp,
+ *                     struct szl_obj *obj,
+ *                     wchar_t **ws,
+ *                     size_t *len)
+ * @brief Returns the wide-character string representation of an object
+ * @param interp [in,out] An interpreter
+ * @param obj [in,out] The object
+ * @param ws [out] The return value
+ * @param len [out] The string length or NULL if not needed
+ * @return A wide-character C string or NULL
+ */
+int szl_as_wstr(struct szl_interp *interp,
+                struct szl_obj *obj,
+                wchar_t **ws,
+                size_t *len);
+
+
+/**
  * @fn int szl_as_list(struct szl_interp *interp,
  *                     struct szl_obj *obj,
  *                     struct szl_obj ***items,
@@ -426,6 +450,16 @@ int szl_as_bool(struct szl_obj *obj, int *b);
  * @return A new reference to the created string object or NULL
  */
 struct szl_obj *szl_new_str(const char *buf, ssize_t len);
+
+/**
+ * @fn struct szl_obj *szl_new_wstr(const wchar_t *ws, ssize_t len)
+ * @brief Creates a new wide-character string object, by copying an existing C
+ *        string
+ * @param ws [in] The wide-character string
+ * @param len [in] The string length or -1 if unknown
+ * @return A new reference to the created wide-character string object or NULL
+ */
+struct szl_obj *szl_new_wstr(const wchar_t *ws, ssize_t len);
 
 /**
  * @fn struct szl_obj *szl_new_str_noalloc(char *buf, const size_t len)
@@ -881,6 +915,22 @@ enum szl_res szl_set_last_bool(struct szl_interp *interp, const int b);
 enum szl_res szl_set_last_str(struct szl_interp *interp,
                               const char *s,
                               const ssize_t len);
+
+/**
+ * @fn enum szl_res szl_set_last_wstr(struct szl_interp *interp,
+ *                                    const wchar_t *ws,
+ *                                    const ssize_t len);
+ * @brief Sets the return value of a procedure to a new wide-character string
+ *        object
+ * @param interp [in,out] An interpreter
+ * @param ws [in] The wide-character string
+ * @param len [in] The string length or -1
+ * @return SZL_OK or SZL_ERR
+ */
+enum szl_res szl_set_last_wstr(struct szl_interp *interp,
+                               const wchar_t *ws,
+                               const ssize_t len);
+
 
 /**
  * @fn enum szl_res szl_set_last_fmt(struct szl_interp *interp,
