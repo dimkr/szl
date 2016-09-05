@@ -278,32 +278,38 @@ int szl_str_to_list(struct szl_interp *interp, struct szl_val *val)
 	return ret;
 }
 
-static
-int szl_str_to_wstr(struct szl_interp *interp, struct szl_val *val)
-{
-	mbstate_t ps;
-	const char *p = val->s.buf;
-	size_t out, rem = val->s.len;
-
-	if (val->s.len >= (SIZE_MAX / sizeof(wchar_t)))
-		return 0;
-
-	val->ws.buf = (wchar_t *)malloc(sizeof(wchar_t) * (val->s.len + 1));
-	if (!val->ws.buf)
-		return 0;
-
-	memset(&ps, 0, sizeof(ps));
-	for (val->ws.len = 0; p && out; rem -= out, val->ws.len += out) {
-		out = mbsrtowcs(val->ws.buf + val->ws.len, &p, rem, &ps);
-		if ((out == (size_t)-1) || (out == (size_t)-2)) {
-			free(val->ws.buf);
-			szl_set_last_fmt(interp, "bad wstr: %s", val->s.buf);
-			return 0;
-		}
-	}
-
-	return 1;
+#define SZL_STR_CONV(fname, stype, intype, outtype, inmemb, outmemb, convproc) \
+static                                                                         \
+int fname(struct szl_interp *interp, struct szl_val *val)                      \
+{                                                                              \
+	mbstate_t ps;                                                              \
+	const intype *p = val->inmemb.buf;                                         \
+	size_t out, rem;                                                           \
+                                                                               \
+	if (val->inmemb.len >= (SIZE_MAX / sizeof(outtype)))                       \
+		return 0;                                                              \
+                                                                               \
+	val->outmemb.buf =                                                         \
+	               (outtype *)malloc(sizeof(outtype) * (val->inmemb.len + 1)); \
+	if (!val->outmemb.buf)                                                     \
+		return 0;                                                              \
+                                                                               \
+	memset(&ps, 0, sizeof(ps));                                                \
+	for (val->outmemb.len = 0, rem = val->inmemb.len * sizeof(intype);         \
+	     p && out;                                                             \
+	     rem -= out, val->outmemb.len += out) {                                \
+		out = convproc(val->outmemb.buf + val->outmemb.len, &p, rem, &ps);     \
+		if ((out == (size_t)-1) || (out == (size_t)-2)) {                      \
+			free(val->outmemb.buf);                                            \
+			szl_set_last_fmt(interp, "bad "stype": %s", val->inmemb.buf);      \
+			return 0;                                                          \
+		}                                                                      \
+	}                                                                          \
+                                                                               \
+	return 1;                                                                  \
 }
+
+SZL_STR_CONV(szl_str_to_wstr, "str", char, wchar_t, s, ws, mbsrtowcs)
 
 static
 int szl_str_to_int(struct szl_interp *interp, struct szl_val *val)
@@ -405,27 +411,7 @@ int szl_str_to_code(struct szl_interp *interp, struct szl_val *val)
 	return 1;
 }
 
-static
-int szl_wstr_to_str(struct szl_interp *interp, struct szl_val *val)
-{
-	mbstate_t ps;
-	const wchar_t *p = val->ws.buf;
-	size_t max = sizeof(wchar_t) * val->s.len;
-
-	val->s.buf = (char *)malloc(max + 1);
-	if (!val->s.buf)
-		return 0;
-
-	memset(&ps, 0, sizeof(ps));
-	val->s.len = wcsrtombs(val->s.buf, &p, max, &ps);
-	if ((val->s.len == (size_t)-1) || p) {
-		free(val->s.buf);
-		szl_set_last_fmt(interp, "bad str: %ls", val->ws.buf);
-		return 0;
-	}
-
-	return 1;
-}
+SZL_STR_CONV(szl_wstr_to_str, "wstr", wchar_t, char, ws, s, wcsrtombs)
 
 static
 int szl_wstr_to_list(struct szl_interp *interp, struct szl_val *val)
