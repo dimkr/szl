@@ -30,6 +30,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <wchar.h>
 
 #include "szl.h"
 #include "szl_conf.h"
@@ -53,6 +54,9 @@ void szl_unref(struct szl_obj *obj)
 	if (!--obj->refc) {
 		if (obj->types & (1 << SZL_TYPE_STR))
 			free(obj->val.s.buf);
+
+		if (obj->types & (1 << SZL_TYPE_WSTR))
+			free(obj->val.ws.buf);
 
 		if ((obj->types & (1 << SZL_TYPE_LIST)) && obj->val.l.len) {
 			for (i = 0; i < obj->val.l.len; ++i)
@@ -275,6 +279,33 @@ int szl_str_to_list(struct szl_interp *interp, struct szl_val *val)
 }
 
 static
+int szl_str_to_wstr(struct szl_interp *interp, struct szl_val *val)
+{
+	mbstate_t ps;
+	const char *p = val->s.buf;
+	size_t out, rem = val->s.len;
+
+	if (val->s.len >= (SIZE_MAX / sizeof(wchar_t)))
+		return 0;
+
+	val->ws.buf = (wchar_t *)malloc(sizeof(wchar_t) * (val->s.len + 1));
+	if (!val->ws.buf)
+		return 0;
+
+	memset(&ps, 0, sizeof(ps));
+	for (val->ws.len = 0; p && out; rem -= out, val->ws.len += out) {
+		out = mbsrtowcs(val->ws.buf + val->ws.len, &p, rem, &ps);
+		if ((out == (size_t)-1) || (out == (size_t)-2)) {
+			free(val->ws.buf);
+			szl_set_last_fmt(interp, "bad wstr: %s", val->s.buf);
+			return 0;
+		}
+	}
+
+	return 1;
+}
+
+static
 int szl_str_to_int(struct szl_interp *interp, struct szl_val *val)
 {
 	if (sscanf(val->s.buf, SZL_INT_SCANF_FMT, &val->i) == 1)
@@ -375,6 +406,64 @@ int szl_str_to_code(struct szl_interp *interp, struct szl_val *val)
 }
 
 static
+int szl_wstr_to_str(struct szl_interp *interp, struct szl_val *val)
+{
+	mbstate_t ps;
+	const wchar_t *p = val->ws.buf;
+	size_t max = sizeof(wchar_t) * val->s.len;
+
+	val->s.buf = (char *)malloc(max + 1);
+	if (!val->s.buf)
+		return 0;
+
+	memset(&ps, 0, sizeof(ps));
+	val->s.len = wcsrtombs(val->s.buf, &p, max, &ps);
+	if ((val->s.len == (size_t)-1) || p) {
+		free(val->s.buf);
+		szl_set_last_fmt(interp, "bad str: %ls", val->ws.buf);
+		return 0;
+	}
+
+	return 1;
+}
+
+static
+int szl_wstr_to_list(struct szl_interp *interp, struct szl_val *val)
+{
+	if (!szl_wstr_to_str(interp, val))
+		return 0;
+
+	return szl_str_to_list(interp, val);
+}
+
+static
+int szl_wstr_to_int(struct szl_interp *interp, struct szl_val *val)
+{
+	if (!szl_wstr_to_str(interp, val))
+		return 0;
+
+	return szl_str_to_int(interp, val);
+}
+
+static
+int szl_wstr_to_float(struct szl_interp *interp, struct szl_val *val)
+{
+	if (!szl_wstr_to_str(interp, val))
+		return 0;
+
+	return szl_str_to_float(interp, val);
+}
+
+static
+int szl_wstr_to_code(struct szl_interp *interp, struct szl_val *val)
+{
+	if (!szl_wstr_to_str(interp, val))
+		return 0;
+
+	return szl_str_to_code(interp, val);
+}
+
+static
 int szl_list_to_str(struct szl_interp *interp, struct szl_val *val)
 {
 	struct szl_obj *str;
@@ -391,6 +480,15 @@ int szl_list_to_str(struct szl_interp *interp, struct szl_val *val)
 	szl_unref(str);
 
 	return 1;
+}
+
+static
+int szl_list_to_wstr(struct szl_interp *interp, struct szl_val *val)
+{
+	if (!szl_list_to_str(interp, val))
+		return 0;
+
+	return szl_str_to_wstr(interp, val);
 }
 
 static
@@ -439,6 +537,15 @@ int szl_int_to_str(struct szl_interp *interp, struct szl_val *val)
 
 	val->s.len = (size_t)len;
 	return 1;
+}
+
+static
+int szl_int_to_wstr(struct szl_interp *interp, struct szl_val *val)
+{
+	if (!szl_int_to_str(interp, val))
+		return 0;
+
+	return szl_str_to_wstr(interp, val);
 }
 
 static
@@ -494,6 +601,15 @@ int szl_float_to_str(struct szl_interp *interp, struct szl_val *val)
 }
 
 static
+int szl_float_to_wstr(struct szl_interp *interp, struct szl_val *val)
+{
+	if (!szl_float_to_str(interp, val))
+		return 0;
+
+	return szl_str_to_wstr(interp, val);
+}
+
+static
 int szl_float_to_list(struct szl_interp *interp, struct szl_val *val)
 {
 	if (!szl_float_to_str(interp, val))
@@ -521,16 +637,26 @@ int szl_float_to_code(struct szl_interp *interp, struct szl_val *val)
 typedef int (*szl_cast_t)(struct szl_interp *, struct szl_val *);
 
 static
-const szl_cast_t szl_cast_table[5][5] = {
+const szl_cast_t szl_cast_table[6][6] = {
 	{ /* SZL_TYPE_STR */
 		szl_no_cast,
+		szl_str_to_wstr,
 		szl_str_to_list,
 		szl_str_to_int,
 		szl_str_to_float,
 		szl_str_to_code
 	},
+	{ /* SZL_TYPE_WSTR */
+		szl_wstr_to_str,
+		szl_no_cast,
+		szl_wstr_to_list,
+		szl_wstr_to_int,
+		szl_wstr_to_float,
+		szl_wstr_to_code
+	},
 	{ /* SZL_TYPE_LIST */
 		szl_list_to_str,
+		szl_list_to_wstr,
 		szl_no_cast,
 		szl_list_to_int,
 		szl_list_to_float,
@@ -538,6 +664,7 @@ const szl_cast_t szl_cast_table[5][5] = {
 	},
 	{ /* SZL_TYPE_INT */
 		szl_int_to_str,
+		szl_int_to_wstr,
 		szl_int_to_list,
 		szl_no_cast,
 		szl_int_to_float,
@@ -545,6 +672,7 @@ const szl_cast_t szl_cast_table[5][5] = {
 	},
 	{ /* SZL_TYPE_FLOAT */
 		szl_float_to_str,
+		szl_float_to_wstr,
 		szl_float_to_list,
 		szl_float_to_int,
 		szl_no_cast,
@@ -588,6 +716,21 @@ int szl_as_str(struct szl_interp *interp,
 	*buf = obj->val.s.buf;
 	if (len)
 		*len = obj->val.s.len;
+	return 1;
+}
+
+__attribute__((nonnull(1, 2, 3)))
+int szl_as_wstr(struct szl_interp *interp,
+                struct szl_obj *obj,
+                wchar_t **ws,
+                size_t *len)
+{
+	if (!szl_cast(interp, obj, SZL_TYPE_WSTR))
+		return 0;
+
+	*ws = obj->val.ws.buf;
+	if (len)
+		*len = obj->val.ws.len;
 	return 1;
 }
 
@@ -716,36 +859,41 @@ enum szl_res szl_bad_proc(struct szl_interp *interp,
 	obj->locals = NULL;         \
 	obj->args = NULL
 
-__attribute__((nonnull(1)))
-struct szl_obj *szl_new_str(const char *buf, ssize_t len)
-{
-	struct szl_obj *obj;
-	size_t rlen;
-
-	if (szl_likely(len > 0))
-		rlen = (size_t)len;
-	else {
-		rlen = strlen(buf);
-		if (rlen > SSIZE_MAX)
-			return NULL;
-	}
-
-	obj = (struct szl_obj *)malloc(sizeof(*obj));
-	if (!obj)
-		return obj;
-
-	obj->val.s.buf = (char *)malloc(rlen + 1);
-	if (!obj->val.s.buf) {
-		free(obj);
-		return NULL;
-	}
-	memcpy(obj->val.s.buf, buf, rlen);
-	obj->val.s.buf[rlen] = '\0';
-	obj->val.s.len = rlen;
-
-	SZL_OBJ_INIT(obj, SZL_TYPE_STR);
-	return obj;
+#define SZL_NEW_STR(fname, ctype, stype, memb, nullc, lenproc) \
+__attribute__((nonnull(1)))                                    \
+struct szl_obj *fname(const ctype *buf, ssize_t len)           \
+{                                                              \
+	struct szl_obj *obj;                                       \
+	size_t rlen, blen;                                         \
+                                                               \
+	if (szl_likely(len > 0))                                   \
+		rlen = (size_t)len;                                    \
+	else {                                                     \
+		rlen = lenproc(buf);                                   \
+		if (rlen > SSIZE_MAX)                                  \
+			return NULL;                                       \
+	}                                                          \
+                                                               \
+	obj = (struct szl_obj *)malloc(sizeof(*obj));              \
+	if (!obj)                                                  \
+		return obj;                                            \
+                                                               \
+	blen = sizeof(ctype) * rlen;                               \
+	obj->val.memb.buf = (ctype *)malloc(blen + sizeof(ctype)); \
+	if (!obj->val.memb.buf) {                                  \
+		free(obj);                                             \
+		return NULL;                                           \
+	}                                                          \
+	memcpy(obj->val.memb.buf, buf, blen);                      \
+	obj->val.memb.buf[rlen] = nullc;                           \
+	obj->val.memb.len = rlen;                                  \
+                                                               \
+	SZL_OBJ_INIT(obj, stype);                                  \
+	return obj;                                                \
 }
+
+SZL_NEW_STR(szl_new_str, char, SZL_TYPE_STR, s, '\0', strlen)
+SZL_NEW_STR(szl_new_wstr, wchar_t, SZL_TYPE_WSTR, ws, L'\0', wcslen)
 
 __attribute__((nonnull(1)))
 struct szl_obj *szl_new_str_noalloc(char *buf, const size_t len)
@@ -1112,6 +1260,9 @@ int szl_str_append_str(struct szl_interp *interp,
 	dest->val.s.len = nlen;
 
 	/* invalidate all other representations */
+	if (dest->types & (1 << SZL_TYPE_WSTR))
+		free(dest->val.ws.buf);
+
 	if (dest->types & (1 << SZL_TYPE_LIST)) {
 		for (i = 0; i < dest->val.l.len; ++i)
 			szl_unref(dest->val.l.items[i]);
@@ -1163,6 +1314,9 @@ int szl_list_append(struct szl_interp *interp,
 	/* invalidate all other representations */
 	if (list->types & (1 << SZL_TYPE_STR))
 		free(list->val.s.buf);
+
+	if (list->types & (1 << SZL_TYPE_WSTR))
+		free(list->val.ws.buf);
 
 	if (list->types & (1 << SZL_TYPE_CODE))
 		szl_unref(list->val.c);
@@ -1283,6 +1437,9 @@ int szl_list_extend(struct szl_interp *interp,
 	/* invalidate all other representations */
 	if (dest->types & (1 << SZL_TYPE_STR))
 		free(dest->val.s.buf);
+
+	if (dest->types & (1 << SZL_TYPE_WSTR))
+		free(dest->val.ws.buf);
 
 	if (dest->types & (1 << SZL_TYPE_CODE))
 		szl_unref(dest->val.c);
@@ -1737,8 +1894,21 @@ enum szl_res szl_set_last_str(struct szl_interp *interp,
 	if (!str)
 		return SZL_ERR;
 
-	szl_set_last(interp, str);
-	return SZL_OK;
+	return szl_set_last(interp, str);
+}
+
+__attribute__((nonnull(1, 2)))
+enum szl_res szl_set_last_wstr(struct szl_interp *interp,
+                               const wchar_t *ws,
+                               const ssize_t len)
+{
+	struct szl_obj *wstr;
+
+	wstr = szl_new_wstr(ws, len);
+	if (!wstr)
+		return SZL_ERR;
+
+	return szl_set_last(interp, wstr);
 }
 
 __attribute__((nonnull(1, 2)))

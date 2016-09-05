@@ -23,6 +23,7 @@
  */
 
 #include <stdlib.h>
+#include <locale.h>
 
 #include "szl.h"
 
@@ -36,6 +37,8 @@ int main(int argc, char *argv[])
 	enum szl_res res;
 	szl_int code;
 	int ret;
+
+	setlocale(LC_ALL, "");
 
 	interp = szl_new_interp(argc, argv);
 	if (!interp)
