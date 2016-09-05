@@ -859,67 +859,41 @@ enum szl_res szl_bad_proc(struct szl_interp *interp,
 	obj->locals = NULL;         \
 	obj->args = NULL
 
-__attribute__((nonnull(1)))
-struct szl_obj *szl_new_str(const char *buf, ssize_t len)
-{
-	struct szl_obj *obj;
-	size_t rlen;
-
-	if (szl_likely(len > 0))
-		rlen = (size_t)len;
-	else {
-		rlen = strlen(buf);
-		if (rlen > SSIZE_MAX)
-			return NULL;
-	}
-
-	obj = (struct szl_obj *)malloc(sizeof(*obj));
-	if (!obj)
-		return obj;
-
-	obj->val.s.buf = (char *)malloc(rlen + 1);
-	if (!obj->val.s.buf) {
-		free(obj);
-		return NULL;
-	}
-	memcpy(obj->val.s.buf, buf, rlen);
-	obj->val.s.buf[rlen] = '\0';
-	obj->val.s.len = rlen;
-
-	SZL_OBJ_INIT(obj, SZL_TYPE_STR);
-	return obj;
+#define SZL_NEW_STR(fname, ctype, stype, memb, nullc, lenproc) \
+__attribute__((nonnull(1)))                                    \
+struct szl_obj *fname(const ctype *buf, ssize_t len)           \
+{                                                              \
+	struct szl_obj *obj;                                       \
+	size_t rlen, blen;                                         \
+                                                               \
+	if (szl_likely(len > 0))                                   \
+		rlen = (size_t)len;                                    \
+	else {                                                     \
+		rlen = lenproc(buf);                                   \
+		if (rlen > SSIZE_MAX)                                  \
+			return NULL;                                       \
+	}                                                          \
+                                                               \
+	obj = (struct szl_obj *)malloc(sizeof(*obj));              \
+	if (!obj)                                                  \
+		return obj;                                            \
+                                                               \
+	blen = sizeof(ctype) * rlen;                               \
+	obj->val.memb.buf = (ctype *)malloc(blen + sizeof(ctype)); \
+	if (!obj->val.memb.buf) {                                  \
+		free(obj);                                             \
+		return NULL;                                           \
+	}                                                          \
+	memcpy(obj->val.memb.buf, buf, blen);                      \
+	obj->val.memb.buf[rlen] = nullc;                           \
+	obj->val.memb.len = rlen;                                  \
+                                                               \
+	SZL_OBJ_INIT(obj, stype);                                  \
+	return obj;                                                \
 }
 
-struct szl_obj *szl_new_wstr(const wchar_t *ws, ssize_t len)
-{
-	struct szl_obj *obj;
-	size_t rlen, blen;
-
-	if (szl_likely(len > 0))
-		rlen = (size_t)len;
-	else {
-		rlen = wcslen(ws);
-		if (rlen > SSIZE_MAX)
-			return NULL;
-	}
-
-	obj = (struct szl_obj *)malloc(sizeof(*obj));
-	if (!obj)
-		return obj;
-
-	blen = sizeof(wchar_t) * rlen;
-	obj->val.ws.buf = (wchar_t *)malloc(blen + sizeof(wchar_t));
-	if (!obj->val.ws.buf) {
-		free(obj);
-		return NULL;
-	}
-	memcpy(obj->val.ws.buf, ws, blen);
-	obj->val.ws.buf[rlen] = L'\0';
-	obj->val.ws.len = rlen;
-
-	SZL_OBJ_INIT(obj, SZL_TYPE_WSTR);
-	return obj;
-}
+SZL_NEW_STR(szl_new_str, char, SZL_TYPE_STR, s, '\0', strlen)
+SZL_NEW_STR(szl_new_wstr, wchar_t, SZL_TYPE_WSTR, ws, L'\0', wcslen)
 
 __attribute__((nonnull(1)))
 struct szl_obj *szl_new_str_noalloc(char *buf, const size_t len)
@@ -1923,6 +1897,7 @@ enum szl_res szl_set_last_str(struct szl_interp *interp,
 	return szl_set_last(interp, str);
 }
 
+__attribute__((nonnull(1, 2)))
 enum szl_res szl_set_last_wstr(struct szl_interp *interp,
                                const wchar_t *ws,
                                const ssize_t len)

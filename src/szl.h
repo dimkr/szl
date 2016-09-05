@@ -212,7 +212,7 @@ struct szl_val {
 		size_t len;
 		int sorted;
 	} l; /**< List value */
-	struct szl_obj *c;
+	struct szl_obj *c; /**< Code value */
 	szl_int i; /**< Integer value */
 	szl_float f; /**< Floating-point value */
 };
