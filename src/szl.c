@@ -289,8 +289,7 @@ int fname(struct szl_interp *interp, struct szl_val *val)                      \
 	if (val->inmemb.len >= (SIZE_MAX / sizeof(outtype)))                       \
 		return 0;                                                              \
                                                                                \
-	val->outmemb.buf =                                                         \
-	               (outtype *)malloc(sizeof(outtype) * (val->inmemb.len + 1)); \
+	val->outmemb.buf = malloc(sizeof(outtype) * (val->inmemb.len + 1));     \
 	if (!val->outmemb.buf)                                                     \
 		return 0;                                                              \
                                                                                \
@@ -860,12 +859,12 @@ struct szl_obj *fname(const ctype *buf, ssize_t len)           \
 	if (rlen >= (SSIZE_MAX / sizeof(ctype)))                   \
 		return NULL;                                           \
                                                                \
-	obj = (struct szl_obj *)malloc(sizeof(*obj));              \
+	obj = malloc(sizeof(*obj));              \
 	if (!obj)                                                  \
 		return obj;                                            \
                                                                \
 	blen = sizeof(ctype) * rlen;                               \
-	obj->val.memb.buf = (ctype *)malloc(blen + sizeof(ctype)); \
+	obj->val.memb.buf = malloc(blen + sizeof(ctype)); \
 	if (!obj->val.memb.buf) {                                  \
 		free(obj);                                             \
 		return NULL;                                           \
@@ -886,7 +885,7 @@ struct szl_obj *szl_new_str_noalloc(char *buf, const size_t len)
 {
 	struct szl_obj *obj;
 
-	obj = (struct szl_obj *)malloc(sizeof(*obj));
+	obj = malloc(sizeof(*obj));
 	if (!obj)
 		return obj;
 
@@ -993,7 +992,7 @@ struct szl_obj *szl_new_int_nocache(const szl_int i)
 {
 	struct szl_obj *obj;
 
-	obj = (struct szl_obj *)malloc(sizeof(*obj));
+	obj = malloc(sizeof(*obj));
 	if (obj) {
 		obj->val.i = i;
 		SZL_OBJ_INIT(obj, SZL_TYPE_INT);
@@ -1015,7 +1014,7 @@ struct szl_obj *szl_new_float(const szl_float f)
 {
 	struct szl_obj *obj;
 
-	obj = (struct szl_obj *)malloc(sizeof(*obj));
+	obj = malloc(sizeof(*obj));
 	if (obj) {
 		obj->val.f = f;
 		SZL_OBJ_INIT(obj, SZL_TYPE_FLOAT);
@@ -1029,12 +1028,11 @@ struct szl_obj *szl_new_list(struct szl_obj **objv, const size_t len)
 	struct szl_obj *obj;
 	size_t i;
 
-	obj = (struct szl_obj *)malloc(sizeof(*obj));
+	obj = malloc(sizeof(*obj));
 	if (!obj)
 		return obj;
 
-	obj->val.l.items = (struct szl_obj **)malloc(
-	                                            sizeof(struct szl_obj *) * len);
+	obj->val.l.items = malloc(sizeof(struct szl_obj *) * len);
 	if (!obj->val.l.items) {
 		free(obj);
 		return NULL;
@@ -1661,7 +1659,7 @@ struct szl_interp *szl_new_interp(int argc, char *argv[])
 	struct szl_interp *interp;
 	szl_int i;
 
-	interp = (struct szl_interp *)malloc(sizeof(*interp));
+	interp = malloc(sizeof(*interp));
 	if (!interp)
 		return interp;
 
@@ -2432,7 +2430,7 @@ enum szl_res szl_source(struct szl_interp *interp, const char *path)
 		return SZL_ERR;
 	}
 
-	buf = (char *)malloc(stbuf.st_size + 1);
+	buf = malloc(stbuf.st_size + 1);
 	if (!buf) {
 		close(fd);
 		return SZL_ERR;
@@ -2478,7 +2476,7 @@ enum szl_res szl_stream_read(struct szl_interp *interp,
 	if (strm->closed)
 		return SZL_OK;
 
-	buf = (unsigned char *)malloc(len + 1);
+	buf = malloc(len + 1);
 	if (!buf)
 		return SZL_ERR;
 
@@ -2537,7 +2535,7 @@ enum szl_res szl_stream_read_all(struct szl_interp *interp,
 			return SZL_OK;
 	}
 
-	buf = (unsigned char *)malloc(len + 1);
+	buf = malloc(len + 1);
 	if (!buf)
 		return SZL_ERR;
 
@@ -2610,7 +2608,7 @@ enum szl_res szl_stream_readln(struct szl_interp *interp,
 	if (strm->closed)
 		return SZL_OK;
 
-	buf = (unsigned char *)malloc(buflen + 1);
+	buf = malloc(buflen + 1);
 	if (!buf)
 		return SZL_ERR;
 
@@ -2701,7 +2699,7 @@ enum szl_res szl_stream_writeln(struct szl_interp *interp,
 		res = szl_stream_write(interp, strm, (unsigned char *)"\n", 1);
 	else if (buf[len - 1] != '\n') {
 		mlen = len + 1;
-		buf2 = (unsigned char *)malloc(mlen);
+		buf2 = malloc(mlen);
 		if (!buf2)
 			return SZL_ERR;
 
