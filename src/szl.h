@@ -258,7 +258,7 @@ struct szl_obj {
 	int hashed; /**< A flag set when the object is hashed and unset upon modification */
 	int ro; /**< A flag set when an object is marked as read-only */
 
-	enum szl_types types; /**< Available representations of the object */
+	unsigned int types; /**< Available representations of the object */
 	struct szl_val val; /**< The object values */
 
 	void *priv; /**< Private data used by @ref proc and freed by @ref del */

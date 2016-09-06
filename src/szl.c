@@ -667,9 +667,11 @@ const szl_cast_t szl_cast_table[6][6] = {
 };
 
 static
-int szl_cast(struct szl_interp *interp, struct szl_obj *obj, const int type)
+int szl_cast(struct szl_interp *interp,
+             struct szl_obj *obj,
+             const unsigned int type)
 {
-	int i, mask;
+	unsigned int i, mask;
 
 	if (obj->types & (1 << type))
 		return 1;
@@ -2413,7 +2415,8 @@ enum szl_res szl_source(struct szl_interp *interp, const char *path)
 	struct szl_obj *current = interp->current;
 	char *buf;
 	ssize_t len;
-	int fd, res;
+	int fd;
+	enum szl_res res;
 
 	fd = open(path, O_RDONLY);
 	if (fd < 0) {
@@ -2427,7 +2430,7 @@ enum szl_res szl_source(struct szl_interp *interp, const char *path)
 		return SZL_ERR;
 	}
 
-	if (stbuf.st_size == SIZE_MAX) {
+	if (stbuf.st_size == (off_t)SIZE_MAX) {
 		close(fd);
 		return SZL_ERR;
 	}
@@ -2670,7 +2673,7 @@ enum szl_res szl_stream_write(struct szl_interp *interp,
 	}
 
 	out = 0;
-	while (out < len) {
+	while ((size_t)out < len) {
 		chunk = strm->ops->write(interp, strm->priv, buf + out, len - out);
 		if (chunk < 0)
 			return SZL_ERR;
@@ -2681,7 +2684,7 @@ enum szl_res szl_stream_write(struct szl_interp *interp,
 		out += chunk;
 	}
 
-	if (strm->blocking && (out != len))
+	if (strm->blocking && ((size_t)out != len))
 		return SZL_ERR;
 
 	return szl_set_last_int(interp, (szl_int)out);
