@@ -51,7 +51,7 @@ $proc szl.shell {
 				$export exp
 			} else {
 				$local exp [$stdin readln]
-				$if [$== [$str.length $exp] 0] {$break}
+				$if [$== [$byte.len $exp] 0] {$break}
 
 				$while {[$|| [$!= [$str.count $exp $obrace] [$str.count $exp $cbrace]] [$!= [$str.count $exp $obracket] [$str.count $exp $cbracket]]]} {
 					$str.append $exp [$stdin readln]
@@ -64,7 +64,7 @@ $proc szl.shell {
 				$try {
 					$interp eval $exp
 					$local out $_
-					$if [$str.length $out] {$puts $out}
+					$if [$byte.len $out] {$puts $out}
 				} except {
 					$local out $_
 					$stdout write {[error] }

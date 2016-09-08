@@ -208,7 +208,7 @@ Both braces and brackets may be nested, to call multiple procedures in the same
 line:
 
 --------------------------------------
-$local sum [$- [$str.length {hello world}] 3]
+$local sum [$- [$str.len {hello world}] 3]
 --------------------------------------
 
 Special Characters
@@ -367,7 +367,13 @@ within the procedure will refer to the local one.
 
 String Operations
 +++++++++++++++++
-+$str.length+ 'str'::
+
+[WARNING]
+Internally, +szl+ stores all strings in 'UTF-8' encoding and all string
+procedures (e.g. 'str.len') are character-, rather than byte-oriented. Use
+byte-oriented procedures (e.g. 'byte.range') when working with binary data.
+
++$str.len+ 'str'::
 	Returns the length of a string.
 
 +$str.count+ 'str sub'::
@@ -410,7 +416,7 @@ $puts [$str.expand {this is a\n\tmulti-line strin\x67}]
 	values.
 
 --------------------------------------
-$puts [$str.format {the length of "{}" is {}} abcd [$str.length abcd]]
+$puts [$str.format {the length of "{}" is {}} abcd [$str.len abcd]]
 --------------------------------------
 
 +$str.rtrim+ 'str'::
@@ -422,8 +428,16 @@ $puts [$str.format {the length of "{}" is {}} abcd [$str.length abcd]]
 +$str.trim+ 'str'::
 	Removes whitespace at both ends of a string.
 
-+$str.ord+ 'str'::
-	Returns the integer value of each character of a string.
+Byte Operations
++++++++++++++++
++$byte.len+ 'buf'::
+	Returns the size of a string, in bytes.
+
++$byte.range+ 'buf start end'::
+	Returns the bytes in a buffer, between zero-based indices 'start' and 'end'.
+
++$byte.ord+ 'buf'::
+	Returns the integer value of each byte of a buffer.
 
 List Operations
 +++++++++++++++
@@ -1231,7 +1245,7 @@ Every action has its pleasures and its price.
    to save the return value of a statement if you don't need it.
 4. Avoid redundant statements, like 'return [foo]' instead of 'foo' at the end
    of a procedure. The extra procedure call ('return') is a waste of time.
-5. When checking if a string is empty, avoid '$if [$> [$str.length $foo] 0]' and
+5. When checking if a string is empty, avoid '$if [$> [$str.len $foo] 0]' and
    prefer '$if $foo'. The truth value of empty strings is false, so this saves
    two procedure calls.
 6. Whenever possible, use local variables ('local') instead of globals

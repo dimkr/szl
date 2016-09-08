@@ -32,19 +32,23 @@
 
 #define SZL_FORMAT_SEQ "{}"
 
-static
-enum szl_res szl_str_proc_length(struct szl_interp *interp,
-                                 const unsigned int objc,
-                                 struct szl_obj **objv)
-{
-	wchar_t *ws;
-	size_t len;
-
-	if (!szl_as_wstr(interp, objv[1], &ws, &len))
-		return SZL_ERR;
-
-	return szl_set_last_int(interp, (szl_int)len);
+#define SZL_STR_LEN(fname, castproc, ctype)        \
+static                                             \
+enum szl_res fname(struct szl_interp *interp,      \
+                   const unsigned int objc,        \
+                   struct szl_obj **objv)          \
+{                                                  \
+	ctype *buf;                                    \
+	size_t len;                                    \
+                                                   \
+	if (!castproc(interp, objv[1], &buf, &len))    \
+		return SZL_ERR;                            \
+                                                   \
+	return szl_set_last_int(interp, (szl_int)len); \
 }
+
+SZL_STR_LEN(szl_str_proc_length, szl_as_wstr, wchar_t)
+SZL_STR_LEN(szl_byte_proc_length, szl_as_str, char)
 
 static
 enum szl_res szl_str_proc_in(struct szl_interp *interp,
@@ -103,34 +107,36 @@ enum szl_res szl_str_proc_count(struct szl_interp *interp,
 	return szl_set_last_int(interp, n);
 }
 
-static
-enum szl_res szl_str_proc_range(struct szl_interp *interp,
-                                const unsigned int objc,
-                                struct szl_obj **objv)
-{
-	wchar_t *ws;
-	szl_int start, end;
-	size_t len;
-
-	if (!szl_as_wstr(interp, objv[1], &ws, &len))
-		return SZL_ERR;
-
-	if (!szl_as_int(interp, objv[2], &start) ||
-	    !szl_as_int(interp, objv[3], &end))
-		return SZL_ERR;
-
-	if ((start < 0) || (start >= len)) {
-		szl_set_last_fmt(interp, "bad start: "SZL_INT_FMT, start);
-		return SZL_ERR;
-	}
-
-	if ((end < start) || (end >= len)) {
-		szl_set_last_fmt(interp, "bad end: "SZL_INT_FMT, end);
-		return SZL_ERR;
-	}
-
-	return szl_set_last_wstr(interp, ws + start, end - start + 1);
+#define SZL_STR_RANGE(fname, ctype, castproc, lastproc)            \
+static                                                             \
+enum szl_res fname(struct szl_interp *interp,                      \
+                   const unsigned int objc,                        \
+                   struct szl_obj **objv)                          \
+{                                                                  \
+	ctype *buf;                                                    \
+	szl_int start, end;                                            \
+	size_t len;                                                    \
+                                                                   \
+	if (!castproc(interp, objv[1], &buf, &len) ||                  \
+	    !szl_as_int(interp, objv[2], &start) ||                    \
+	    !szl_as_int(interp, objv[3], &end))                        \
+		return SZL_ERR;                                            \
+                                                                   \
+	if ((start < 0) || (start >= len)) {                           \
+		szl_set_last_fmt(interp, "bad start: "SZL_INT_FMT, start); \
+		return SZL_ERR;                                            \
+	}                                                              \
+                                                                   \
+	if ((end < start) || (end >= len)) {                           \
+		szl_set_last_fmt(interp, "bad end: "SZL_INT_FMT, end);     \
+		return SZL_ERR;                                            \
+	}                                                              \
+                                                                   \
+	return lastproc(interp, buf + start, end - start + 1);         \
 }
+
+SZL_STR_RANGE(szl_str_proc_range, wchar_t, szl_as_wstr, szl_set_last_wstr)
+SZL_STR_RANGE(szl_byte_proc_range, char, szl_as_str, szl_set_last_str)
 
 static
 enum szl_res szl_str_proc_tail(struct szl_interp *interp,
@@ -487,9 +493,9 @@ enum szl_res szl_str_proc_trim(struct szl_interp *interp,
 }
 
 static
-enum szl_res szl_str_proc_ord(struct szl_interp *interp,
-                              const unsigned int objc,
-                              struct szl_obj **objv)
+enum szl_res szl_byte_proc_ord(struct szl_interp *interp,
+                               const unsigned int objc,
+                               struct szl_obj **objv)
 {
 	struct szl_obj *list;
 	char *s;
@@ -515,7 +521,10 @@ enum szl_res szl_str_proc_ord(struct szl_interp *interp,
 static
 const struct szl_ext_export str_exports[] = {
 	{
-		SZL_PROC_INIT("str.length", "str", 2, 2, szl_str_proc_length, NULL)
+		SZL_PROC_INIT("str.len", "str", 2, 2, szl_str_proc_length, NULL)
+	},
+	{
+		SZL_PROC_INIT("byte.len", "buf", 2, 2, szl_byte_proc_length, NULL)
 	},
 	{
 		SZL_PROC_INIT("str.in", "str sub", 3, 3, szl_str_proc_in, NULL)
@@ -529,6 +538,14 @@ const struct szl_ext_export str_exports[] = {
 		              4,
 		              4,
 		              szl_str_proc_range,
+		              NULL)
+	},
+	{
+		SZL_PROC_INIT("byte.range",
+		              "buf start end",
+		              4,
+		              4,
+		              szl_byte_proc_range,
 		              NULL)
 	},
 	{
@@ -569,8 +586,8 @@ const struct szl_ext_export str_exports[] = {
 		SZL_PROC_INIT("str.trim", "str", 2, 2, szl_str_proc_trim, NULL)
 	},
 	{
-		SZL_PROC_INIT("str.ord", "str", 2, 2, szl_str_proc_ord, NULL)
-	},
+		SZL_PROC_INIT("byte.ord", "buf", 2, 2, szl_byte_proc_ord, NULL)
+	}
 };
 
 int szl_init_str(struct szl_interp *interp)

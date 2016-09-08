@@ -180,13 +180,13 @@ $proc server.tcp {
 
 			$if $response {
 				$try {
-					$local response_length [$str.length $response]
+					$local response_length [$byte.len $response]
 					$local sent [$client_socket write $response]
 
 					$if [$== $response_length $sent] {
 						$list.append $close_handles $write_handle
 					} else {
-						$local remaining [str.range $response $sent [$- $response_length 1]]
+						$local remaining [$byte.range $response $sent [$- $response_length 1]]
 						$dict.set $responses $client_socket $remaining
 						$if [$! $remaining] {
 							$list.append $close_handles $write_handle

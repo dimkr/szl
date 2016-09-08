@@ -96,7 +96,7 @@ $proc http.get {
 
 $proc http.post {
 	$local cont [$zlib.gzip [$list.join & [$map {k v} $5 {$str.format {{}={}} $k [$curl.encode $v]}]] 9]
-	$http.request $1 $2 $3 [$str.format $http.post_fmt $4 $1 [$str.length $cont] $cont]
+	$http.request $1 $2 $3 [$str.format $http.post_fmt $4 $1 [$byte.len $cont] $cont]
 }
 
 $global index_name index.html
@@ -155,12 +155,12 @@ $proc http.respond {
 			$export status_text $body
 		}
 
-		$local len [$str.length $body]
+		$local len [$byte.len $body]
 		$local cbody $body
 
 		$local binary 0
 		$if [$> $len 8] {
-			$for o [$str.ord [$str.range $body 0 7]] {
+			$for o [$byte.ord [$byte.range $body 0 7]] {
 				$if [$|| [$< $o 0] [$> $o 127]] {$export binary 1}
 				$export binary
 				$if $binary {$break}
@@ -174,7 +174,7 @@ $proc http.respond {
 
 		$local headers [$dict.new Server $http.banner Connection close]
 
-		$local clen [$str.length $cbody]
+		$local clen [$byte.len $cbody]
 		$if [$< $clen $len] {
 			$dict.set $headers {Content-Encoding} gzip
 			$export body $cbody
