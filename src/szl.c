@@ -278,7 +278,14 @@ int szl_str_to_list(struct szl_interp *interp, struct szl_val *val)
 	return ret;
 }
 
-#define SZL_STR_CONV(fname, stype, intype, outtype, inmemb, outmemb, convproc) \
+#define SZL_STR_CONV(fname,                                                    \
+                     stype,                                                    \
+                     intype,                                                   \
+                     outtype,                                                  \
+                     inmemb,                                                   \
+                     outmemb,                                                  \
+                     convproc,                                                 \
+                     nullc)                                                    \
 static                                                                         \
 int fname(struct szl_interp *interp, struct szl_val *val)                      \
 {                                                                              \
@@ -295,21 +302,29 @@ int fname(struct szl_interp *interp, struct szl_val *val)                      \
 		return 0;                                                              \
                                                                                \
 	memset(&ps, 0, sizeof(ps));                                                \
-	for (val->outmemb.len = 0, rem = val->inmemb.len * sizeof(intype);         \
-	     p && out;                                                             \
-	     rem -= out, val->outmemb.len += out) {                                \
+	val->outmemb.len = 0;                                                      \
+	rem = val->inmemb.len * sizeof(intype);                                    \
+                                                                               \
+	do {                                                                       \
 		out = convproc(val->outmemb.buf + val->outmemb.len, &p, rem, &ps);     \
 		if ((out == (size_t)-1) || (out == (size_t)-2)) {                      \
 			free(val->outmemb.buf);                                            \
 			szl_set_last_fmt(interp, "bad "stype": %s", val->inmemb.buf);      \
 			return 0;                                                          \
 		}                                                                      \
-	}                                                                          \
                                                                                \
+		if (!p || !out)                                                        \
+			break;                                                             \
+                                                                               \
+		rem -= out;                                                            \
+		val->outmemb.len += out;                                               \
+	} while (1);                                                               \
+                                                                               \
+	val->outmemb.buf[val->outmemb.len] = nullc;                                \
 	return 1;                                                                  \
 }
 
-SZL_STR_CONV(szl_str_to_wstr, "str", char, wchar_t, s, ws, mbsrtowcs)
+SZL_STR_CONV(szl_str_to_wstr, "str", char, wchar_t, s, ws, mbsrtowcs, L'\0')
 
 static
 int szl_str_to_int(struct szl_interp *interp, struct szl_val *val)
@@ -411,7 +426,7 @@ int szl_str_to_code(struct szl_interp *interp, struct szl_val *val)
 	return 1;
 }
 
-SZL_STR_CONV(szl_wstr_to_str, "wstr", wchar_t, char, ws, s, wcsrtombs)
+SZL_STR_CONV(szl_wstr_to_str, "wstr", wchar_t, char, ws, s, wcsrtombs, L'\0')
 
 static
 int szl_wstr_to_list(struct szl_interp *interp, struct szl_val *val)
