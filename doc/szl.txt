@@ -383,6 +383,10 @@ byte-oriented procedures (e.g. 'byte.range') when working with binary data.
 	Returns the characters in a string, between zero-based indices 'start' and
 	'end'.
 
++$str.find+ 'str sub ?start?'::
+	Returns the zero-based index of the first of occurence of 'sub' in 'str',
+	between offset 'start' and the end of 'str'.
+
 +$str.in+ 'str sub'::
 	Returns '1' if 'sub' is a substring of 'str', otherwise '0'.
 

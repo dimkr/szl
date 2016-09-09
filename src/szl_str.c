@@ -51,6 +51,46 @@ SZL_STR_LEN(szl_str_proc_length, szl_as_wstr, wchar_t)
 SZL_STR_LEN(szl_byte_proc_length, szl_as_str, char)
 
 static
+enum szl_res szl_str_proc_find(struct szl_interp *interp,
+                               const unsigned int objc,
+                               struct szl_obj **objv)
+{
+	char *s, *sub, *pos = NULL;
+	szl_int start = 0;
+	size_t len, slen;
+
+	if (!szl_as_str(interp, objv[1], &s, &len) ||
+	    !szl_as_str(interp, objv[2], &sub, &slen))
+		return SZL_ERR;
+
+	if (!slen) {
+		szl_set_last_str(interp, "empty substr", sizeof("empty substr") - 1);
+		return SZL_ERR;
+	}
+
+	if (len) {
+		if (objc == 4) {
+			if (!szl_as_int(interp, objv[3], &start))
+				return SZL_ERR;
+
+			if ((start < 0) || (start >= len)) {
+				szl_set_last_fmt(interp, "bad start: "SZL_INT_FMT, start);
+				return SZL_ERR;
+			}
+		}
+
+		pos = strstr(s + start, sub);
+	}
+
+	if (!pos) {
+		szl_set_last_str(interp, "not found", sizeof("not found") - 1);
+		return SZL_ERR;
+	}
+
+	return szl_set_last_int(interp, pos - s);
+}
+
+static
 enum szl_res szl_str_proc_in(struct szl_interp *interp,
                              const unsigned int objc,
                              struct szl_obj **objv)
@@ -525,6 +565,14 @@ const struct szl_ext_export str_exports[] = {
 	},
 	{
 		SZL_PROC_INIT("byte.len", "buf", 2, 2, szl_byte_proc_length, NULL)
+	},
+	{
+		SZL_PROC_INIT("str.find",
+		              "str sub ?start?",
+		              3,
+		              4,
+		              szl_str_proc_find,
+		              NULL)
 	},
 	{
 		SZL_PROC_INIT("str.in", "str sub", 3, 3, szl_str_proc_in, NULL)
