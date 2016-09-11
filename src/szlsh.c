@@ -47,7 +47,9 @@ int main(int argc, char *argv[])
 	res = szl_run(interp, szlsh_inc, sizeof(szlsh_inc) - 1);
 
 	if (res == SZL_EXIT)
-		ret = szl_as_int(interp, interp->last, &code) ? code : EXIT_SUCCESS;
+		ret = (szl_as_int(interp, interp->last, &code) &&
+		       (code >= INT_MIN) &&
+		       (code <= INT_MAX)) ? (int)code : EXIT_SUCCESS;
 	else
 		ret = (res == SZL_OK) ? EXIT_SUCCESS : EXIT_FAILURE;
 

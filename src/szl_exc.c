@@ -80,7 +80,10 @@ enum szl_res szl_exc_proc_try(struct szl_interp *interp,
 			res = SZL_EXIT;
 	}
 
-	szl_set_last(interp, obj);
+	if (res != SZL_EXIT)
+		szl_set_last(interp, obj);
+	else
+		szl_unref(obj);
 
 	if (res == SZL_ERR) {
 		if (eres == SZL_ERR)

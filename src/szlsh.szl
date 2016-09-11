@@ -26,7 +26,15 @@ $switch [$list.length $@] 1 {
 	[$szl.interp] eval [$str.format {$source {}} $1]
 } 3 {
 	$if [$== -c $1] {
-		[$szl.interp] eval $2
+		$try {
+			[$szl.interp] eval $2
+		} except {
+			$stderr write $_
+			$stderr write $newline
+			$exit 1
+		}
+
+		$puts $_
 	}
 } * {
 	$stderr write [$str.format [$str.expand {Usage: {} {-c script | path}\n}] $0]
