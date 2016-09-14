@@ -24,6 +24,10 @@ $global newline [$str.expand \n]
 
 $proc puts {
 	$stdout write $1
-	$if [$!= [$str.tail $1] $newline] {$stdout write $newline}
+	$if [$str.len $1] {
+		$if [$!= [$str.tail $1] $newline] {$stdout write $newline}
+	} else {
+		$stdout write $newline
+	}
 	$return {}
 }
