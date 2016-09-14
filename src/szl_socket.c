@@ -32,6 +32,7 @@
 #include <stdio.h>
 #include <netdb.h>
 #include <sys/socket.h>
+#include <netinet/tcp.h>
 
 #include "szl.h"
 
@@ -152,6 +153,37 @@ szl_int szl_socket_handle(void *priv)
 }
 
 static
+int szl_socket_setopt(struct szl_interp *interp,
+                      void *priv,
+                      struct szl_obj *opt,
+                      struct szl_obj *val)
+{
+	char *s;
+	int b;
+
+	if (!szl_as_str(interp, opt, &s, NULL))
+		return 0;
+
+	if (strcmp(s, "cork") == 0) {
+		if (!szl_as_bool(val, &b))
+			return 0;
+
+		if (setsockopt((int)(intptr_t)priv,
+		               SOL_TCP,
+		               TCP_CORK,
+		               &b,
+		               sizeof(b)) == 0)
+			return 1;
+
+		szl_set_last_str(interp, strerror(errno), -1);
+		return 0;
+	}
+
+	szl_set_last_fmt(interp, "bad opt: %s", s);
+	return 0;
+}
+
+static
 const struct szl_stream_ops szl_stream_server_ops = {
 	.close = szl_socket_close,
 	.accept = szl_socket_accept,
@@ -165,7 +197,8 @@ const struct szl_stream_ops szl_stream_client_ops = {
 	.write = szl_socket_write,
 	.close = szl_socket_close,
 	.handle = szl_socket_handle,
-	.unblock = szl_socket_unblock
+	.unblock = szl_socket_unblock,
+	.setopt = szl_socket_setopt
 };
 
 static

@@ -822,6 +822,9 @@ immediately. To flush queued data to disk, call 'flush'.
 +$stream+ 'unblock'::
 	Enables non-blocking operation on a stream.
 
++$stream+ 'setopt opt val'::
+	Enables or disables stream-type specific option.
+
 +$stream+ 'handle'::
 	Returns an opaque value (an integer) that represents a stream, suitable for
 	'poll'.
@@ -845,6 +848,11 @@ Sockets
 ^^^^^^^
 +$stream.client+ 'host service'::
 	Creates a new TCP socket and connects to 'host:service'.
+
++$socket+ 'setopt cork val'::
+	Enables ('1') or disables ('0') the 'TCP_CORK' option, as described in
+	'tcp(7)'.This may increase throughput, if 'write' is called multiple times
+	and sent data can be queued.
 
 +$dgram.client+ 'host service'::
 	Creates a new UDP socket which sends datagrams to 'host:service'.

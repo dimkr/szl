@@ -99,6 +99,8 @@ $proc server.tcp {
 					$for client_socket $client_sockets {
 						$local client_socket_handle [$client_socket handle]
 
+						$try {$client_socket setopt cork 1}
+
 						$try {
 							$client_socket unblock
 

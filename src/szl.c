@@ -2862,6 +2862,29 @@ enum szl_res szl_stream_unblock(struct szl_interp *interp,
 	return res;
 }
 
+static
+enum szl_res szl_stream_setopt(struct szl_interp *interp,
+                               struct szl_stream *strm,
+                               struct szl_obj *opt,
+                               struct szl_obj *val)
+{
+	if (!strm->ops->setopt) {
+		szl_set_last_str(interp,
+		                 "setopt on unsupported stream",
+		                 sizeof("setopt on unsupported stream") - 1);
+		return SZL_ERR;
+	}
+
+	if (strm->closed) {
+		szl_set_last_str(interp,
+		                 "setopt on closed stream",
+		                 sizeof("setopt on closed stream") -1);
+		return SZL_ERR;
+	}
+
+	return strm->ops->setopt(interp, strm->priv, opt, val) ? SZL_OK : SZL_ERR;
+}
+
 enum szl_res szl_stream_proc(struct szl_interp *interp,
                              const unsigned int objc,
                              struct szl_obj **objv)
@@ -2935,6 +2958,13 @@ enum szl_res szl_stream_proc(struct szl_interp *interp,
 		else if (strcmp("unblock", op) == 0)
 			return szl_stream_unblock(interp, strm);
 	}
+	else if (objc == 4) {
+		if (!szl_as_str(interp, objv[1], &op, NULL))
+			return SZL_ERR;
+
+		if (strcmp("setopt", op) == 0)
+			return szl_stream_setopt(interp, strm, objv[2], objv[3]);
+	}
 
 	return szl_set_last_help(interp, objv[0]);
 }
@@ -2960,7 +2990,7 @@ struct szl_obj *szl_new_stream(struct szl_interp *interp,
 	proc = szl_new_proc(interp,
 	                    name,
 	                    2,
-	                    3,
+	                    4,
 	                    SZL_STREAM_HELP,
 	                    szl_stream_proc,
 	                    szl_stream_del,
