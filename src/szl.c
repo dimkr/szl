@@ -2399,7 +2399,7 @@ int szl_load(struct szl_interp *interp, const char *name)
 	lib->del = szl_unload;
 
 	snprintf(init_name, sizeof(init_name), SZL_EXT_INIT_FUNC_NAME_FMT, name);
-	init = (szl_ext_init)dlsym(lib->priv, init_name);
+	*((void **)&init) = dlsym(lib->priv, init_name);
 	if (!init) {
 		szl_set_last_fmt(interp, "failed to locate %s", init_name);
 		szl_unref(lib);
