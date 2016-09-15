@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-$switch [$list.length $@] 1 {
+$switch [$list.len $@] 1 {
 	$szl.shell
 } 2 {
 	[$szl.interp] eval [$str.format {$source {}} $1]

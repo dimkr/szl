@@ -448,7 +448,7 @@ List Operations
 +$list.new+ '?item...?'::
 	Creates a new list.
 
-+$list.length+ 'list'::
++$list.len+ 'list'::
 	Returns the number of items in a list.
 
 +$list.range+ 'list start end'::

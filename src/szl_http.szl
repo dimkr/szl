@@ -44,7 +44,7 @@ $proc http.parse {
 
 	# create a dictionary that maps each header to its value
 	$local hdrs {}
-	$for h [$list.range $hdr_lines 1 [$- [$list.length $hdr_lines] 1]] {
+	$for h [$list.range $hdr_lines 1 [$- [$list.len $hdr_lines] 1]] {
 		$local p [$str.split $h $http.hdr_delim]
 		$dict.set $hdrs [$list.index $p 0] [$str.split [$list.index $p 1] $http.hdr_val_delim]
 	}

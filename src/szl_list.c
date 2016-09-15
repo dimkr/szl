@@ -43,9 +43,9 @@ enum szl_res szl_list_proc_new(struct szl_interp *interp,
 }
 
 static
-enum szl_res szl_list_proc_length(struct szl_interp *interp,
-                                  const unsigned int objc,
-                                  struct szl_obj **objv)
+enum szl_res szl_list_proc_len(struct szl_interp *interp,
+                               const unsigned int objc,
+                               struct szl_obj **objv)
 {
 	struct szl_obj **items;
 	size_t n;
@@ -314,7 +314,7 @@ const struct szl_ext_export list_exports[] = {
 		SZL_PROC_INIT("list.new", "?item...?", 1, -1, szl_list_proc_new, NULL)
 	},
 	{
-		SZL_PROC_INIT("list.length", "list", 2, 2, szl_list_proc_length, NULL)
+		SZL_PROC_INIT("list.len", "list", 2, 2, szl_list_proc_len, NULL)
 	},
 	{
 		SZL_PROC_INIT("list.append",

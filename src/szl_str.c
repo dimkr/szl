@@ -47,8 +47,8 @@ enum szl_res fname(struct szl_interp *interp,      \
 	return szl_set_last_int(interp, (szl_int)len); \
 }
 
-SZL_STR_LEN(szl_str_proc_length, szl_as_wstr, wchar_t)
-SZL_STR_LEN(szl_byte_proc_length, szl_as_str, char)
+SZL_STR_LEN(szl_str_proc_len, szl_as_wstr, wchar_t)
+SZL_STR_LEN(szl_byte_proc_len, szl_as_str, char)
 
 static
 enum szl_res szl_str_proc_find(struct szl_interp *interp,
@@ -561,10 +561,10 @@ enum szl_res szl_byte_proc_ord(struct szl_interp *interp,
 static
 const struct szl_ext_export str_exports[] = {
 	{
-		SZL_PROC_INIT("str.len", "str", 2, 2, szl_str_proc_length, NULL)
+		SZL_PROC_INIT("str.len", "str", 2, 2, szl_str_proc_len, NULL)
 	},
 	{
-		SZL_PROC_INIT("byte.len", "buf", 2, 2, szl_byte_proc_length, NULL)
+		SZL_PROC_INIT("byte.len", "buf", 2, 2, szl_byte_proc_len, NULL)
 	},
 	{
 		SZL_PROC_INIT("str.find",
