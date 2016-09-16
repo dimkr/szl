@@ -44,8 +44,8 @@ Building
 
 On Debian (http://www.debian.org) based distributions:
 
-  $ apt-get install git gcc make pkg-config libz-dev libcurl-dev libarchive-dev
-                    libssl-dev libffi-dev valgrind
+  $ apt-get install git gcc make pkg-config zlib1g-dev libcurl4-gnutls-dev
+                    libarchive-dev libssl-dev libffi-dev valgrind
 
 Then:
 
