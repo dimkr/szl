@@ -312,12 +312,12 @@ int fname(struct szl_interp *interp, struct szl_val *val)                      \
 			szl_set_last_fmt(interp, "bad "stype": %s", val->inmemb.buf);      \
 			return 0;                                                          \
 		}                                                                      \
+		val->outmemb.len += out;                                               \
                                                                                \
 		if (!p || !out)                                                        \
 			break;                                                             \
                                                                                \
 		rem -= out;                                                            \
-		val->outmemb.len += out;                                               \
 	} while (1);                                                               \
                                                                                \
 	val->outmemb.buf[val->outmemb.len] = nullc;                                \
