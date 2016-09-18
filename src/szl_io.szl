@@ -25,7 +25,17 @@ $global newline [$str.expand \n]
 $proc puts {
 	$stdout write $1
 	$if [$byte.len $1] {
-		$if [$!= [$str.tail $1] $newline] {$stdout write $newline}
+		$try {
+			$export end [$str.tail $1]
+		} except {
+			$export end {}
+		}
+
+		$if [$byte.len $end] {
+			$if [$!= $end $newline] {$stdout write $newline}
+		} else {
+			$stdout flush
+		}
 	} else {
 		$stdout write $newline
 	}
