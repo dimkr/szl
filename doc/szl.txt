@@ -780,10 +780,10 @@ Leftover lock files are unlocked automatically, during garbage collection.
 
 File Operations
 +++++++++++++++
-+$open+ 'path mode'::
-	Opens a file and returns a stream object. 'mode' is 'fputs()'-style: 'r',
-	'w', 'a', 'r+', 'w+' or 'a+' (see 'man fputs' for the meaning of each mode).
-	By default, reading and writing is line-buffered.
++$open+ 'path ?mode?'::
+	Opens a file and returns a stream object. 'mode' is 'fputs()'-style: 'r'
+	(the default), 'w', 'a', 'r+', 'w+' or 'a+' (see 'man fputs' for the meaning
+	of each mode). By default, reading and writing is line-buffered.
 
 [NOTE]
 'mode' can be suffixed with 'b' to enable full buffering instead of line-based

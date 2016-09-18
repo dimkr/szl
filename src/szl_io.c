@@ -32,6 +32,8 @@
 
 #include "szl.h"
 
+#define SZL_DEFAULT_FMODE "r"
+
 static const char szl_io_inc[] = {
 #include "szl_io.inc"
 };
@@ -255,20 +257,22 @@ enum szl_res szl_io_proc_open(struct szl_interp *interp,
                               struct szl_obj **objv)
 {
 	char *path, *mode;
-	const char *rmode;
+	const char *rmode = SZL_DEFAULT_FMODE;
 	FILE *fp;
 	size_t len;
 	int bmode;
 
-	if (!szl_as_str(interp, objv[1], &path, &len) ||
-	    !len ||
-	    !szl_as_str(interp, objv[2], &mode, &len) ||
-	    !len)
+	if (!szl_as_str(interp, objv[1], &path, &len) || !len)
 		return SZL_ERR;
 
-	rmode = szl_file_mode(interp, mode, &bmode);
-	if (!rmode)
-		return SZL_ERR;
+	if (objc == 3) {
+		if (!szl_as_str(interp, objv[2], &mode, &len) || !len)
+			return SZL_ERR;
+
+		rmode = szl_file_mode(interp, mode, &bmode);
+		if (!rmode)
+			return SZL_ERR;
+	}
 
 	fp = fopen(path, rmode);
 	if (!fp) {
@@ -342,7 +346,7 @@ int szl_init_io(struct szl_interp *interp)
 			SZL_STREAM_INIT("stderr")
 		},
 		{
-			SZL_PROC_INIT("open", "path mode", 3, 3, szl_io_proc_open, NULL)
+			SZL_PROC_INIT("open", "path ?mode?", 2, 3, szl_io_proc_open, NULL)
 		},
 		{
 			SZL_PROC_INIT("isatty", "handle", 2, 2, szl_io_proc_isatty, NULL)
