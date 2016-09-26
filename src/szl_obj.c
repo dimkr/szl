@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 
-#include <stddef.h>
+#include <stdlib.h>
 
 #include "szl.h"
 
@@ -110,6 +110,32 @@ enum szl_res szl_obj_proc_get(struct szl_interp *interp,
 }
 
 static
+enum szl_res szl_obj_proc_hex(struct szl_interp *interp,
+                              const unsigned int objc,
+                              struct szl_obj **objv)
+{
+	char *s;
+	struct szl_obj *obj;
+	szl_int i;
+	int len;
+
+	if (!szl_as_int(interp, objv[1], &i))
+		return SZL_ERR;
+
+	len = asprintf(&s, SZL_INT_FMT"x", i);
+	if (len < 0)
+		return SZL_ERR;
+
+	obj = szl_new_str_noalloc(s, (size_t)len);
+	if (!obj) {
+		free(s);
+		return SZL_ERR;
+	}
+
+	return szl_set_last(interp, obj);
+}
+
+static
 const struct szl_ext_export obj_exports[] = {
 	{
 		SZL_PROC_INIT("global", "name val", 3, 3, szl_obj_proc_global, NULL)
@@ -128,6 +154,9 @@ const struct szl_ext_export obj_exports[] = {
 	},
 	{
 		SZL_PROC_INIT("get", "name", 2, 2, szl_obj_proc_get, NULL)
+	},
+	{
+		SZL_PROC_INIT("hex", "val", 2, 2, szl_obj_proc_hex, NULL)
 	}
 };
 

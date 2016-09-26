@@ -21,6 +21,26 @@
 # THE SOFTWARE.
 
 $global newline [$str.expand \n]
+$global empty_repr {{}}
+
+$proc repr {
+	$if [$byte.len $1] {
+		$local out {}
+
+		$for c [$str.split $1 {}] {
+			$local o [$& [$list.index [$byte.ord $c] 0] 255]
+			$if [$&& [$>= $o 0] [$<= $o 127]] {
+				$str.append $out $c
+			} else {
+				$str.append $out [$str.join {} \x [$hex $o]]
+			}
+		}
+
+		$return $out
+	} else {
+		$return $empty_repr
+	}
+}
 
 $proc puts {
 	$stdout write $1

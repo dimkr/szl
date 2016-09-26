@@ -83,7 +83,7 @@ $test.run {true or false} 1 {$|| 1 0} 1
 $test.run {false or true} 1 {$|| 0 1} 1
 $test.run {false or false} 1 {$|| 0 0} 0
 
-$test.run {true xor true} 1 {$^ 1 1} 0
-$test.run {true xor false} 1 {$^ 1 0} 1
-$test.run {false xor true} 1 {$^ 0 1} 1
-$test.run {false xor false} 1 {$^ 0 0} 0
+$test.run {true xor true} 1 {$^^ 1 1} 0
+$test.run {true xor false} 1 {$^^ 1 0} 1
+$test.run {false xor true} 1 {$^^ 0 1} 1
+$test.run {false xor false} 1 {$^^ 0 0} 0

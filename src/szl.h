@@ -149,7 +149,7 @@ typedef intmax_t szl_int;
  * @def SZL_INT_FMT
  * The format string for printing @ref szl_int
  */
-#	define SZL_INT_FMT "%jd"
+#	define SZL_INT_FMT "%j"
 
 /**
  * @def SZL_INT_SCANF_FMT

@@ -74,7 +74,7 @@ enum szl_res szl_str_proc_find(struct szl_interp *interp,
 				return SZL_ERR;
 
 			if ((start < 0) || (start >= len)) {
-				szl_set_last_fmt(interp, "bad start: "SZL_INT_FMT, start);
+				szl_set_last_fmt(interp, "bad start: "SZL_INT_FMT"d", start);
 				return SZL_ERR;
 			}
 		}
@@ -147,32 +147,32 @@ enum szl_res szl_str_proc_count(struct szl_interp *interp,
 	return szl_set_last_int(interp, n);
 }
 
-#define SZL_STR_RANGE(fname, ctype, castproc, lastproc)            \
-static                                                             \
-enum szl_res fname(struct szl_interp *interp,                      \
-                   const unsigned int objc,                        \
-                   struct szl_obj **objv)                          \
-{                                                                  \
-	ctype *buf;                                                    \
-	szl_int start, end;                                            \
-	size_t len;                                                    \
-                                                                   \
-	if (!castproc(interp, objv[1], &buf, &len) ||                  \
-	    !szl_as_int(interp, objv[2], &start) ||                    \
-	    !szl_as_int(interp, objv[3], &end))                        \
-		return SZL_ERR;                                            \
-                                                                   \
-	if ((start < 0) || (start >= len)) {                           \
-		szl_set_last_fmt(interp, "bad start: "SZL_INT_FMT, start); \
-		return SZL_ERR;                                            \
-	}                                                              \
-                                                                   \
-	if ((end < start) || (end >= len)) {                           \
-		szl_set_last_fmt(interp, "bad end: "SZL_INT_FMT, end);     \
-		return SZL_ERR;                                            \
-	}                                                              \
-                                                                   \
-	return lastproc(interp, buf + start, end - start + 1);         \
+#define SZL_STR_RANGE(fname, ctype, castproc, lastproc)               \
+static                                                                \
+enum szl_res fname(struct szl_interp *interp,                         \
+                   const unsigned int objc,                           \
+                   struct szl_obj **objv)                             \
+{                                                                     \
+	ctype *buf;                                                       \
+	szl_int start, end;                                               \
+	size_t len;                                                       \
+                                                                      \
+	if (!castproc(interp, objv[1], &buf, &len) ||                     \
+	    !szl_as_int(interp, objv[2], &start) ||                       \
+	    !szl_as_int(interp, objv[3], &end))                           \
+		return SZL_ERR;                                               \
+                                                                      \
+	if ((start < 0) || (start >= len)) {                              \
+		szl_set_last_fmt(interp, "bad start: "SZL_INT_FMT"d", start); \
+		return SZL_ERR;                                               \
+	}                                                                 \
+                                                                      \
+	if ((end < start) || (end >= len)) {                              \
+		szl_set_last_fmt(interp, "bad end: "SZL_INT_FMT"d", end);     \
+		return SZL_ERR;                                               \
+	}                                                                 \
+                                                                      \
+	return lastproc(interp, buf + start, end - start + 1);            \
 }
 
 SZL_STR_RANGE(szl_str_proc_range, wchar_t, szl_as_wstr, szl_set_last_wstr)

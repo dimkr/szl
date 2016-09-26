@@ -333,6 +333,13 @@ $local a 5
 $== [$get a] 5
 --------------------------------------
 
++$repr+ 'obj'::
+	Returns a nicely printable representation of 'obj', where binary data and
+	non-English characters are converted to hexadecimal form (e.g. '\xff').
+
++$hex+ 'val'::
+	Returns the hexadecimal representation of an integer.
+
 Objects
 +++++++
 +$local+ 'name val'::
@@ -543,6 +550,15 @@ Arithmetic and Logical Operations
 +$%+ 'm n'::
 	Returns 'm - x', where 'x' is the floor of 'm / n'.
 
++$%& 'm n'::
+	Returns bitwise 'm & x'.
+
++$%| 'm n'::
+	Returns bitwise 'm | x'.
+
++$%^ 'm n'::
+	Returns bitwise 'm ^ x'.
+
 +$==+ 'obj obj'::
 	Returns '1' if two objects are equal, otherwise '0'.
 
@@ -567,7 +583,7 @@ Arithmetic and Logical Operations
 +$||+ 'obj obj...'::
 	Returns '1' if at least one condition is true, otherwise '0'.
 
-+$^+ 'obj obj'::
++$^^+ 'obj obj'::
 	Returns '1' if one condition is true and the other is false, otherwise '0'.
 
 --------------------------------------

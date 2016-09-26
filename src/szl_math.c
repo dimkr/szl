@@ -76,6 +76,25 @@ SZL_MATH_PROC(mul, *)
 SZL_MATH_PROC_DIV(div, m / n)
 SZL_MATH_PROC_DIV(mod, (szl_float)fmod(m, n))
 
+#define SZL_MATH_BIT_PROC(name, op)                           \
+static                                                        \
+enum szl_res szl_math_proc_## name(struct szl_interp *interp, \
+                                   const unsigned int objc,   \
+                                   struct szl_obj **objv)     \
+{                                                             \
+	szl_int ni, mi;                                           \
+	                                                          \
+	if (!szl_as_int(interp, objv[1], &mi) ||                  \
+	    !szl_as_int(interp, objv[2], &ni))                    \
+		return SZL_ERR;                                       \
+	                                                          \
+	return szl_set_last_int(interp, mi op ni);                \
+}
+
+SZL_MATH_BIT_PROC(and, &)
+SZL_MATH_BIT_PROC(or, |)
+SZL_MATH_BIT_PROC(xor, ^)
+
 static
 const struct szl_ext_export math_exports[] = {
 	{
@@ -92,6 +111,15 @@ const struct szl_ext_export math_exports[] = {
 	},
 	{
 		SZL_PROC_INIT("%", "m n", 3, 3, szl_math_proc_mod, NULL)
+	},
+	{
+		SZL_PROC_INIT("&", "m n", 3, 3, szl_math_proc_and, NULL)
+	},
+	{
+		SZL_PROC_INIT("|", "m n", 3, 3, szl_math_proc_or, NULL)
+	},
+	{
+		SZL_PROC_INIT("^", "m n", 3, 3, szl_math_proc_xor, NULL)
 	}
 };
 

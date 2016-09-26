@@ -102,7 +102,7 @@ enum szl_res szl_proc_proc_stack(struct szl_interp *interp,
 			return SZL_ERR;
 
 		if (lim <= 0) {
-			szl_set_last_fmt(interp, "bad limit: "SZL_INT_FMT, lim);
+			szl_set_last_fmt(interp, "bad limit: "SZL_INT_FMT"d", lim);
 			return SZL_ERR;
 		}
 	}

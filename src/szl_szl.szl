@@ -64,11 +64,19 @@ $proc szl.shell {
 				$try {
 					$interp eval $exp
 					$local out $_
-					$if [$byte.len $out] {$puts $out}
+					$if $in_tty {
+						$puts [$repr $out]
+					} else {
+						$if [$byte.len $out] {$puts $out}
+					}
 				} except {
 					$local out $_
 					$stdout write {[error] }
-					$if $out {$puts $out} else {$puts {}}
+					$if $in_tty {
+						$puts [$repr $out]
+					} else {
+						$if [$byte.len $out] {$puts $out} else {$puts {}}
+					}
 				}
 
 				$try {$linenoise.add $exp}

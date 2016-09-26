@@ -102,7 +102,7 @@ enum szl_res szl_list_proc_index(struct szl_interp *interp,
 		return SZL_ERR;
 
 	if (i < 0) {
-		szl_set_last_fmt(interp, "bad index: "SZL_INT_FMT, i);
+		szl_set_last_fmt(interp, "bad index: "SZL_INT_FMT"d", i);
 		return SZL_ERR;
 	}
 
@@ -110,7 +110,7 @@ enum szl_res szl_list_proc_index(struct szl_interp *interp,
 		return SZL_ERR;
 
 	if (i >= n) {
-		szl_set_last_fmt(interp, "bad index: "SZL_INT_FMT, i);
+		szl_set_last_fmt(interp, "bad index: "SZL_INT_FMT"d", i);
 		return SZL_ERR;
 	}
 
@@ -133,7 +133,7 @@ enum szl_res szl_list_proc_range(struct szl_interp *interp,
 		return SZL_ERR;
 
 	if ((start < 0) || (start >= (szl_int)n)) {
-		szl_set_last_fmt(interp, "bad start index: "SZL_INT_FMT, start);
+		szl_set_last_fmt(interp, "bad start index: "SZL_INT_FMT"d", start);
 		return SZL_ERR;
 	}
 
@@ -141,7 +141,7 @@ enum szl_res szl_list_proc_range(struct szl_interp *interp,
 		return SZL_ERR;
 
 	if ((end < start) || (end >= (szl_int)n)) {
-		szl_set_last_fmt(interp, "bad end index: "SZL_INT_FMT, end);
+		szl_set_last_fmt(interp, "bad end index: "SZL_INT_FMT"d", end);
 		return SZL_ERR;
 	}
 

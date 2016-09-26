@@ -293,7 +293,7 @@ enum szl_res SZL_FFI_NEW_PROC_NAME(szl_name)(struct szl_interp *interp,        \
                                                                                \
 		if ((i < min) || (i > max)) {                                          \
 			szl_set_last_fmt(interp,                                           \
-			                   "bad "#szl_name" value: "SZL_INT_FMT,           \
+			                   "bad "#szl_name" value: "SZL_INT_FMT"d",        \
 			                   i);                                             \
 			return SZL_ERR;                                                    \
 		}                                                                      \
@@ -307,46 +307,46 @@ enum szl_res SZL_FFI_NEW_PROC_NAME(szl_name)(struct szl_interp *interp,        \
 	return szl_set_last(interp, obj);                                          \
 }
 
-SZL_NEW_TOSTR(int8, i8, SZL_INT_FMT, (szl_int))
+SZL_NEW_TOSTR(int8, i8, SZL_INT_FMT"d", (szl_int))
 SZL_FFI_NEW_INT(int8, i8, int8_t, INT8_MIN, INT8_MAX, &ffi_type_sint8)
 
-SZL_NEW_TOSTR(uint8, ui8, SZL_INT_FMT, (szl_int))
+SZL_NEW_TOSTR(uint8, ui8, SZL_INT_FMT"d", (szl_int))
 SZL_FFI_NEW_INT(uint8, ui8, uint8_t, 0, UINT8_MAX, &ffi_type_uint8)
 
-SZL_NEW_TOSTR(int16, i16, SZL_INT_FMT, (szl_int))
+SZL_NEW_TOSTR(int16, i16, SZL_INT_FMT"d", (szl_int))
 SZL_FFI_NEW_INT(int16, i16, int16_t, INT16_MIN, INT16_MAX, &ffi_type_sint16)
 
-SZL_NEW_TOSTR(uint16, ui16, SZL_INT_FMT, (szl_int))
+SZL_NEW_TOSTR(uint16, ui16, SZL_INT_FMT"d", (szl_int))
 SZL_FFI_NEW_INT(uint16, ui16, uint16_t, 0, UINT16_MAX, &ffi_type_uint16)
 
-SZL_NEW_TOSTR(int32, i32, SZL_INT_FMT, (szl_int))
+SZL_NEW_TOSTR(int32, i32, SZL_INT_FMT"d", (szl_int))
 SZL_FFI_NEW_INT(int32, i32, int32_t, INT32_MIN, INT32_MAX, &ffi_type_sint32)
 
-SZL_NEW_TOSTR(uint32, ui32, SZL_INT_FMT, (szl_int))
+SZL_NEW_TOSTR(uint32, ui32, SZL_INT_FMT"d", (szl_int))
 SZL_FFI_NEW_INT(uint32, ui32, uint32_t, 0, UINT32_MAX, &ffi_type_uint32)
 
-SZL_NEW_TOSTR(int64, i64, SZL_INT_FMT, (szl_int))
+SZL_NEW_TOSTR(int64, i64, SZL_INT_FMT"d", (szl_int))
 SZL_FFI_NEW_INT(int64, i64, int64_t, INT64_MIN, INT64_MAX, &ffi_type_sint64)
 
-SZL_NEW_TOSTR(uint64, ui64, SZL_INT_FMT, (szl_int))
+SZL_NEW_TOSTR(uint64, ui64, SZL_INT_FMT"d", (szl_int))
 SZL_FFI_NEW_INT(uint64, ui64, uint64_t, 0, UINT64_MAX, &ffi_type_uint64)
 
-SZL_NEW_TOSTR(short, s, SZL_INT_FMT, (szl_int))
+SZL_NEW_TOSTR(short, s, SZL_INT_FMT"d", (szl_int))
 SZL_FFI_NEW_INT(short, s, short, SHRT_MIN, SHRT_MAX, &ffi_type_sshort)
 
-SZL_NEW_TOSTR(ushort, us, SZL_INT_FMT, (szl_int))
+SZL_NEW_TOSTR(ushort, us, SZL_INT_FMT"d", (szl_int))
 SZL_FFI_NEW_INT(ushort, us, unsigned short, 0, USHRT_MAX, &ffi_type_ushort)
 
-SZL_NEW_TOSTR(int, i, SZL_INT_FMT, (szl_int))
+SZL_NEW_TOSTR(int, i, SZL_INT_FMT"d", (szl_int))
 SZL_FFI_NEW_INT(int, i, int, INT_MIN, INT_MAX, &ffi_type_sint)
 
-SZL_NEW_TOSTR(uint, ui, SZL_INT_FMT, (szl_int))
+SZL_NEW_TOSTR(uint, ui, SZL_INT_FMT"d", (szl_int))
 SZL_FFI_NEW_INT(uint, ui, unsigned int, 0, UINT_MAX, &ffi_type_uint)
 
-SZL_NEW_TOSTR(long, l, SZL_INT_FMT, (szl_int))
+SZL_NEW_TOSTR(long, l, SZL_INT_FMT"d", (szl_int))
 SZL_FFI_NEW_INT(long, l, long, LONG_MIN, LONG_MAX, &ffi_type_slong)
 
-SZL_NEW_TOSTR(ulong, ul, SZL_INT_FMT, (szl_int))
+SZL_NEW_TOSTR(ulong, ul, SZL_INT_FMT"d", (szl_int))
 SZL_FFI_NEW_INT(ulong, ul, unsigned long, 0, ULONG_MAX, &ffi_type_ulong)
 
 static
@@ -432,7 +432,7 @@ enum szl_res SZL_FFI_NEW_PROC_NAME(void)(struct szl_interp *interp,
 
 /* vector types */
 
-SZL_NEW_TOSTR(pointer, vp, SZL_INT_FMT, (szl_int)(intptr_t))
+SZL_NEW_TOSTR(pointer, vp, SZL_INT_FMT"d", (szl_int)(intptr_t))
 SZL_NEW_FILLER(pointer, vp, void *, &ffi_type_pointer)
 SZL_NEW_AT(pointer, sizeof(void *))
 
@@ -766,7 +766,7 @@ enum szl_res szl_ffi_struct_proc(struct szl_interp *interp,
 			return SZL_ERR;
 
 		if ((i < 0) || (i >= s->nmemb - 1)) {
-			szl_set_last_fmt(interp, "bad member index: "SZL_INT_FMT, i);
+			szl_set_last_fmt(interp, "bad member index: "SZL_INT_FMT"d", i);
 			return SZL_ERR;
 		}
 

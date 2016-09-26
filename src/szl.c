@@ -329,7 +329,7 @@ SZL_STR_CONV(szl_str_to_wstr, "str", char, wchar_t, s, ws, mbsrtowcs, L'\0')
 static
 int szl_str_to_int(struct szl_interp *interp, struct szl_val *val)
 {
-	if (sscanf(val->s.buf, SZL_INT_SCANF_FMT, &val->i) == 1)
+	if (sscanf(val->s.buf, SZL_INT_SCANF_FMT"d", &val->i) == 1)
 		return 1;
 
 	szl_set_last_fmt(interp, "bad int: %s", val->s.buf);
@@ -532,7 +532,7 @@ int szl_int_to_str(struct szl_interp *interp, struct szl_val *val)
 {
 	int len;
 
-	len = asprintf(&val->s.buf, SZL_INT_FMT, val->i);
+	len = asprintf(&val->s.buf, SZL_INT_FMT"d", val->i);
 	if (len < 0)
 		return 0;
 
@@ -1382,7 +1382,7 @@ int szl_list_set(struct szl_interp *interp,
 	}
 
 	if (index < 0) {
-		szl_set_last_fmt(interp, "bad index: "SZL_INT_FMT, index);
+		szl_set_last_fmt(interp, "bad index: "SZL_INT_FMT"d", index);
 		return 0;
 	}
 
@@ -1390,7 +1390,7 @@ int szl_list_set(struct szl_interp *interp,
 		return 0;
 
 	if (index >= len) {
-		szl_set_last_fmt(interp, "bad index: "SZL_INT_FMT, index);
+		szl_set_last_fmt(interp, "bad index: "SZL_INT_FMT"d", index);
 		return 0;
 	}
 

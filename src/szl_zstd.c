@@ -49,7 +49,7 @@ enum szl_res szl_zstd_proc_compress(struct szl_interp *interp,
 		 (level < 0) ||
 		 (level > (szl_int)(intptr_t)objv[0]->priv) ||
 		 (level > INT_MAX))) {
-		szl_set_last_fmt(interp, "bad zstd level: "SZL_INT_FMT, level);
+		szl_set_last_fmt(interp, "bad zstd level: "SZL_INT_FMT"d", level);
 		return SZL_ERR;
 	}
 
@@ -93,7 +93,7 @@ enum szl_res szl_zstd_proc_decompress(struct szl_interp *interp,
 			return SZL_ERR;
 
 		if ((klen <= 0) || (klen > ULONG_LONG_MAX) || (klen > SIZE_MAX)) {
-			szl_set_last_str(interp, "bad size: "SZL_INT_FMT, klen);
+			szl_set_last_str(interp, "bad size: "SZL_INT_FMT"d", klen);
 			return SZL_ERR;
 		}
 

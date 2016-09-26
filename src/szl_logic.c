@@ -306,7 +306,7 @@ const struct szl_ext_export logic_exports[] = {
 		              NULL)
 	},
 	{
-		SZL_PROC_INIT("^",
+		SZL_PROC_INIT("^^",
 		              "obj obj",
 		              3,
 		              3,
