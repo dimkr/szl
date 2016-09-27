@@ -260,7 +260,7 @@ enum szl_res szl_io_proc_open(struct szl_interp *interp,
 	const char *rmode = SZL_DEFAULT_FMODE;
 	FILE *fp;
 	size_t len;
-	int bmode;
+	int bmode = _IONBF;
 
 	if (!szl_as_str(interp, objv[1], &path, &len) || !len)
 		return SZL_ERR;

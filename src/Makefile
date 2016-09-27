@@ -32,7 +32,6 @@ CFLAGS += -std=gnu99 \
           -Wall \
           -pedantic \
           -Wno-overlength-strings \
-          -Wno-tautological-constant-out-of-range-compare \
           -D_GNU_SOURCE \
           -DSZL_VERSION=\"$(SZL_VERSION)\"
 LDFLAGS += -L.

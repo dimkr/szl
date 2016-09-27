@@ -50,7 +50,14 @@ enum szl_res szl_file_proc_size(struct szl_interp *interp,
 	if (!szl_as_str(interp, objv[1], &path, &len) ||
 	    !len ||
 	    (stat(path, &stbuf) < 0) ||
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wtautological-constant-out-of-range-compare"
+#endif
 	    (stbuf.st_size > SZL_INT_MAX))
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 		return SZL_ERR;
 
 	return szl_set_last_int(interp, (szl_int)stbuf.st_size);
