@@ -550,13 +550,13 @@ Arithmetic and Logical Operations
 +$%+ 'm n'::
 	Returns 'm - x', where 'x' is the floor of 'm / n'.
 
-+$%& 'm n'::
++$&+ 'm n'::
 	Returns bitwise 'm & x'.
 
-+$%| 'm n'::
++$|+ 'm n'::
 	Returns bitwise 'm | x'.
 
-+$%^ 'm n'::
++$^+ 'm n'::
 	Returns bitwise 'm ^ x'.
 
 +$==+ 'obj obj'::
