@@ -1071,8 +1071,8 @@ $puts [$list.index [$http.get httpbin.org 443 1 /get [$dict.new a {123 456} b 78
 
 dict
 ^^^^
-The 'dict' extension is a O(n), trivial +szl+ implementation of associative
-arrays on top of lists.
+The 'dict' extension is a trivial, +szl+ implementation of associative arrays on
+top of sorted lists.
 
 +$dict.new+ ?k v...?::
 	Creates a new dictionary. If no initial contents are specified, the
@@ -1399,9 +1399,9 @@ lookup of objects is more efficient.
 
 Booleans
 ^^^^^^^^
-+szl+ has no "real" boolean type. Insead, '{}', '"0"' and '0' are treated as
-false and everything else is treated as true. Procedures that return boolean
-values return the integers '1' and '0'.
++szl+ has no "real" boolean type. Instead, '{}' and '0' are treated as false and
+everything else is treated as true. Procedures that return boolean values return
+the integers '1' and '0'.
 
 Builtin Objects
 ~~~~~~~~~~~~~~~
