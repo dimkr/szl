@@ -225,16 +225,7 @@ szl_conf.h: szl_conf.h.in
 	sed s~@EXT_DIR@~$(EXT_DIR)~ $^ > $@
 
 %.inc: %.szl
-	sed -e s~'^\t*'~~g \
-	    -e s~'\\'~'\\\\'~g \
-	    -e s~'"'~'\\"'~g \
-	    -e s~'^'~'"'~g \
-	    -e s~'$$'~'\\n" \\'~g \
-	    $^ | \
-	grep -v \
-	     -e ^\"\# \
-	     -e '^"\\n" \\' > $@; \
-	echo \"\" >> $@
+	sh minify.sh < $^ > $@
 
 %.o: %.c szl_conf.h
 	$(CC) -c -o $@ $< $(CFLAGS)
