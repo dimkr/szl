@@ -198,6 +198,39 @@ enum szl_res szl_str_proc_tail(struct szl_interp *interp,
 }
 
 static
+enum szl_res szl_str_proc_starts(struct szl_interp *interp,
+                                 const unsigned int objc,
+                                 struct szl_obj **objv)
+{
+	char *s, *sub;
+	size_t len, slen;
+
+	if (!szl_as_str(interp, objv[1], &s, &len) ||
+	    !szl_as_str(interp, objv[2], &sub, &slen))
+		return SZL_ERR;
+
+	return szl_set_last_bool(interp,
+	                         (len >= slen) && (strncmp(s, sub, slen) == 0));
+}
+
+static
+enum szl_res szl_str_proc_ends(struct szl_interp *interp,
+                               const unsigned int objc,
+                               struct szl_obj **objv)
+{
+	char *s, *sub;
+	size_t len, slen;
+
+	if (!szl_as_str(interp, objv[1], &s, &len) ||
+	    !szl_as_str(interp, objv[2], &sub, &slen))
+		return SZL_ERR;
+
+	return szl_set_last_bool(
+	                       interp,
+	                       (len >= slen) && (strcmp(s + len - slen, sub) == 0));
+}
+
+static
 enum szl_res szl_str_proc_append(struct szl_interp *interp,
                                  const unsigned int objc,
                                  struct szl_obj **objv)
@@ -598,6 +631,12 @@ const struct szl_ext_export str_exports[] = {
 	},
 	{
 		SZL_PROC_INIT("str.tail", "str ?count?", 2, 3, szl_str_proc_tail, NULL)
+	},
+	{
+		SZL_PROC_INIT("str.starts", "str sub", 3, 3, szl_str_proc_starts, NULL)
+	},
+	{
+		SZL_PROC_INIT("str.ends", "str sub", 3, 3, szl_str_proc_ends, NULL)
 	},
 	{
 		SZL_PROC_INIT("str.append", "str str", 3, 3, szl_str_proc_append, NULL)

@@ -401,6 +401,12 @@ byte-oriented procedures (e.g. 'byte.range') when working with binary data.
 	Returns the last characters of a string. If the number of characters is not
 	specified, the default is '1'.
 
++$str.starts+ 'str sub'::
+	Returns '1' if 'str' starts with 'sub', otherwise '0'.
+
++$str.ends+ 'str sub'::
+	Returns '1' if 'str' ends with 'sub', otherwise '0'.
+
 +$str.append+ 'name str'::
 	Appends a string to an existing str.
 
