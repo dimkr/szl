@@ -132,7 +132,7 @@ $proc http.respond {
 						$str.append $body [$str.format $http.index_dir_fmt $url $name $name]
 					}
 
-					for name [$list.index $names 1] {
+					$for name [$list.index $names 1] {
 						$str.append $body [$str.format $http.index_file_fmt $url $name $name [$file.size [$path.join $path $name]]]
 					}
 
