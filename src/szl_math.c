@@ -42,7 +42,7 @@ enum szl_res szl_math_proc_## name(struct szl_interp *interp, \
 	    !szl_as_int(interp, objv[2], &ni))                    \
 		return SZL_ERR;                                       \
 	                                                          \
-	if ((mf != (szl_float)mi) || (mf != (szl_float)ni))       \
+	if ((mf != (szl_float)mi) || (nf != (szl_float)ni))       \
 		return szl_set_last_float(interp, mf op nf);          \
 	                                                          \
 	return szl_set_last_int(interp, mi op ni);                \
