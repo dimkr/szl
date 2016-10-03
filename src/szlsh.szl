@@ -20,23 +20,22 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-$switch [$list.len $@] 1 {
-	$szl.shell
-} 2 {
-	[$szl.interp] eval [$str.format {$source {}} $1]
-} 3 {
-	$if [$== -c $1] {
-		$try {
+$try {
+	$switch [$list.len $@] 1 {
+		$szl.shell
+		$exit
+	} 3 {
+		$if [$== -c $1] {
 			[$szl.interp] eval $2
-		} except {
-			$stderr write $_
-			$stderr write $newline
-			$exit 1
+			$puts $_
 		}
 
-		$puts $_
+		$exit
 	}
-} * {
-	$stderr write [$str.format [$str.expand {Usage: {} {-c script | path}\n}] $0]
+
+	[$szl.interp [$list.range $@ 1 [$- [$list.len $@] 1]]] eval [$str.format {$source {}} $1]
+} except {
+	$stderr write $_
+	$stderr write $newline
 	$exit 1
 }
