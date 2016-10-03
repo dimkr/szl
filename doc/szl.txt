@@ -719,8 +719,10 @@ $try {
 
 Interpreters
 ++++++++++++
-+$szl.interp+::
-	Creates a new +szl+ interpreter.
++$szl.interp+ '?args?'::
+	Creates a new +szl+ interpreter, with 'args' as its arguments (e.g. '$@').
+	If 'args' is unspecified, the new interpreter inherits the calling
+	interpreter's arguments.
 
 +$interp+ 'eval exp'::
 	Evaluates a +szl+ expression in an interpreter.

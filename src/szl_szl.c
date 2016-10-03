@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  */
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "szl.h"
@@ -63,9 +64,35 @@ enum szl_res szl_szl_proc_szl(struct szl_interp *interp,
                               struct szl_obj **objv)
 {
 	struct szl_interp *interp2;
-	struct szl_obj *name, *proc;
+	struct szl_obj *argl = objv[1], **argov, *name, *proc;
+	char **argv;
+	size_t argc, i;
 
-	interp2 = szl_new_interp(0, NULL);
+	if (((objc == 1) && !szl_get(interp, interp->args, &argl)) ||
+	    !szl_as_list(interp, argl, &argov, &argc))
+		return SZL_ERR;
+
+	if (argc) {
+		if (argc > (INT_MAX / sizeof(char *)))
+			return SZL_ERR;
+
+		argv = (char **)malloc(sizeof(char *) * argc);
+		if (!argv)
+			return SZL_ERR;
+
+		for (i = 0; i < argc; ++i) {
+			if (!szl_as_str(interp, argov[i], &argv[i], NULL)) {
+				free(argv);
+				return SZL_ERR;
+			}
+		}
+
+		interp2 = szl_new_interp((int)argc, argv);
+		free(argv);
+	}
+	else
+		interp2 = szl_new_interp(0, NULL);
+
 	if (!interp2)
 		return SZL_ERR;
 
@@ -95,7 +122,12 @@ enum szl_res szl_szl_proc_szl(struct szl_interp *interp,
 static
 const struct szl_ext_export szl_exports[] = {
 	{
-		SZL_PROC_INIT("szl.interp", NULL, 1, 1, szl_szl_proc_szl, NULL)
+		SZL_PROC_INIT("szl.interp",
+		              "szl.interp ?args?",
+		              1,
+		              2,
+		              szl_szl_proc_szl,
+		              NULL)
 	}
 };
 
