@@ -92,7 +92,7 @@ enum szl_res szl_zstd_proc_decompress(struct szl_interp *interp,
 		if (!szl_as_int(interp, objv[2], &klen))
 			return SZL_ERR;
 
-		if ((klen <= 0) || (klen > ULONG_LONG_MAX) || (klen > SIZE_MAX)) {
+		if ((klen <= 0) || (klen > ULLONG_MAX) || (klen > SIZE_MAX)) {
 			szl_set_last_str(interp, "bad size: "SZL_INT_FMT"d", klen);
 			return SZL_ERR;
 		}

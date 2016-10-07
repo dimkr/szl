@@ -1,7 +1,10 @@
 *.o
-*.a
+libszl.a
 *.so
 szl_builtin.c
-szl_conf.h
 *.inc
+szl
 szlsh
+CMakeCache.txt
+CMakeFiles
+cmake_install.cmake

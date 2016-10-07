@@ -1,18 +1,20 @@
-.TH szlsh 1
+.TH szl 1
 .SH NAME
-.B szlsh
+.B szl
 \- szl script interpreter
 .SH SYNOPSIS
-.B szlsh
+.B szl
 {-c \fIscript\fR | \fIpath\fR}
 .SH DESCRIPTION
 Runs a szl script.
 .SH FILES
 .TP
-.B @EXT_DIR@
+.B @CMAKE_INSTALL_PREFIX@/lib/szl
 The directory of szl extensions.
 .TP
-.B @DOC_DIR@/szl.txt
+.B @CMAKE_INSTALL_PREFIX@/doc/szl.html
 The szl user manual.
+.SH "SEE ALSO"
+.B szlsh(1)
 .SH AUTHOR
 Dima Krasner (dima@dimakrasner.com)

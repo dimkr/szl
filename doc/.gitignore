@@ -1,3 +1,8 @@
-szlsh.1
+szl.1
+Makefile
 szl.html
-api_doc
+api
+doxygen_sqlite3.db
+CMakeCache.txt
+CMakeFiles
+cmake_install.cmake

@@ -1,3 +1,5 @@
+#!/bin/sh
+
 # this file is part of szl.
 #
 # Copyright (c) 2016 Dima Krasner
@@ -20,22 +22,30 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-$try {
-	$switch [$list.len $@] 1 {
-		$szl.shell
-		$exit
-	} 3 {
-		$if [$== -c $1] {
-			[$szl.interp] eval $2
-			$puts $_
-		}
+echo "#include <stddef.h>
+#include \"szl.h\""
 
-		$exit
-	}
+for i in $@
+do
+	echo "extern int szl_init_$i(struct szl_interp *);"
+done
 
-	[$szl.interp [$list.range $@ 1 [$- [$list.len $@] 1]]] eval [$str.format {$source {}} $1]
-} except {
-	$stderr write $_
-	$stderr write $newline
-	$exit 1
-}
+echo "char *szl_builtin_exts[] = {"
+for i in $@
+do
+	echo -n "\"$i\", "
+done
+
+echo "
+NULL};"
+
+echo "int szl_init_builtin_exts(struct szl_interp *interp)
+{"
+
+for i in $@
+do
+	echo "	if (!szl_init_$i(interp)) return 0;"
+done
+
+echo "	return 1;
+}"
