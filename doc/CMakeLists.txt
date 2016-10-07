@@ -27,10 +27,11 @@ install(
 )
 
 add_custom_command(
-	OUTPUT szl.html
+	OUTPUT manual_gen
 	COMMENT "Generating user manual"
 	COMMAND asciidoc -a toc -a toclevels=4 -o szl.html szl.txt
 )
+add_custom_target(manual ALL DEPENDS manual_gen)
 install(
 	FILES szl.html
 	DESTINATION doc/szl
