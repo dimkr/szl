@@ -23,7 +23,7 @@
 configure_file(szl.1.in szl.1)
 install(
 	FILES szl.1 szlsh.1
-	DESTINATION man/man1
+	DESTINATION share/man/man1
 )
 
 add_custom_command(
@@ -34,7 +34,7 @@ add_custom_command(
 add_custom_target(manual ALL DEPENDS manual_gen)
 install(
 	FILES szl.html
-	DESTINATION doc/szl
+	DESTINATION share/doc/szl
 )
 
 add_custom_target(
@@ -45,5 +45,5 @@ add_custom_target(
 add_custom_target(api_doc ALL DEPENDS api_doc_gen)
 install(
 	DIRECTORY api
-	DESTINATION doc/szl
+	DESTINATION share/doc/szl
 )

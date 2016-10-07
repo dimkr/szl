@@ -124,7 +124,7 @@ function(add_extension name)
 			get_filename_component(basename ${doc} NAME)
 			install(
 				FILES ${doc}
-				DESTINATION doc/szl
+				DESTINATION share/doc/szl
 				RENAME ${basename}.${name}
 			)
 		endforeach()

@@ -27,5 +27,5 @@ add_subdirectory(doc)
 
 install(
 	FILES README COPYING AUTHORS
-	DESTINATION doc/szl
+	DESTINATION share/doc/szl
 )
