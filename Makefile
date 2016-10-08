@@ -26,7 +26,7 @@ install: all
 .test:
 	cd test; $(MAKE)
 
-.src: .test
+.src:
 	cd src; $(MAKE)
 
 .doc:
