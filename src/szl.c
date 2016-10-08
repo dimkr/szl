@@ -34,6 +34,7 @@ int main(int argc, char *argv[])
 	struct szl_interp *interp;
 	enum szl_res res;
 	szl_int code;
+	int ret;
 
 	switch (argc) {
 		case 2:
@@ -44,8 +45,6 @@ int main(int argc, char *argv[])
 				return EXIT_FAILURE;
 
 			res = szl_source(interp, argv[1]);
-
-			szl_free_interp(interp);
 			break;
 
 		case 3:
@@ -57,8 +56,6 @@ int main(int argc, char *argv[])
 					return EXIT_FAILURE;
 
 				res = szl_run(interp, argv[2], strlen(argv[2]));
-
-				szl_free_interp(interp);
 				break;
 			}
 
@@ -72,9 +69,12 @@ int main(int argc, char *argv[])
 	}
 
 	if (res == SZL_EXIT)
-		return (szl_as_int(interp, interp->last, &code) &&
-		        (code >= INT_MIN) &&
-		        (code <= INT_MAX)) ? (int)code : EXIT_SUCCESS;
+		ret = (szl_as_int(interp, interp->last, &code) &&
+		       (code >= INT_MIN) &&
+		       (code <= INT_MAX)) ? (int)code : EXIT_SUCCESS;
+	else
+		ret = (res == SZL_OK) ? EXIT_SUCCESS : EXIT_FAILURE;
 
-	return (res == SZL_OK) ? EXIT_SUCCESS : EXIT_FAILURE;
+	szl_free_interp(interp);
+	return ret;
 }
