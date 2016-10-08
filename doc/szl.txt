@@ -89,8 +89,7 @@ The doer alone learneth.
 
 Getting Started
 ~~~~~~~~~~~~~~~
-Each and every +szl+ script is a text file which consists of statements in the
-following form:
+Each and every +szl+ script is a series of statements in the following form:
 
 --------------------------------------
 $proc arg arg
@@ -147,10 +146,11 @@ Lines that begin with '#' are comments and ignored by the interpreter:
 $local number 5
 --------------------------------------
 
-To run a script, run +szlsh+ (the +szl+ interpreter) in a console:
+To run a script, either run +szlsh+ to run each statement interactively or save
+the script to a file and run +szl+:
 
 --------------------------------------
-$ szlsh script.szl
+$ szl script.szl
 --------------------------------------
 
 Lists
@@ -268,7 +268,7 @@ $print_statement a b {c d} e f {g h}
 
 [NOTE]
 When accessed outside of a procedure, '@', '0', etc' specify the command-line
-arguments +szlsh+ was invoked with.
+arguments +szl+ was invoked with.
 
 The return value of a procedure is either:
 
@@ -1472,13 +1472,8 @@ on top of more low-level procedures exposed by the C extensions.
 
 Build System
 ~~~~~~~~~~~~
-+szl+ is built using https://www.gnu.org/software/make/[GNU Make].
-
-The variables 'BUILTIN_EXT_NAMES' and 'EXTERNAL_EXT_NAMES' control which
-extensions are built into +szlsh+ and loaded by default and which ones are built
-as external libraries loaded via 'load'.
++szl+ is built using https://cmake.org/[CMake].
 
 API Documentation
 ~~~~~~~~~~~~~~~~~
-The +szl+ API is documented using http://www.doxygen.org/[Doxygen]. Run 'make
-api_doc' under the 'doc' directory to generate it.
+The +szl+ API is documented using http://www.doxygen.org/[Doxygen].
