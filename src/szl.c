@@ -2532,7 +2532,8 @@ enum szl_res szl_stream_read_all(struct szl_interp *interp,
 {
 	struct szl_obj *obj;
 	unsigned char *buf, *nbuf;
-	ssize_t len = SZL_STREAM_BUFSIZ, tot, more, cont = 1;
+	ssize_t len = SZL_STREAM_BUFSIZ, tot, more;
+	int cont = 1;
 
 	if (!strm->ops->read) {
 		szl_set_last_str(interp,
