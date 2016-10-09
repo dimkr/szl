@@ -26,7 +26,12 @@ include(FindPkgConfig)
 set(extensions archive builtin curl dict dir ed25519 env exc exec ext ffi file http io linenoise list logic loop lzfse math null obj path poll proc server signal socket str szl test time timer tls zlib zstd)
 
 # add common definitions
-add_definitions(-DSZL_VERSION="0.1" -D_GNU_SOURCE)
+execute_process(
+	COMMAND git log -1 --format=%h
+	OUTPUT_VARIABLE last_commit
+	OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+add_definitions(-DSZL_VERSION="0.1-${last_commit}" -D_GNU_SOURCE)
 set(cflags -std=c99 -Wall -Wno-overlength-strings -pedantic)
 add_compile_options(${cflags})
 
