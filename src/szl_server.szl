@@ -20,9 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-$load tls
-$load zlib
-
 $global min_events 1
 
 $proc server.tcp {

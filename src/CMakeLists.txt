@@ -170,18 +170,26 @@ endforeach()
 
 # add extra extensions
 find_package(OpenSSL)
-add_extension(
-	tls
-	LIBRARIES ${OPENSSL_LIBRARIES}
-	INCLUDES ${OPENSSL_INCLUDE_DIR}
-)
+if (OPENSSL_FOUND)
+	add_extension(
+		tls
+		LIBRARIES ${OPENSSL_LIBRARIES}
+		INCLUDES ${OPENSSL_INCLUDE_DIR}
+	)
+else()
+	message("Disabling the tls extension")
+endif()
 
 find_package(ZLIB)
-add_extension(
-	zlib
-	LIBRARIES ${ZLIB_LIBRARIES}
-	INCLUDES ${ZLIB_INCLUDE_DIRS}
-)
+if (ZLIB_FOUND)
+	add_extension(
+		zlib
+		LIBRARIES ${ZLIB_LIBRARIES}
+		INCLUDES ${ZLIB_INCLUDE_DIRS}
+	)
+else()
+	message("Disabling the zlib extension")
+endif()
 
 add_extension(test)
 
@@ -193,18 +201,26 @@ add_extension(
 )
 
 find_package(CURL)
-add_extension(
-	curl
-	LIBRARIES ${CURL_LIBRARY}
-	INCLUDES ${CURL_INCLUDE_DIR}
-)
+if (CURL_FOUND)
+	add_extension(
+		curl
+		LIBRARIES ${CURL_LIBRARY}
+		INCLUDES ${CURL_INCLUDE_DIR}
+	)
+else()
+	message("Disabling the curl extension")
+endif()
 
 find_package(LibArchive)
-add_extension(
-	archive
-	LIBRARIES ${LibArchive_LIBRARIES}
-	INCLUDES ${LibArchive_INCLUDE_DIRS}
-)
+if (LibArchive_FOUND)
+	add_extension(
+		archive
+		LIBRARIES ${LibArchive_LIBRARIES}
+		INCLUDES ${LibArchive_INCLUDE_DIRS}
+	)
+else()
+	message("Disabling the archive extension")
+endif()
 
 add_extension(
 	linenoise
@@ -231,7 +247,11 @@ add_extension(
 	DOCS zstd/LICENSE zstd/PATENTS
 )
 add_extension(server)
-add_extension(http)
+if (OPENSSL_FOUND AND ZLIB_FOUND AND CURL_FOUND)
+	add_extension(http)
+else()
+	message("Disabling the http extension")
+endif()
 
 # once all extensions are added, generate szl_builtin.c, which initializes them
 # during interpreter creation

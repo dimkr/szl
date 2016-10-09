@@ -44,8 +44,7 @@ Building
 
 On Debian (http://www.debian.org) based distributions:
 
-  $ apt-get install git gcc cmake pkg-config zlib1g-dev libcurl4-gnutls-dev
-                    libarchive-dev libssl-dev libffi-dev valgrind
+  $ apt-get install git gcc cmake
 
 Then:
 
@@ -54,6 +53,11 @@ Then:
   $ cmake .
   $ cmake --build .
   $ make install
+
+To enable additional extensions, install their dependencies:
+
+  $ apt-get install zlib1g-dev libcurl4-gnutls-dev libarchive-dev libssl-dev
+                    libffi-dev
 
 By default, szl is built with core functionality built-in to the interpreter,
 while a big part of the standard library resides in dynamically-loaded shared
