@@ -20,29 +20,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-include ../Makefile.common
-
-CFLAGS += -I../src
-
 SCRIPTS = $(wildcard test_*.szl)
 TESTS = $(SCRIPTS:.szl=)
 
 VALGRIND = valgrind --leak-check=full --show-reachable=yes --error-exitcode=1
 
-# in static builds, we want to build just once
-ifeq ($(STATIC_ALL),1)
 all: $(TESTS)
-else
-all: $(TESTS)
-	cd ../src; $(MAKE) clean
-endif
 
-../src/szlsh:
-	cd ../src; STATIC_ALL=1 $(MAKE)
-
-%: %.szl ../src/szlsh
+%: %.szl ../src/szl
 	@echo $$i
-	../src/szlsh $< || exit 1
-	$(VALGRIND) ../src/szlsh $< || exit 1
+	../src/szl $< || exit 1
+	$(VALGRIND) ../src/szl $< || exit 1
 
 clean:

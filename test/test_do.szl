@@ -30,15 +30,15 @@ $test.run {4 args} 0 {$do x while 1 while} {bad usage, should be 'do exp while c
 $test.run {6 iterations} 1 {
 	$local a {}
 	$do {
-		$str.append $a [$str.length $a]
-	} while {[$< [$str.length $a] 7]}
+		$str.append $a [$str.len $a]
+	} while {[$< [$str.len $a] 7]}
 	$echo $a
 } 0123456
 
 $test.run {one iteration} 1 {
 	$local a abc
 	$do {
-		$str.append $a [$str.length $a]
+		$str.append $a [$str.len $a]
 	} while 0
 	$echo $a
 } abc
@@ -46,8 +46,8 @@ $test.run {one iteration} 1 {
 $test.run {break after 4 iterations} 1 {
 	$local a {}
 	$do {
-		$str.append $a [$str.length $a]
-		$if [$== [$str.length $a] 4] {$break}
+		$str.append $a [$str.len $a]
+		$if [$== [$str.len $a] 4] {$break}
 	} while 1
 	$echo $a
 } 0123
@@ -59,7 +59,7 @@ $test.run {continue in third iteration} 1 {
 			$str.append $a x
 			$continue
 		}
-		$str.append $a [$str.length $a]
-	} while {[$< [$str.length $a] 7]}
+		$str.append $a [$str.len $a]
+	} while {[$< [$str.len $a] 7]}
 	$echo $a
 } 012x456

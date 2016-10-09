@@ -22,11 +22,11 @@
 
 $load test
 
-$test.run {no string} 0 {$str.length} {bad usage, should be 'str.length str'}
-$test.run {empty string} 1 {$str.length {}} 0
-$test.run {1-length string} 1 {$str.length x} 1
-$test.run {one space} 1 {$str.length { }} 1
-$test.run {$string with spaces} 1 {$str.length {x  y}} 4
-$test.run {$string with tabs} 1 {$str.length {x		y}} 4
-$test.run int 1 {$str.length [$* 100 10]} 4
-$test.run float 1 {$str.length [$* 100.5 300]} 5
+$test.run {no string} 0 {$str.len} {bad usage, should be 'str.len str'}
+$test.run {empty string} 1 {$str.len {}} 0
+$test.run {1-length string} 1 {$str.len x} 1
+$test.run {one space} 1 {$str.len { }} 1
+$test.run {$string with spaces} 1 {$str.len {x  y}} 4
+$test.run {$string with tabs} 1 {$str.len {x		y}} 4
+$test.run int 1 {$str.len [$* 100 10]} 4
+$test.run float 1 {$str.len [$* 100.5 300]} 5
