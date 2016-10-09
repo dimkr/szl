@@ -88,7 +88,7 @@ void szl_unref(struct szl_obj *obj)
  */
 
 static
-int szl_no_cast(struct szl_interp *interp, struct szl_val *val)
+int szl_no_cast(struct szl_interp *interp, struct szl_obj *obj)
 {
 	return 1;
 }
@@ -254,26 +254,27 @@ int szl_split(struct szl_interp *interp,
 }
 
 static
-int szl_str_to_list(struct szl_interp *interp, struct szl_val *val)
+int szl_str_to_list(struct szl_interp *interp, struct szl_obj *obj)
 {
 	char *buf2;
 	int ret;
 
-	if (!val->s.len) {
-		val->l.items = NULL;
-		val->l.len = 0;
+	if (!obj->val.s.len) {
+		obj->val.l.items = NULL;
+		obj->val.l.len = 0;
 		/* an empty dictionary is sorted */
-		val->l.sorted = 1;
+		obj->val.l.sorted = 1;
 		return 1;
 	}
 
-	buf2 = strndup(val->s.buf,val->s.len);
+	buf2 = strndup(obj->val.s.buf, obj->val.s.len);
 	if (!buf2)
 		return 0;
 
-	ret = szl_split(interp, buf2, &val->l.items, &val->l.len);
+	ret = szl_split(interp, buf2, &obj->val.l.items, &obj->val.l.len);
 	free(buf2);
-	val->l.sorted = 0;
+	obj->val.l.sorted = 0;
+	obj->types |= 1 << SZL_TYPE_LIST;
 	return ret;
 }
 
@@ -284,34 +285,38 @@ int szl_str_to_list(struct szl_interp *interp, struct szl_val *val)
                      inmemb,                                                   \
                      outmemb,                                                  \
                      convproc,                                                 \
-                     nullc)                                                    \
+                     nullc,                                                    \
+                     szltype)                                                  \
 static                                                                         \
-int fname(struct szl_interp *interp, struct szl_val *val)                      \
+int fname(struct szl_interp *interp, struct szl_obj *obj)                      \
 {                                                                              \
 	mbstate_t ps;                                                              \
-	const intype *p = val->inmemb.buf;                                         \
+	const intype *p = obj->val.inmemb.buf;                                     \
 	size_t out, rem;                                                           \
                                                                                \
-	if (val->inmemb.len >= (SIZE_MAX / sizeof(outtype)))                       \
+	if (obj->val.inmemb.len >= (SIZE_MAX / sizeof(outtype)))                   \
 		return 0;                                                              \
                                                                                \
-	val->outmemb.buf =                                                         \
-	               (outtype *)malloc(sizeof(outtype) * (val->inmemb.len + 1)); \
-	if (!val->outmemb.buf)                                                     \
+	obj->val.outmemb.buf =                                                     \
+	           (outtype *)malloc(sizeof(outtype) * (obj->val.inmemb.len + 1)); \
+	if (!obj->val.outmemb.buf)                                                 \
 		return 0;                                                              \
                                                                                \
 	memset(&ps, 0, sizeof(ps));                                                \
-	val->outmemb.len = 0;                                                      \
-	rem = val->inmemb.len * sizeof(intype);                                    \
+	obj->val.outmemb.len = 0;                                                  \
+	rem = obj->val.inmemb.len * sizeof(intype);                                \
                                                                                \
 	do {                                                                       \
-		out = convproc(val->outmemb.buf + val->outmemb.len, &p, rem, &ps);     \
+		out = convproc(obj->val.outmemb.buf + obj->val.outmemb.len,            \
+		               &p,                                                     \
+		               rem,                                                    \
+		               &ps);                                                   \
 		if ((out == (size_t)-1) || (out == (size_t)-2)) {                      \
-			free(val->outmemb.buf);                                            \
-			szl_set_last_fmt(interp, "bad "stype": %s", val->inmemb.buf);      \
+			free(obj->val.outmemb.buf);                                        \
+			szl_set_last_fmt(interp, "bad "stype": %s", obj->val.inmemb.buf);  \
 			return 0;                                                          \
 		}                                                                      \
-		val->outmemb.len += out;                                               \
+		obj->val.outmemb.len += out;                                           \
                                                                                \
 		if (!p || !out)                                                        \
 			break;                                                             \
@@ -319,34 +324,47 @@ int fname(struct szl_interp *interp, struct szl_val *val)                      \
 		rem -= out;                                                            \
 	} while (1);                                                               \
                                                                                \
-	val->outmemb.buf[val->outmemb.len] = nullc;                                \
+	obj->val.outmemb.buf[obj->val.outmemb.len] = nullc;                        \
+	obj->types |= 1 << szltype;                                                \
 	return 1;                                                                  \
 }
 
-SZL_STR_CONV(szl_str_to_wstr, "str", char, wchar_t, s, ws, mbsrtowcs, L'\0')
+SZL_STR_CONV(szl_str_to_wstr,
+             "str",
+             char,
+             wchar_t,
+             s,
+             ws,
+             mbsrtowcs,
+             L'\0',
+             SZL_TYPE_WSTR)
 
 static
-int szl_str_to_int(struct szl_interp *interp, struct szl_val *val)
+int szl_str_to_int(struct szl_interp *interp, struct szl_obj *obj)
 {
-	if (sscanf(val->s.buf, SZL_INT_SCANF_FMT"d", &val->i) == 1)
+	if (sscanf(obj->val.s.buf, SZL_INT_SCANF_FMT"d", &obj->val.i) == 1) {
+		obj->types |= 1 << SZL_TYPE_INT;
 		return 1;
+	}
 
-	szl_set_last_fmt(interp, "bad int: %s", val->s.buf);
+	szl_set_last_fmt(interp, "bad int: %s", obj->val.s.buf);
 	return 0;
 }
 
 static
-int szl_str_to_float(struct szl_interp *interp, struct szl_val *val)
+int szl_str_to_float(struct szl_interp *interp, struct szl_obj *obj)
 {
-	if (sscanf(val->s.buf, SZL_FLOAT_SCANF_FMT, &val->f) == 1)
+	if (sscanf(obj->val.s.buf, SZL_FLOAT_SCANF_FMT, &obj->val.f) == 1) {
+		obj->types |= 1 << SZL_TYPE_FLOAT;
 		return 1;
+	}
 
-	szl_set_last_fmt(interp, "bad float: %s", val->s.buf);
+	szl_set_last_fmt(interp, "bad float: %s", obj->val.s.buf);
 	return 0;
 }
 
 static
-int szl_str_to_code(struct szl_interp *interp, struct szl_val *val)
+int szl_str_to_code(struct szl_interp *interp, struct szl_obj *obj)
 {
 	struct szl_obj *stmt;
 	char *copy, *line, *next = NULL;
@@ -354,18 +372,18 @@ int szl_str_to_code(struct szl_interp *interp, struct szl_val *val)
 	size_t i = 0;
 	int nbraces = 0, nbrackets = 0;
 
-	copy = (char *)strndup(val->s.buf, val->s.len);
+	copy = (char *)strndup(obj->val.s.buf, obj->val.s.len);
 	if (!copy)
 		return 0;
 
-	val->c = szl_new_list(NULL, 0);
-	if (!val->c) {
+	obj->val.c = szl_new_list(NULL, 0);
+	if (!obj->val.c) {
 		free(copy);
 		return 0;
 	}
 
 	line = copy;
-	while (i < val->s.len) {
+	while (i < obj->val.s.len) {
 		if (copy[i] == '{')
 			++nbraces;
 		else if (copy[i] == '}')
@@ -375,15 +393,15 @@ int szl_str_to_code(struct szl_interp *interp, struct szl_val *val)
 		else if (copy[i] == ']')
 			--nbrackets;
 
-		if (i == val->s.len - 1) {
+		if (i == obj->val.s.len - 1) {
 			if (nbraces != 0)
 				fmt = "unbalanced {}: %s\n";
 			else if (nbrackets != 0)
 				fmt = "unbalanced []: %s\n";
 
 			if (fmt) {
-				szl_set_last_fmt(interp, fmt, val->s.buf);
-				szl_unref(val->c);
+				szl_set_last_fmt(interp, fmt, obj->val.s.buf);
+				szl_unref(obj->val.c);
 				free(copy);
 				return 0;
 			}
@@ -402,14 +420,14 @@ int szl_str_to_code(struct szl_interp *interp, struct szl_val *val)
 		if (line[0] != '\0' && line[0] != SZL_COMMENT_PFIX) {
 			stmt = szl_new_str(line, next - line);
 			if (!stmt) {
-				szl_unref(val->c);
+				szl_unref(obj->val.c);
 				free(copy);
 				return 0;
 			}
 
-			if (!szl_list_append(interp, val->c, stmt)) {
+			if (!szl_list_append(interp, obj->val.c, stmt)) {
 				szl_unref(stmt);
-				szl_unref(val->c);
+				szl_unref(obj->val.c);
 				free(copy);
 				return 0;
 			}
@@ -422,219 +440,237 @@ int szl_str_to_code(struct szl_interp *interp, struct szl_val *val)
 	}
 
 	free(copy);
+	obj->types |= 1 << SZL_TYPE_CODE;
 	return 1;
 }
 
-SZL_STR_CONV(szl_wstr_to_str, "wstr", wchar_t, char, ws, s, wcsrtombs, L'\0')
+SZL_STR_CONV(szl_wstr_to_str,
+             "wstr",
+             wchar_t,
+             char,
+             ws,
+             s,
+             wcsrtombs,
+             L'\0',
+             SZL_TYPE_STR)
 
 static
-int szl_wstr_to_list(struct szl_interp *interp, struct szl_val *val)
+int szl_wstr_to_list(struct szl_interp *interp, struct szl_obj *obj)
 {
-	if (!szl_wstr_to_str(interp, val))
+	if (!szl_wstr_to_str(interp, obj))
 		return 0;
 
-	return szl_str_to_list(interp, val);
+	return szl_str_to_list(interp, obj);
 }
 
 static
-int szl_wstr_to_int(struct szl_interp *interp, struct szl_val *val)
+int szl_wstr_to_int(struct szl_interp *interp, struct szl_obj *obj)
 {
-	if (!szl_wstr_to_str(interp, val))
+	if (!szl_wstr_to_str(interp, obj))
 		return 0;
 
-	return szl_str_to_int(interp, val);
+	return szl_str_to_int(interp, obj);
 }
 
 static
-int szl_wstr_to_float(struct szl_interp *interp, struct szl_val *val)
+int szl_wstr_to_float(struct szl_interp *interp, struct szl_obj *obj)
 {
-	if (!szl_wstr_to_str(interp, val))
+	if (!szl_wstr_to_str(interp, obj))
 		return 0;
 
-	return szl_str_to_float(interp, val);
+	return szl_str_to_float(interp, obj);
 }
 
 static
-int szl_wstr_to_code(struct szl_interp *interp, struct szl_val *val)
+int szl_wstr_to_code(struct szl_interp *interp, struct szl_obj *obj)
 {
-	if (!szl_wstr_to_str(interp, val))
+	if (!szl_wstr_to_str(interp, obj))
 		return 0;
 
-	return szl_str_to_code(interp, val);
+	return szl_str_to_code(interp, obj);
 }
 
 static
-int szl_list_to_str(struct szl_interp *interp, struct szl_val *val)
+int szl_list_to_str(struct szl_interp *interp, struct szl_obj *obj)
 {
 	struct szl_obj *str;
 
-	str = szl_join(interp, interp->space, val->l.items, val->l.len, 1);
+	str = szl_join(interp, interp->space, obj->val.l.items, obj->val.l.len, 1);
 	if (!str)
 		return 0;
 
 	/* we "steal" the string representation of the result */
-	val->s.buf = str->val.s.buf;
-	val->s.len = str->val.s.len;
+	obj->val.s.buf = str->val.s.buf;
+	obj->val.s.len = str->val.s.len;
 
 	str->types &= ~(1 << SZL_TYPE_STR);
 	szl_unref(str);
 
+	obj->types |= 1 << SZL_TYPE_STR;
 	return 1;
 }
 
 static
-int szl_list_to_wstr(struct szl_interp *interp, struct szl_val *val)
+int szl_list_to_wstr(struct szl_interp *interp, struct szl_obj *obj)
 {
-	if (!szl_list_to_str(interp, val))
+	if (!szl_list_to_str(interp, obj))
 		return 0;
 
-	return szl_str_to_wstr(interp, val);
+	return szl_str_to_wstr(interp, obj);
 }
 
 static
-int szl_list_to_int(struct szl_interp *interp, struct szl_val *val)
+int szl_list_to_int(struct szl_interp *interp, struct szl_obj *obj)
 {
-	if (val->l.len) {
+	if (obj->val.l.len) {
 		szl_set_last_str(interp, "bad int", sizeof("bad int") - 1);
 		return 0;
 	}
 
-	if (!szl_list_to_str(interp, val))
+	if (!szl_list_to_str(interp, obj))
 		return 0;
 
-	return szl_str_to_int(interp, val);
+	return szl_str_to_int(interp, obj);
 }
 
 static
-int szl_list_to_float(struct szl_interp *interp, struct szl_val *val)
+int szl_list_to_float(struct szl_interp *interp, struct szl_obj *obj)
 {
-	if (val->l.len) {
+	if (obj->val.l.len) {
 		szl_set_last_str(interp, "bad float", sizeof("bad float") - 1);
 		return 0;
 	}
 
-	if (!szl_list_to_str(interp, val))
+	if (!szl_list_to_str(interp, obj))
 		return 0;
 
-	return szl_str_to_float(interp, val);
+	return szl_str_to_float(interp, obj);
 }
 
 static
-int szl_list_to_code(struct szl_interp *interp, struct szl_val *val)
+int szl_list_to_code(struct szl_interp *interp, struct szl_obj *obj)
 {
-	val->c = szl_new_list(val->l.items, val->l.len);
-	return val->c ? 1 : 0;
+	obj->val.c = szl_new_list(obj->val.l.items, obj->val.l.len);
+	if (!obj->val.c)
+		return 0;
+
+	obj->types |= 1 << SZL_TYPE_CODE;
+	return 1;
 }
 
 static
-int szl_int_to_str(struct szl_interp *interp, struct szl_val *val)
+int szl_int_to_str(struct szl_interp *interp, struct szl_obj *obj)
 {
 	int len;
 
-	len = asprintf(&val->s.buf, SZL_INT_FMT"d", val->i);
+	len = asprintf(&obj->val.s.buf, SZL_INT_FMT"d", obj->val.i);
 	if (len < 0)
 		return 0;
 
-	val->s.len = (size_t)len;
+	obj->val.s.len = (size_t)len;
+	obj->types |= 1 << SZL_TYPE_STR;
 	return 1;
 }
 
 static
-int szl_int_to_wstr(struct szl_interp *interp, struct szl_val *val)
+int szl_int_to_wstr(struct szl_interp *interp, struct szl_obj *obj)
 {
-	if (!szl_int_to_str(interp, val))
+	if (!szl_int_to_str(interp, obj))
 		return 0;
 
-	return szl_str_to_wstr(interp, val);
+	return szl_str_to_wstr(interp, obj);
 }
 
 static
-int szl_int_to_list(struct szl_interp *interp, struct szl_val *val)
+int szl_int_to_list(struct szl_interp *interp, struct szl_obj *obj)
 {
-	if (!szl_int_to_str(interp, val))
+	if (!szl_int_to_str(interp, obj))
 		return 0;
 
-	return szl_str_to_list(interp, val);
+	return szl_str_to_list(interp, obj);
 }
 
 static
-int szl_int_to_float(struct szl_interp *interp, struct szl_val *val)
+int szl_int_to_float(struct szl_interp *interp, struct szl_obj *obj)
 {
-	val->f = (szl_float)val->i;
+	obj->val.f = (szl_float)obj->val.i;
+	obj->types |= 1 << SZL_TYPE_FLOAT;
 	return 1;
 }
 
 static
-int szl_int_to_code(struct szl_interp *interp, struct szl_val *val)
+int szl_int_to_code(struct szl_interp *interp, struct szl_obj *obj)
 {
-	if (!szl_int_to_str(interp, val))
+	if (!szl_int_to_str(interp, obj))
 		return 0;
 
-	return szl_str_to_code(interp, val);
+	return szl_str_to_code(interp, obj);
 }
 
 static
-int szl_float_to_str(struct szl_interp *interp, struct szl_val *val)
+int szl_float_to_str(struct szl_interp *interp, struct szl_obj *obj)
 {
 	int len, i;
 
-	len = asprintf(&val->s.buf, SZL_FLOAT_FMT, val->f);
+	len = asprintf(&obj->val.s.buf, SZL_FLOAT_FMT, obj->val.f);
 	if (len < 0)
 		return 0;
 
-	val->s.len = (size_t)len;
-	if (val->s.len) {
+	obj->val.s.len = (size_t)len;
+	if (obj->val.s.len) {
 		for (i = len - 1; i >= 0; --i) {
-			if (val->s.buf[i] == '0')
-				--val->s.len;
+			if (obj->val.s.buf[i] == '0')
+				--obj->val.s.len;
 			else {
-				if (val->s.buf[i] == '.')
-					--val->s.len;
+				if (obj->val.s.buf[i] == '.')
+					--obj->val.s.len;
 
-				val->s.buf[val->s.len] = '\0';
+				obj->val.s.buf[obj->val.s.len] = '\0';
 				break;
 			}
 		}
 	}
 
+	obj->types |= 1 << SZL_TYPE_STR;
 	return 1;
 }
 
 static
-int szl_float_to_wstr(struct szl_interp *interp, struct szl_val *val)
+int szl_float_to_wstr(struct szl_interp *interp, struct szl_obj *obj)
 {
-	if (!szl_float_to_str(interp, val))
+	if (!szl_float_to_str(interp, obj))
 		return 0;
 
-	return szl_str_to_wstr(interp, val);
+	return szl_str_to_wstr(interp, obj);
 }
 
 static
-int szl_float_to_list(struct szl_interp *interp, struct szl_val *val)
+int szl_float_to_list(struct szl_interp *interp, struct szl_obj *obj)
 {
-	if (!szl_float_to_str(interp, val))
+	if (!szl_float_to_str(interp, obj))
 		return 0;
 
-	return szl_str_to_list(interp, val);
+	return szl_str_to_list(interp, obj);
 }
 
 static
-int szl_float_to_int(struct szl_interp *interp, struct szl_val *val)
+int szl_float_to_int(struct szl_interp *interp, struct szl_obj *obj)
 {
-	val->i = (szl_int)round(val->f);
+	obj->val.i = (szl_int)round(obj->val.f);
+	obj->types |= 1 << SZL_TYPE_INT;
 	return 1;
 }
 
 static
-int szl_float_to_code(struct szl_interp *interp, struct szl_val *val)
+int szl_float_to_code(struct szl_interp *interp, struct szl_obj *obj)
 {
-	if (!szl_float_to_str(interp, val))
+	if (!szl_float_to_str(interp, obj))
 		return 0;
 
-	return szl_str_to_code(interp, val);
+	return szl_str_to_code(interp, obj);
 }
 
-typedef int (*szl_cast_t)(struct szl_interp *, struct szl_val *);
+typedef int (*szl_cast_t)(struct szl_interp *, struct szl_obj *);
 
 static
 const szl_cast_t szl_cast_table[6][6] = {
@@ -694,10 +730,9 @@ int szl_cast(struct szl_interp *interp,
 		mask = 1 << i;
 
 		if ((i != type) && (obj->types & mask)) {
-			if (!szl_cast_table[i - 1][type - 1](interp, &obj->val))
+			if (!szl_cast_table[i - 1][type - 1](interp, obj))
 				return 0;
 
-			obj->types |= 1 << type;
 			return 1;
 		}
 	}
