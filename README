@@ -44,7 +44,7 @@ Building
 
 On Debian (http://www.debian.org) based distributions:
 
-  $ apt-get install git gcc cmake
+  $ apt-get install git gcc cmake make
 
 Then:
 
@@ -75,6 +75,13 @@ into the interpreter:
 In addition, built-in extensions can be chosen individually, e.g.:
 
   $ cmake -DBUILTIN_CURL=ON -DBUILTIN_FFI=ON .
+
+Alternatively, szl can be built without CMake (http://cmake.org/). For example:
+
+  $ make BUILTIN_ALL=1
+
+Embedding
+=========
 
 To embed szl into other projects, use the API defined in szl.h and link with
 libszl.
