@@ -333,6 +333,15 @@ struct szl_stream *szl_io_wrap_pipe(struct szl_interp *interp, FILE *fp)
 	return strm;
 }
 
+static
+enum szl_res szl_io_proc_sync(struct szl_interp *interp,
+                              const unsigned int objc,
+                              struct szl_obj **objv)
+{
+	sync();
+	return SZL_OK;
+}
+
 int szl_init_io(struct szl_interp *interp)
 {
 	static struct szl_ext_export io_exports[] = {
@@ -350,6 +359,9 @@ int szl_init_io(struct szl_interp *interp)
 		},
 		{
 			SZL_PROC_INIT("isatty", "handle", 2, 2, szl_io_proc_isatty, NULL)
+		},
+		{
+			SZL_PROC_INIT("sync", "sync", 1, 1, szl_io_proc_sync, NULL)
 		}
 	};
 

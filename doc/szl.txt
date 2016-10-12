@@ -868,6 +868,9 @@ $local content [[$open /etc/hosts ru] read]
 +$isatty+ 'handle'::
 	Determines whether a file handle refers to a terminal.
 
++$sync+::
+	Flushes all file system buffers to disk.
+
 Sockets
 ^^^^^^^
 +$stream.client+ 'host service'::
