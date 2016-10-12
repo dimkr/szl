@@ -54,10 +54,10 @@ Use Cases
    scalability, security and reliability over time) hard to achieve in C,
    because memory management is manual and crash-prone, while errors cannot be
    handled using exceptions, because C lacks this feature. +szl+ wraps low-level
-   interfaces like +epoll+ and +timerfd+ with a simpler interface but with very
-   little overhead, while providing automatic garbage collection, exceptions and
-   complex data types useful for servers (i.e. dictionaries that map sockets to
-   session data).
+   interfaces like +epoll, +timerfd+ and +signalfd+ with a simpler interface but
+   with very little overhead, while providing automatic garbage collection,
+   exceptions and complex data types useful for servers (i.e. dictionaries that
+   map sockets to session data).
 3. A systems person needs a quick n' dirty way to call C functions, without
    having to do native development during early research or the prototype phase:
    +szl+ allows interfacing with C code and data types via scripts!
@@ -903,7 +903,7 @@ data.
 Socket I/O Multiplexing
 +++++++++++++++++++++++
 +$poll.create+::
-	Creates a new set of polled sockets and timers.
+	Creates a new set of polled sockets, timers and signal streams.
 
 +$poll+ 'add handle event...'::
 	Adds a handle to a set and enables monitoring of specific events. Currently
@@ -914,8 +914,8 @@ Socket I/O Multiplexing
 	Removes a handle from a set.
 
 +$poll+ 'wait lim'::
-	Waits for up to 'lim' socket or timer events and returns three lists of
-	handles: those ready for reading, writing or error handling.
+	Waits for up to 'lim' socket, timer or signal events and returns three lists
+	of handles: those ready for reading, writing or error handling.
 
 +$timer+ 'interval'::
 	Creates a non-readable stream, which triggers an 'in' event after 'interval'
@@ -940,13 +940,27 @@ $puts [[$exec {uname -a 2>/dev/null}] read]
 
 Signals
 ^^^^^^^
-+$signal.block+ 'sig...'::
-	Blocks a list of signals and returns a signal mask object. The signals may
-	be 'term', 'int', 'usr1' or 'usr2'.
++$signal+ 'sig...'::
+	Blocks a list of signals and returns a stream which outputs received signal
+	numbers.
 
-+$mask+ 'check'::
-	Checks whether a signal blocked by a signal mask has been received and
-	blocked.
++$signal.int+::
+	The +SIGINT+ signal number.
+
++$signal.term+::
+	The +SIGTERM+ signal number.
+
++$signal.chld+::
+	The +SIGCHLD+ signal number.
+
++$signal.usr1+::
+	The +SIGUSR1+ signal number.
+
++$signal.usr2+::
+	The +SIGUSR2+ signal number.
+
++$wait+::
+	Waits for a child process to terminate and returns its exit code.
 
 Environment
 ^^^^^^^^^^^

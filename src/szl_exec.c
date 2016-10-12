@@ -38,6 +38,7 @@ struct szl_exec {
 	int out;
 	int in;
 	pid_t pid;
+	int reap;
 };
 
 static
@@ -47,17 +48,31 @@ ssize_t szl_exec_read(struct szl_interp *interp,
                       const size_t len,
                       int *more)
 {
+	struct szl_exec *exec = (struct szl_exec *)priv;
 	ssize_t out;
+	int pid;
 
-	out = read(((struct szl_exec *)priv)->out, buf, len);
+	out = read(exec->out, buf, len);
 	if (out < 0) {
 		if ((errno == EAGAIN) || (errno == EWOULDBLOCK))
 			return 0;
 
 		szl_set_last_str(interp, strerror(errno), -1);
 		return -1;
-	} else if (out == 0)
+	} else if (out == 0) {
+		if (exec->reap) {
+			/* if the pipe has been closed, this could mean the process has
+			 * terminated, so we want to try to reap it now */
+			pid = waitpid(exec->pid, NULL, WNOHANG);
+			if (pid == exec->pid)
+				exec->reap = 0;
+			else if ((pid < 0) && (errno != ECHILD)) {
+				szl_set_last_str(interp, strerror(errno), -1);
+				return -1;
+			}
+		}
 		*more = 0;
+	}
 
 	return out;
 }
@@ -105,9 +120,8 @@ void szl_exec_close(void *priv)
 	struct szl_exec *exec = (struct szl_exec *)priv;
 	close(exec->out);
 	close(exec->in);
-	/* could fail with ECHILD - we're fine with that since this means the zombie
-	 * has already been reaped */
-	waitpid(exec->pid, NULL, WNOHANG);
+	if (exec->reap)
+		waitpid(exec->pid, NULL, WNOHANG);
 	free(exec);
 }
 
@@ -201,6 +215,7 @@ enum szl_res szl_exec_proc_exec(struct szl_interp *interp,
 	close(in[0]);
 	exec->in = in[1];
 	exec->out = out[0];
+	exec->reap = 1;
 
 	strm->ops = &szl_exec_ops;
 	strm->keep = 0;
@@ -227,12 +242,8 @@ const struct szl_ext_export exec_exports[] = {
 
 int szl_init_exec(struct szl_interp *interp)
 {
-	struct sigaction sa = {.sa_handler = SIG_IGN, .sa_flags = SA_NOCLDWAIT};
-
-	/* we want to silently ignore SIGCHLD, so it does not interrupt syscalls */
-	return ((sigaction(SIGCHLD, &sa, NULL) == 0) &&
-	        szl_new_ext(interp,
+	return szl_new_ext(interp,
 	                    "exec",
 	                    exec_exports,
-	                    sizeof(exec_exports) / sizeof(exec_exports[0])));
+	                    sizeof(exec_exports) / sizeof(exec_exports[0]));
 }

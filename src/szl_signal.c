@@ -24,141 +24,204 @@
 
 #include <stdlib.h>
 #include <signal.h>
+#include <sys/signalfd.h>
+#include <inttypes.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #include "szl.h"
 
-struct szl_sigmask {
+struct szl_sig {
 	sigset_t set;
-	sigset_t oldset;
-};
-
-static const struct {
-	const char *name;
-	int sig;
-} sigs[] = {
-	{"term", SIGTERM},
-	{"int", SIGINT},
-	{"usr1", SIGUSR1},
-	{"usr2", SIGUSR2}
+	int fd;
 };
 
 static
-enum szl_res szl_signal_sigmask_proc(struct szl_interp *interp,
-                                     const unsigned int objc,
-                                     struct szl_obj **objv)
+ssize_t szl_signal_read(struct szl_interp *interp,
+                        void *priv,
+                        unsigned char *buf,
+                        const size_t len,
+                        int *more)
 {
-	struct szl_sigmask *mask = (struct szl_sigmask *)objv[0]->priv;
-	char *s;
-	size_t len;
-	int i, out;
+	struct signalfd_siginfo si;
+	ssize_t out;
+	int outc;
 
-	if (!szl_as_str(interp, objv[1], &s, &len) ||
-	    !len ||
-	    (strcmp("check", s) != 0) ||
-	    (sigpending(&mask->set) < 0))
-		return SZL_ERR;
+	out = read(((struct szl_sig *)priv)->fd, &si, sizeof(si));
+	if (out == sizeof(si)) {
+		outc = snprintf((char *)buf, len, "%"PRIu32, si.ssi_signo);
+		if ((outc >= len) || (outc < 0))
+			return -1;
+		out = (ssize_t)outc;
+		*more = 0;
+	} else if (!out)
+		*more = 0;
+	else {
+		if ((errno == EAGAIN) || (errno == EWOULDBLOCK))
+			return 0;
 
-	for (i = 0; i < sizeof(sigs) / sizeof(sigs[0]); ++i) {
-		out = sigismember(&mask->set, sigs[i].sig);
-		if (out < 0)
-			return SZL_ERR;
-
-		if (out) {
-			szl_set_last_fmt(interp, "received a signal: %s", sigs[i].name);
-			return SZL_ERR;
-		}
+		szl_set_last_str(interp, strerror(errno), -1);
+		return -1;
 	}
+
+	return out;
+}
+
+static
+enum szl_res szl_signal_unblock(void *priv)
+{
+	int fl, fd = ((struct szl_sig *)priv)->fd;
+
+	fl = fcntl(fd, F_GETFL);
+	if ((fl < 0) || (fcntl(fd, F_SETFL, fl | O_NONBLOCK) < 0))
+		return SZL_ERR;
 
 	return SZL_OK;
 }
 
 static
-void szl_signal_sigmask_del(void *priv)
+void szl_signal_close(void *priv)
 {
-	sigprocmask(SIG_UNBLOCK, &((struct szl_sigmask *)priv)->oldset, NULL);
-	free(priv);
+	struct szl_sig *sig = (struct szl_sig *)priv;
+
+	sigprocmask(SIG_UNBLOCK, &sig->set, NULL);
+	close(sig->fd);
+	free(sig);
 }
 
 static
-enum szl_res szl_signal_proc_block(struct szl_interp *interp,
-                                   const unsigned int objc,
-                                   struct szl_obj **objv)
+szl_int szl_signal_handle(void *priv)
 {
-	struct szl_obj *name, *proc;
-	char *s;
-	struct szl_sigmask *mask;
-	size_t len;
-	int i, j;
+	return (szl_int)(((struct szl_sig *)priv)->fd);
+}
 
-	mask = (struct szl_sigmask *)malloc(sizeof(*mask));
-	if (!mask)
+static
+const struct szl_stream_ops szl_signal_ops = {
+	.read = szl_signal_read,
+	.unblock = szl_signal_unblock,
+	.close = szl_signal_close,
+	.handle = szl_signal_handle
+};
+
+static
+enum szl_res szl_signal_proc_signal(struct szl_interp *interp,
+                                    const unsigned int objc,
+                                    struct szl_obj **objv)
+{
+	struct szl_sig *sig;
+	struct szl_stream *strm;
+	struct szl_obj *obj;
+	szl_int signo;
+	unsigned int i;
+
+	sig = (struct szl_sig *)malloc(sizeof(*sig));
+	if (!sig)
 		return SZL_ERR;
 
-	if (sigemptyset(&mask->set) < 0) {
-		free(mask);
+	if (sigemptyset(&sig->set) < 0) {
+		free(sig);
 		return SZL_ERR;
 	}
 
 	for (i = 1; i < objc; ++i) {
-		if (!szl_as_str(interp, objv[i], &s, &len) || !len) {
-			free(mask);
+		if (!szl_as_int(interp, objv[i], &signo) ||
+		    (signo < INT_MIN) ||
+		    (signo > INT_MAX) ||
+		    (sigaddset(&sig->set, (int)signo) < 0)) {
+			free(sig);
 			return SZL_ERR;
 		}
-
-		for (j = 0; j < sizeof(sigs) / sizeof(sigs[0]); ++j) {
-			if (strcmp(sigs[j].name, s) == 0) {
-				if (sigaddset(&mask->set, sigs[j].sig) < 0) {
-					free(mask);
-					return SZL_ERR;
-				}
-				break;
-			}
-		}
-
 	}
 
-	name = szl_new_str_fmt("signal.mask:%"PRIxPTR, (uintptr_t)mask);
-	if (!name) {
-		free(mask);
+	if (sigprocmask(SIG_BLOCK, &sig->set, NULL) < 0) {
+		free(sig);
 		return SZL_ERR;
 	}
 
-	if (sigprocmask(SIG_BLOCK, &mask->set, &mask->oldset) < 0) {
-		szl_unref(name);
-		free(mask);
+	sig->fd = signalfd(-1, &sig->set, 0);
+	if (sig->fd < 0) {
+		sigprocmask(SIG_UNBLOCK, &sig->set, NULL);
+		free(sig);
 		return SZL_ERR;
 	}
 
-	proc = szl_new_proc(interp,
-	                    name,
-	                    2,
-	                    2,
-	                    "mask check",
-	                    szl_signal_sigmask_proc,
-	                    szl_signal_sigmask_del,
-	                    mask);
-	if (!proc) {
-		sigprocmask(SIG_UNBLOCK, &mask->oldset, NULL);
-		szl_unref(name);
-		free(mask);
+	strm = (struct szl_stream *)malloc(sizeof(*strm));
+	if (!strm) {
+		close(sig->fd);
+		sigprocmask(SIG_UNBLOCK, &sig->set, NULL);
+		free(sig);
 		return SZL_ERR;
 	}
 
-	szl_unref(name);
-	return szl_set_last(interp, proc);
+	strm->ops = &szl_signal_ops;
+	strm->keep = 0;
+	strm->closed = 0;
+	strm->priv = (void *)sig;
+	strm->buf = NULL;
+	strm->blocking = 1;
+
+	obj = szl_new_stream(interp, strm, "signal");
+	if (!obj) {
+		szl_stream_free(strm);
+		return SZL_ERR;
+	}
+
+	return szl_set_last(interp, obj);
+}
+
+static
+enum szl_res szl_signal_proc_wait(struct szl_interp *interp,
+                                  const unsigned int objc,
+                                  struct szl_obj **objv)
+{
+	int status;
+
+	if (wait(&status) < 0)
+		return SZL_ERR;
+
+	if (WIFEXITED(status))
+		return szl_set_last_int(interp, (szl_int)WEXITSTATUS(status));
+
+	return SZL_OK;
 }
 
 static
 const struct szl_ext_export signal_exports[] = {
 	{
-		SZL_PROC_INIT("signal.block",
+		SZL_PROC_INIT("signal",
 		              "sig...",
 		              2,
 		              -1,
-		              szl_signal_proc_block,
+		              szl_signal_proc_signal,
 		              NULL)
-	}
+	},
+	{
+		SZL_INT_INIT("signal.int", SIGINT)
+	},
+	{
+		SZL_INT_INIT("signal.term", SIGTERM)
+	},
+	{
+		SZL_INT_INIT("signal.chld", SIGCHLD)
+	},
+	{
+		SZL_INT_INIT("signal.usr1", SIGUSR1)
+	},
+	{
+		SZL_INT_INIT("signal.usr2", SIGUSR2)
+	},
+	{
+		SZL_PROC_INIT("wait",
+		              "wait",
+		              1,
+		              1,
+		              szl_signal_proc_wait,
+		              NULL)
+	},
 };
 
 int szl_init_signal(struct szl_interp *interp)

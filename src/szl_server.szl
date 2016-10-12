@@ -73,11 +73,11 @@ $proc server.tcp {
 	$local events $min_events
 	$poller add $listening_socket_handle in
 
-	$local signal_mask [$signal.block int term]
+	$local blocked_signals [$signal $signal.int $signal.term]
+	$local blocked_signals_handle [$blocked_signals handle]
+	$poller add $blocked_signals_handle in
 
 	$while 1 {
-		$signal_mask check
-
 		$local ready_handles [$poller wait $events]
 
 		$local read_handles [$list.index $ready_handles 0]
@@ -142,31 +142,37 @@ $proc server.tcp {
 						}
 					}
 				} else {
+
 					$break
 				}
 			} else {
-				$local client_socket_handle [$dict.get $timer_handles_to_client_handles $read_handle {}]
-				$if $client_socket_handle {
-					$dict.set $timer_handles_to_client_handles $read_handle {}
-					$list.append $close_handles $client_socket_handle
+				$if [$== $read_handle $blocked_signals_handle] {
+					$try {$blocked_signals read}
+					$exit
 				} else {
-					$local client_socket [$dict.get $sockets $read_handle]
-					$try {
-						$export chunk [$client_socket read]
-					} except {
-						$list.append $close_handles $read_handle
-						$export chunk {}
-					}
-
-					$if $chunk {
-						$local request [$str.join {} [$dict.get $requests $read_handle] $chunk]
-						$dict.set $requests $read_handle $request
-
+					$local client_socket_handle [$dict.get $timer_handles_to_client_handles $read_handle {}]
+					$if $client_socket_handle {
+						$dict.set $timer_handles_to_client_handles $read_handle {}
+						$list.append $close_handles $client_socket_handle
+					} else {
+						$local client_socket [$dict.get $sockets $read_handle]
 						$try {
-							$local response [$get_response $request]
-							$dict.set $responses $client_socket $response
-							$poller remove $read_handle
-							$poller add $read_handle in out
+							$export chunk [$client_socket read]
+						} except {
+							$list.append $close_handles $read_handle
+							$export chunk {}
+						}
+
+						$if $chunk {
+							$local request [$str.join {} [$dict.get $requests $read_handle] $chunk]
+							$dict.set $requests $read_handle $request
+
+							$try {
+								$local response [$get_response $request]
+								$dict.set $responses $client_socket $response
+								$poller remove $read_handle
+								$poller add $read_handle in out
+							}
 						}
 					}
 				}

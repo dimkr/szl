@@ -2598,7 +2598,7 @@ enum szl_res szl_stream_read_all(struct szl_interp *interp,
 	if (tot > 0) {
 		/* if we don't know whether there's more data to read, read more data in
 		 * SZL_STREAM_BUFSIZ-byte chunks until the read() callback returns 0 */
-		if (!strm->ops->size) {
+		if (cont && !strm->ops->size) {
 			do {
 				len += SZL_STREAM_BUFSIZ;
 				nbuf = (unsigned char *)realloc(buf, len);

@@ -30,7 +30,6 @@
 
 #include "szl.h"
 
-
 static
 enum szl_res szl_timer_unblock(void *priv)
 {
