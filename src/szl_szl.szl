@@ -32,7 +32,13 @@ $proc szl.shell {
 		$puts [$str.join { } szl $env.ver]
 	}
 
-	$local interp [$szl.interp]
+	$if [$== [$list.len $@] 1] {
+		$export argv {}
+	} else {
+		$export argv $1
+	}
+
+	$local interp [$szl.interp $argv]
 
 	$local obrace [$str.expand \x7b]
 	$local cbrace [$str.expand \x7d]

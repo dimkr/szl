@@ -23,19 +23,7 @@
 # THE SOFTWARE.
 
 $try {
-	$switch [$list.len $@] 1 {
-		$szl.shell
-		$exit
-	} 3 {
-		$if [$== -c $1] {
-			[$szl.interp] eval $2
-			$puts $_
-		}
-
-		$exit
-	}
-
-	[$szl.interp [$list.range $@ 1 [$- [$list.len $@] 1]]] eval [$str.format {$source {}} $1]
+	$szl.shell $@
 } except {
 	$stderr write $_
 	$stderr write $newline

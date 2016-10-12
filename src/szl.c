@@ -36,36 +36,32 @@ int main(int argc, char *argv[])
 	szl_int code;
 	int ret;
 
-	switch (argc) {
-		case 2:
-			setlocale(LC_ALL, "");
+	if (argc == 1) {
+		fprintf(stderr,
+		        "Usage: %s PATH\n" \
+		        "Or: %s -c SCRIPT\n",
+		        argv[0],
+		        argv[0]);
+		return EXIT_FAILURE;
+	}
 
-			interp = szl_new_interp(argc, argv);
-			if (!interp)
-				return EXIT_FAILURE;
+	if ((argc == 3) && (strcmp("-c", argv[1]) == 0)) {
+		setlocale(LC_ALL, "");
 
-			res = szl_source(interp, argv[1]);
-			break;
-
-		case 3:
-			if (strcmp("-c", argv[1]) == 0) {
-				setlocale(LC_ALL, "");
-
-				interp = szl_new_interp(argc, argv);
-				if (!interp)
-					return EXIT_FAILURE;
-
-				res = szl_run(interp, argv[2], strlen(argv[2]));
-				break;
-			}
-
-		default:
-			fprintf(stderr,
-			        "Usage: %s PATH\n" \
-			        "Or: %s -c SCRIPT\n",
-			        argv[0],
-			        argv[0]);
+		interp = szl_new_interp(argc - 1, &argv[1]);
+		if (!interp)
 			return EXIT_FAILURE;
+
+		res = szl_run(interp, argv[2], strlen(argv[2]));
+	}
+	else {
+		setlocale(LC_ALL, "");
+
+		interp = szl_new_interp(argc - 1, &argv[1]);
+		if (!interp)
+			return EXIT_FAILURE;
+
+		res = szl_source(interp, argv[1]);
 	}
 
 	if (res == SZL_EXIT)
