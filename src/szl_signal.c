@@ -174,6 +174,30 @@ enum szl_res szl_signal_proc_signal(struct szl_interp *interp,
 }
 
 static
+enum szl_res szl_signal_proc_kill(struct szl_interp *interp,
+                                  const unsigned int objc,
+                                  struct szl_obj **objv)
+{
+	szl_int pid, sig = SIGTERM;
+
+	if (!szl_as_int(interp, objv[1], &pid) ||
+	    (pid < LONG_MIN) ||
+	    (pid > LONG_MAX) ||
+	    ((objc == 3) &&
+	     (!szl_as_int(interp, objv[2], &sig) ||
+	      (sig < INT_MIN) ||
+	      (sig > INT_MAX))))
+		return SZL_ERR;
+
+	if (kill((pid_t)(long)pid, (int)sig) < 0) {
+		szl_set_last_str(interp, strerror(errno), -1);
+		return SZL_ERR;
+	}
+
+	return SZL_OK;
+}
+
+static
 enum szl_res szl_signal_proc_wait(struct szl_interp *interp,
                                   const unsigned int objc,
                                   struct szl_obj **objv)
@@ -200,19 +224,27 @@ const struct szl_ext_export signal_exports[] = {
 		              NULL)
 	},
 	{
-		SZL_INT_INIT("signal.int", SIGINT)
+		SZL_INT_INIT("sigint", SIGINT)
 	},
 	{
-		SZL_INT_INIT("signal.term", SIGTERM)
+		SZL_INT_INIT("sigterm", SIGTERM)
 	},
 	{
-		SZL_INT_INIT("signal.chld", SIGCHLD)
+		SZL_INT_INIT("sigchld", SIGCHLD)
 	},
 	{
-		SZL_INT_INIT("signal.usr1", SIGUSR1)
+		SZL_INT_INIT("sigusr1", SIGUSR1)
 	},
 	{
-		SZL_INT_INIT("signal.usr2", SIGUSR2)
+		SZL_INT_INIT("sigusr2", SIGUSR2)
+	},
+	{
+		SZL_PROC_INIT("kill",
+		              "kill pid ?sig?",
+		              2,
+		              3,
+		              szl_signal_proc_kill,
+		              NULL)
 	},
 	{
 		SZL_PROC_INIT("wait",

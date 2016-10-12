@@ -291,6 +291,20 @@ $proc bar {
 }
 --------------------------------------
 
+Streams
+~~~~~~~
+The most important concept in +szl+ is the stream. Streams are objects which can
+be either read from, written to or both. +szl+ represents network connections,
+open files, child processes and various events as streams. Therefore, operations
+on all these objects or resources are performed via a uniform interface.
+
+In addition, streams can be used with polling objects created using
+'poll.create': this allows a +szl+ script to act as an event-handling loop. For
+example, a server that receives multiple connections may be implemented as a
+loop that waits for new connections, incoming data that arrives through existing
+connections, timer events that notify a session has timed out, signals that
+notify the server it should re-read its configuration and so on.
+
 Using Extensions
 ~~~~~~~~~~~~~~~~
 To obtain access to more procedures, +szl+ provides an extensions mechanism. For
@@ -947,20 +961,23 @@ Signals
 	Blocks a list of signals and returns a stream which outputs received signal
 	numbers.
 
-+$signal.int+::
++$sigint+::
 	The +SIGINT+ signal number.
 
-+$signal.term+::
++$sigterm+::
 	The +SIGTERM+ signal number.
 
-+$signal.chld+::
++$sigchld+::
 	The +SIGCHLD+ signal number.
 
-+$signal.usr1+::
++$sigusr1+::
 	The +SIGUSR1+ signal number.
 
-+$signal.usr2+::
++$sigusr2+::
 	The +SIGUSR2+ signal number.
+
++$kill+ 'pid ?sig?'::
+	Sends a signal. If no signal is specified, the signal is 'SIGTERM'.
 
 +$wait+::
 	Waits for a child process to terminate and returns its exit code.

@@ -73,7 +73,7 @@ $proc server.tcp {
 	$local events $min_events
 	$poller add $listening_socket_handle in
 
-	$local blocked_signals [$signal $signal.int $signal.term]
+	$local blocked_signals [$signal $sigint $sigterm]
 	$local blocked_signals_handle [$blocked_signals handle]
 	$poller add $blocked_signals_handle in
 
