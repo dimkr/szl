@@ -54,7 +54,7 @@ Use Cases
    scalability, security and reliability over time) hard to achieve in C,
    because memory management is manual and crash-prone, while errors cannot be
    handled using exceptions, because C lacks this feature. +szl+ wraps low-level
-   interfaces like +epoll, +timerfd+ and +signalfd+ with a simpler interface but
+   interfaces like +epoll+, +timerfd+ and +signalfd+ with a simpler interface but
    with very little overhead, while providing automatic garbage collection,
    exceptions and complex data types useful for servers (i.e. dictionaries that
    map sockets to session data).
