@@ -860,6 +860,9 @@ immediately. To flush queued data to disk, call 'flush'.
 +$stream+ 'unblock'::
 	Enables non-blocking operation on a stream.
 
++$stream+ 'rewind'::
+	Moves future 'read' or 'write' operations on a stream back to its beginning.
+
 +$stream+ 'setopt opt val'::
 	Enables or disables stream-type specific option.
 

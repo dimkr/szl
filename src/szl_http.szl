@@ -172,7 +172,7 @@ $proc http.respond {
 			$export cbody [$zlib.gzip $body 9]
 		}
 
-		$local headers [$dict.new Server $http.banner Connection close]
+		$local headers [$dict.new Server $http.banner]
 
 		$local clen [$byte.len $cbody]
 		$if [$< $clen $len] {

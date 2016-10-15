@@ -1197,6 +1197,7 @@ struct szl_stream_ops {
 	szl_int (*handle)(void *); /**< Returns the underlying file descriptor */
 	ssize_t (*size)(void *); /**< Returns the total amount of incoming bytes */
 	enum szl_res (*unblock)(void *); /**< Enables non-blocking I/O */
+	enum szl_res (*rewind)(void *); /**< Return to the initial reading or writing position */
 	int (*setopt)(struct szl_interp *, void *, struct szl_obj *, struct szl_obj *); /**< Sets low-level options */
 };
 
@@ -1260,7 +1261,7 @@ void szl_stream_del(void *priv);
  * The help message of @ref szl_stream_proc
  */
 #	define SZL_STREAM_HELP \
-	"read|readln|write|writeln|flush|handle|close|unblock|setopt|accept ?len|opt val?"
+	"read|readln|write|writeln|flush|handle|close|unblock|rewind|setopt|accept ?len|opt val?"
 
 /**
  * @def SZL_STREAM_INIT

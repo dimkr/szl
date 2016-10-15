@@ -142,7 +142,6 @@ $proc server.tcp {
 						}
 					}
 				} else {
-
 					$break
 				}
 			} else {
@@ -169,6 +168,7 @@ $proc server.tcp {
 
 							$try {
 								$local response [$get_response $request]
+								$dict.set $requests $read_handle {}
 								$dict.set $responses $client_socket $response
 								$poller remove $read_handle
 								$poller add $read_handle in out
@@ -188,14 +188,15 @@ $proc server.tcp {
 					$local response_length [$byte.len $response]
 					$local sent [$client_socket write $response]
 
-					$if [$== $response_length $sent] {
-						$list.append $close_handles $write_handle
+					$if [$== $sent $response_length] {
+						$poller remove $write_handle
+						$poller add $write_handle in
+						$dict.set $responses $client_socket {}
+
+						# reset the timer
+						[$dict.get $client_handles_to_timers $write_handle] rewind
 					} else {
-						$local remaining [$byte.range $response $sent [$- $response_length 1]]
-						$dict.set $responses $client_socket $remaining
-						$if [$! $remaining] {
-							$list.append $close_handles $write_handle
-						}
+						$dict.set $responses $client_socket [$byte.range $response $sent [$- $response_length 1]]
 					}
 				} except {
 					$list.append $close_handles $write_handle

@@ -30,10 +30,15 @@
 
 #include "szl.h"
 
+struct szl_timer {
+	int fd;
+	struct itimerspec its;
+};
+
 static
 enum szl_res szl_timer_unblock(void *priv)
 {
-	int fl, fd = (int)(intptr_t)priv;
+	int fl, fd = ((struct szl_timer *)priv)->fd;
 
 	fl = fcntl(fd, F_GETFL);
 	if ((fl < 0) || (fcntl(fd, F_SETFL, fl | O_NONBLOCK) < 0))
@@ -43,20 +48,33 @@ enum szl_res szl_timer_unblock(void *priv)
 }
 
 static
+enum szl_res szl_timer_rewind(void *priv)
+{
+	struct szl_timer *timer = (struct szl_timer *)priv;
+
+	return (timerfd_settime(timer->fd,
+	                        0,
+	                        &timer->its,
+	                        NULL) < 0) ? SZL_ERR : SZL_OK;
+}
+
+static
 void szl_timer_close(void *priv)
 {
-	close((int)(intptr_t)priv);
+	close(((struct szl_timer *)priv)->fd);
+	free(priv);
 }
 
 static
 szl_int szl_timer_handle(void *priv)
 {
-	return (szl_int)(intptr_t)priv;
+	return ((struct szl_timer *)priv)->fd;
 }
 
 static
 const struct szl_stream_ops szl_timer_ops = {
 	.unblock = szl_timer_unblock,
+	.rewind = szl_timer_rewind,
 	.close = szl_timer_close,
 	.handle = szl_timer_handle
 };
@@ -66,39 +84,46 @@ enum szl_res szl_timer_proc_timer(struct szl_interp *interp,
                                   const unsigned int objc,
                                   struct szl_obj **objv)
 {
-	struct itimerspec its;
+	struct szl_timer *timer;
 	struct szl_stream *strm;
 	struct szl_obj *obj;
 	szl_float timeout;
-	int fd;
 
 	if (!szl_as_float(interp, objv[1], &timeout))
 		return SZL_ERR;
 
-	fd = timerfd_create(CLOCK_MONOTONIC, 0);
-	if (fd < 0)
+	timer = (struct szl_timer *)malloc(sizeof(*timer));
+	if (!timer)
 		return SZL_ERR;
 
-	its.it_value.tv_sec = (time_t)floor(timeout);
-	its.it_value.tv_nsec = labs(
-	           (long)(1000000000 * (timeout - (szl_float)its.it_value.tv_sec)));
-	its.it_interval.tv_sec = its.it_value.tv_sec;
-	its.it_interval.tv_nsec = its.it_value.tv_nsec;
-	if (timerfd_settime(fd, 0, &its, NULL) < 0) {
-		close(fd);
+	timer->fd = timerfd_create(CLOCK_MONOTONIC, 0);
+	if (timer->fd < 0) {
+		free(timer);
+		return SZL_ERR;
+	}
+
+	timer->its.it_value.tv_sec = (time_t)floor(timeout);
+	timer->its.it_value.tv_nsec = labs(
+	    (long)(1000000000 * (timeout - (szl_float)timer->its.it_value.tv_sec)));
+	timer->its.it_interval.tv_sec = timer->its.it_value.tv_sec;
+	timer->its.it_interval.tv_nsec = timer->its.it_value.tv_nsec;
+	if (timerfd_settime(timer->fd, 0, &timer->its, NULL) < 0) {
+		close(timer->fd);
+		free(timer);
 		return SZL_ERR;
 	}
 
 	strm = (struct szl_stream *)malloc(sizeof(struct szl_stream));
 	if (!strm) {
-		close(fd);
+		close(timer->fd);
+		free(timer);
 		return SZL_ERR;
 	}
 
 	strm->ops = &szl_timer_ops;
 	strm->keep = 0;
 	strm->closed = 0;
-	strm->priv = (void *)(intptr_t)fd;
+	strm->priv = timer;
 	strm->buf = NULL;
 	strm->blocking = 1;
 

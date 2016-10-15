@@ -2898,6 +2898,27 @@ enum szl_res szl_stream_unblock(struct szl_interp *interp,
 }
 
 static
+enum szl_res szl_stream_rewind(struct szl_interp *interp,
+                               struct szl_stream *strm)
+{
+	if (!strm->ops->rewind) {
+		szl_set_last_str(interp,
+		                 "rewind on unsupported stream",
+		                 sizeof("rewind on unsupported stream") - 1);
+		return SZL_ERR;
+	}
+
+	if (strm->closed) {
+		szl_set_last_str(interp,
+		                 "rewind on closed stream",
+		                 sizeof("rewind on closed stream") -1);
+		return SZL_ERR;
+	}
+
+	return strm->ops->rewind(strm->priv);
+}
+
+static
 enum szl_res szl_stream_setopt(struct szl_interp *interp,
                                struct szl_stream *strm,
                                struct szl_obj *opt,
@@ -2990,6 +3011,8 @@ enum szl_res szl_stream_proc(struct szl_interp *interp,
 				return SZL_ERR;
 			return szl_set_last(interp, obj);
 		}
+		else if (strcmp("rewind", op) == 0)
+			return szl_stream_rewind(interp, strm);
 		else if (strcmp("unblock", op) == 0)
 			return szl_stream_unblock(interp, strm);
 	}
