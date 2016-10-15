@@ -892,7 +892,7 @@ Sockets
 
 +$socket+ 'setopt cork val'::
 	Enables ('1') or disables ('0') the 'TCP_CORK' option, as described in
-	'tcp(7)'.This may increase throughput, if 'write' is called multiple times
+	+tcp(7)+.This may increase throughput, if 'write' is called multiple times
 	and sent data can be queued.
 
 +$dgram.client+ 'host service'::
@@ -1022,11 +1022,43 @@ purpose data compression library.
 +$zlib.gzip+ 'str ?level?'::
 	Compresses a buffer and adds a gzip header.
 
+--------------------------------------
+#!/usr/bin/env szl
+# A trivial szl implementation of gzip(1)
+
+$load zlib
+
+$if [$== [$list.len $@] 2] {
+	$local dest [$str.format {{}.gz} $1]
+	$local in [$open $1 ru]
+	$local out [$open $dest wu]
+	$try {
+		$out write [$zlib.gzip [$in read]]
+	} except {
+		$out close
+		$file.delete $dest
+		$exit 1
+	}
+	$file.delete $1
+} else {
+	$stdout write [$zlib.gzip [$stdin read]]
+}
+--------------------------------------
+
 +$zlib.gunzip+ 'str ?bufsiz?'::
 	Decompresses a gzip-compressed buffer. Decompression is chunked, with a
 	default, *small* buffer size of 64K which guarantees lower memory
 	footprint at the cost of speed. It is *highly recommended* to use a bigger
 	size, on systems without a severe memory constraint.
+	The following script is a trivial +szl+ implementation of +gunzip(1)+:
+
+--------------------------------------
+#!/usr/bin/env szl
+# A trivial szl implementation of gunzip(1)
+
+$load zlib
+$stdout write [$zlib.gunzip [$stdin read] 524288]
+--------------------------------------
 
 lzfse
 +++++
