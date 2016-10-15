@@ -310,6 +310,15 @@ enum szl_res szl_io_proc_isatty(struct szl_interp *interp,
 }
 
 static
+const struct szl_stream_ops szl_pipe_ops = {
+	.read = szl_file_read,
+	.write = szl_file_write,
+	.flush = szl_file_flush,
+	.close = szl_file_close,
+	.handle = szl_file_handle
+};
+
+static
 struct szl_stream *szl_io_wrap_pipe(struct szl_interp *interp, FILE *fp)
 {
 	struct szl_stream *strm;
@@ -318,7 +327,7 @@ struct szl_stream *szl_io_wrap_pipe(struct szl_interp *interp, FILE *fp)
 	if (!strm)
 		return strm;
 
-	strm->ops = &szl_file_ops;
+	strm->ops = &szl_pipe_ops;
 	strm->keep = 1;
 	strm->closed = 0;
 	strm->priv = fp;
