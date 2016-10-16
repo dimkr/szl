@@ -1,0 +1,126 @@
+# this file is part of szl.
+#
+# Copyright (c) 2016 Dima Krasner
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
+$load server
+
+$global resp.delim [$str.expand \r\n]
+$global resp.delim_len [$byte.len $resp.delim]
+$global resp.simple_types [$list.new + - :]
+$global resp.array_type *
+$global resp.string_fmt [$str.expand {+{}\r\n}]
+$global resp.error_fmt [$str.expand {-ERR {}\r\n}]
+$global resp.integer_fmt [$str.expand {:{}\r\n}]
+$global resp.object_fmt [$str.expand {{}{}\r\n{}\r\n}]
+$global resp.objects [$dict.new]
+$global resp.ok [$str.expand +OK\r\n]
+
+$proc resp.var {
+	$local type [$byte.range $1 0 0]
+	$local delim_pos [$str.find $1 $resp.delim]
+
+	$if [$list.in $resp.simple_types $type] {
+		$list.new [$- [$byte.len $1] $delim_pos] [$list.new $type [$str.range $1 1 [$- $delim_pos 1]]]
+	} else {
+		$if [$== $type $resp.array_type] {
+			$resp.array $1
+		} else {
+			$local len [$str.range $1 1 [$- $delim_pos 1]]
+			$local val_pos [$+ $delim_pos $resp.delim_len]
+			$list.new [$+ [$+ [$+ $len [$str.len $len]] [$* 2 $resp.delim_len]] 1] [$list.new $type [$str.range $1 $val_pos [$- [$+ $val_pos $len] 1]]]
+		}
+	}
+}
+
+$proc resp.array {
+	$if [$!= * [$str.range $1 0 0]] {$throw {not an array}}
+
+	$local delim_len [$str.len $resp.delim]
+
+	$local delim_pos [$str.find $1 $resp.delim]
+	$local array_len [$str.range $1 1 $delim_pos]
+
+	$local items {}
+	$local pos [$+ $delim_pos $delim_len]
+	$for i [$range 0 $array_len] {
+		$local len_and_item [$resp.var [$byte.range $1 $pos [$- [$byte.len $1] 1]]]
+		$local pos [$+ $pos [$list.index $len_and_item 0]]
+		$export pos
+		$list.append $items [$list.index $len_and_item 1]
+	}
+
+	$list.new $pos $items
+}
+
+$proc resp.error {
+	$str.format $resp.error_fmt $1
+}
+
+$proc resp.respond {
+	$try {
+		$local cmd [$list.index [$resp.array $1] 1]
+
+		$switch [$list.index [$list.index $cmd 0] 1] SET {
+			$dict.set $resp.objects [$list.index [$list.index $cmd 1] 1] [$list.index $cmd 2]
+			$return $resp.ok
+		} EXISTS {
+			$local exist 0
+			$for key [$map arg [$list.range $cmd 1 [$- [$list.len $cmd] 1]] {$list.index $arg 1}] {
+				$try {
+					$dict.get $resp.objects $key
+					$export exist [$+ $exist 1]
+				}
+				$export exist
+			}
+
+			$str.format $resp.integer_fmt $exist
+		} STRLEN {
+			$str.format $resp.integer_fmt [$str.len [$list.index [$dict.get $resp.objects [$list.index [$list.index $cmd 1] 1]] 1]]
+		} GET {
+			$local obj [$dict.get $resp.objects [$list.index [$list.index $cmd 1] 1]]
+			$local type [$list.index $obj 0]
+			$if [$list.in $resp.simple_types $type] {
+				$str.format {{}{}} $type [$list.index $obj 1]
+			} else {
+				$local val [$list.index $obj 1]
+				$str.format $resp.object_fmt $type [$byte.len $val] $val
+			}
+		} APPEND {
+			$local val [$list.index [$dict.get $resp.objects [$list.index [$list.index $cmd 1] 1]] 1]
+			$str.append $val [$list.index [$list.index $cmd 2] 1]
+			$str.format $resp.integer_fmt [$str.len $val]
+		} GETRANGE {
+			$str.format $resp.string_fmt [$str.range [$list.index [$dict.get $resp.objects [$list.index [$list.index $cmd 1] 1]] 1] [$list.index [$list.index $cmd 2] 1] [$list.index [$list.index $cmd 3] 1]]
+		} * {
+			$throw {bad cmd}
+		}
+	} except {
+		$resp.error $_
+	}
+}
+
+$proc resp.server {
+	$proc resp.accept {
+		$1 accept
+	}
+
+	$server.tcp $1 $2 $resp.accept $resp.respond $3 $4
+}

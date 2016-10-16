@@ -272,7 +272,7 @@ arguments +szl+ was invoked with.
 
 The return value of a procedure is either:
 
-1. The value set by to 'return', if 'return' was called within the procedure
+1. The value passed to 'return', if 'return' was called within the procedure
    body ...
 2. **or** the return value of the last statement of the procedure body, if
    'return' was not called
@@ -300,7 +300,7 @@ on all these objects or resources are performed via a uniform interface.
 
 In addition, streams can be used with polling objects created using
 'poll.create': this allows a +szl+ script to act as an event-handling loop. For
-example, a server that receives multiple connections may be implemented as a
+example, a server that handles concurrent connections may be implemented as a
 loop that waits for new connections, incoming data that arrives through existing
 connections, timer events that notify a session has timed out, signals that
 notify the server it should re-read its configuration and so on.
@@ -1145,6 +1145,14 @@ $puts [$list.index [$http.get httpbin.org 443 1 /get [$dict.new a {123 456} b 78
 +$http.codes+::
 	A dictionary that maps HTTP status codes (e.g. '200') to their textual
 	representation (e.g. 'ok').
+
+resp
+++++
+The 'resp' extension implements a basic http://redis.io/topics/protocol[RESP]
+server which can be used to store data, like http://redis.io/[Redis].
+
++$resp.server+ 'host port backlog timeout'::
+	Runs a RESP server.
 
 dict
 ^^^^
