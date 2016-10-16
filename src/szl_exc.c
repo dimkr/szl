@@ -70,26 +70,25 @@ enum szl_res szl_exc_proc_try(struct szl_interp *interp,
 		if (eres == SZL_ERR) {
 			szl_unref(obj);
 			obj = szl_ref(interp->last);
-		} else if (eres == SZL_EXIT)
-			res = SZL_EXIT;
+		}
 	}
 
-	if (finally) {
+	if (finally)
 		fres = szl_run_obj(interp, finally);
-		if (fres == SZL_EXIT)
-			res = SZL_EXIT;
-	}
 
-	if (res != SZL_EXIT)
+	if (res != SZL_ERR)
 		szl_set_last(interp, obj);
 	else
 		szl_unref(obj);
 
-	if (res == SZL_ERR) {
-		if (eres == SZL_ERR)
-			return SZL_ERR;
+	if (finally)
+		return fres;
+	else if (except)
+		return eres;
+	/* if the try block throws an exception but there's no except block, silence
+	 * it */
+	else if (res == SZL_ERR)
 		return SZL_OK;
-	}
 
 	return res;
 }
