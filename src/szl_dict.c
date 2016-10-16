@@ -58,16 +58,22 @@ enum szl_res szl_dict_proc_get(struct szl_interp *interp,
                                const unsigned int objc,
                                struct szl_obj **objv)
 {
+	char *s;
+	size_t len;
 	struct szl_obj *v;
 
-	if (!szl_dict_get(interp, objv[1], objv[2], &v))
-		return SZL_ERR;
+	if (szl_dict_get(interp, objv[1], objv[2], &v)) {
+		if (v)
+			return szl_set_last(interp, v);
 
-	if (v)
-		return szl_set_last(interp, v);
+		if (objc == 4)
+			return szl_set_last(interp, szl_ref(objv[3]));
 
-	if (objc == 4)
-		return szl_set_last(interp, szl_ref(objv[3]));
+		if (szl_as_str(interp, objv[2], &s, &len))
+			szl_set_last_fmt(interp, "bad key: %s", s);
+		else
+			szl_set_last_str(interp, "bad key", sizeof("bad key") - 1);
+	}
 
 	return SZL_ERR;
 }
