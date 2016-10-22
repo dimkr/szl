@@ -615,8 +615,9 @@ $if [$&& [$== [$+ 1 1] 2] [$== [$+ 2 2] 4]] {$puts yes}
 
 Procedures
 ^^^^^^^^^^
-+$proc+ 'name exp'::
-	Defines a new procedure.
++$proc+ 'name exp ?priv?'::
+	Defines a new procedure. Optionally, the procedure may store private data in
+	'priv'.
 
 +$return+ '?obj?'::
 	Stops the execution of a procedure and sets its return value. If no return

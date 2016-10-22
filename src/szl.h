@@ -111,6 +111,12 @@
 #	define SZL_OBJV_NAME "@"
 
 /**
+ * @def SZL_PRIV_NAME
+ * The name of the special object holding procedure private data
+ */
+#	define SZL_PRIV_NAME "priv"
+
+/**
  * @def SZL_LAST_NAME
  * The name of the special object containing the previously called procedure's
  * return value
@@ -286,6 +292,7 @@ struct szl_interp {
 	struct szl_obj *sep; /**< A "/" singleton */
 	struct szl_obj *_; /**< A "_" singleton */
 	struct szl_obj *args; /**< A SZL_OBJV_NAME singleton */
+	struct szl_obj *priv; /**< A SZL_PRIV_NAME singleton */
 
 	struct szl_obj *global; /**< The global frame */
 	struct szl_obj *current; /**< The currently running procedure */

@@ -137,9 +137,9 @@ enum szl_res szl_loop_proc_exit(struct szl_interp *interp,
 
 static
 enum szl_res szl_loop_map(struct szl_interp *interp,
-                           const unsigned int objc,
-                           struct szl_obj **objv,
-                           const int keep)
+                          const unsigned int objc,
+                          struct szl_obj **objv,
+                          const int keep)
 {
 	struct szl_obj **names, **toks, *obj = NULL;
 	size_t i, j, ntoks, nnames;

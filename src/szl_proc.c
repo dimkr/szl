@@ -28,6 +28,11 @@
 
 #include "szl.h"
 
+struct szl_proc {
+	struct szl_obj *body;
+	struct szl_obj *priv;
+};
+
 static
 enum szl_res szl_proc_proc_getpid(struct szl_interp *interp,
                                   const unsigned int objc,
@@ -41,19 +46,27 @@ enum szl_res szl_proc_eval_proc(struct szl_interp *interp,
                                 const unsigned int objc,
                                 struct szl_obj **objv)
 {
+	struct szl_proc *proc = (struct szl_proc *)objv[0]->priv;
 	enum szl_res res;
 
 	if (!szl_set_args(interp, interp->current, interp->current->args))
 		return SZL_ERR;
 
-	res = szl_run_obj(interp, (struct szl_obj *)objv[0]->priv);
+	if (!szl_set(interp, interp->current, interp->priv, proc->priv))
+		return SZL_ERR;
+
+	res = szl_run_obj(interp, proc->body);
 	return (res == SZL_RET) ? SZL_OK : res;
 }
 
 static
 void szl_proc_del(void *priv)
 {
-	szl_unref((struct szl_obj *)priv);
+	struct szl_proc *proc = (struct szl_proc *)priv;
+
+	szl_unref(proc->priv);
+	szl_unref(proc->body);
+	free(priv);
 }
 
 static
@@ -61,21 +74,29 @@ enum szl_res szl_proc_proc_proc(struct szl_interp *interp,
                                 const unsigned int objc,
                                 struct szl_obj **objv)
 {
-	struct szl_obj *proc;
+	struct szl_proc *proc;
+	struct szl_obj *obj;
 
-	proc = szl_new_proc(interp,
-	                    objv[1],
-	                    -1,
-	                    -1,
-	                    NULL,
-	                    szl_proc_eval_proc,
-	                    szl_proc_del,
-	                    objv[2]);
+	proc = (struct szl_proc *)malloc(sizeof(*proc));
 	if (!proc)
 		return SZL_ERR;
 
-	szl_ref(objv[2]);
-	return szl_set_last(interp, proc);
+	obj = szl_new_proc(interp,
+	                   objv[1],
+	                   -1,
+	                   -1,
+	                   NULL,
+	                   szl_proc_eval_proc,
+	                   szl_proc_del,
+	                   proc);
+	if (!obj) {
+		free(proc);
+		return SZL_ERR;
+	}
+
+	proc->body = szl_ref(objv[2]);
+	proc->priv = (objc == 4) ? szl_ref(objv[3]) : szl_ref(interp->empty);
+	return szl_set_last(interp, obj);
 }
 
 static
@@ -130,7 +151,7 @@ const struct szl_ext_export proc_exports[] = {
 		SZL_PROC_INIT("getpid", NULL, 1, 1, szl_proc_proc_getpid, NULL)
 	},
 	{
-		SZL_PROC_INIT("proc", "name exp", 3, 3, szl_proc_proc_proc, NULL)
+		SZL_PROC_INIT("proc", "name exp ?priv?", 3, 4, szl_proc_proc_proc, NULL)
 	},
 	{
 		SZL_PROC_INIT("return", "?obj?", 1, 2, szl_proc_proc_return, NULL)

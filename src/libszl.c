@@ -31,6 +31,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <wchar.h>
+#include <time.h>
 
 #include "szl.h"
 
@@ -1776,8 +1777,22 @@ struct szl_interp *szl_new_interp(int argc, char *argv[])
 		return NULL;
 	}
 
-	interp->args = szl_new_str(SZL_OBJV_NAME, 1);
+	interp->args = szl_new_str(SZL_OBJV_NAME, sizeof(SZL_OBJV_NAME) - 1);
 	if (!interp->args) {
+		szl_unref(interp->global);
+		szl_unref(interp->_);
+		szl_unref(interp->sep);
+		for (--i; i >= 0; --i)
+			szl_unref(interp->nums[i]);
+		szl_unref(interp->space);
+		szl_unref(interp->empty);
+		free(interp);
+		return NULL;
+	}
+
+	interp->priv = szl_new_str(SZL_PRIV_NAME, sizeof(SZL_PRIV_NAME) - 1);
+	if (!interp->args) {
+		szl_unref(interp->args);
 		szl_unref(interp->global);
 		szl_unref(interp->_);
 		szl_unref(interp->sep);
@@ -1791,6 +1806,7 @@ struct szl_interp *szl_new_interp(int argc, char *argv[])
 
 	interp->exts = szl_new_list(NULL, 0);
 	if (!interp->exts) {
+		szl_unref(interp->priv);
 		szl_unref(interp->args);
 		szl_unref(interp->global);
 		szl_unref(interp->_);
@@ -1806,6 +1822,7 @@ struct szl_interp *szl_new_interp(int argc, char *argv[])
 	interp->libs = szl_new_list(NULL, 0);
 	if (!interp->libs) {
 		szl_unref(interp->exts);
+		szl_unref(interp->priv);
 		szl_unref(interp->args);
 		szl_unref(interp->global);
 		szl_unref(interp->_);
@@ -1853,6 +1870,7 @@ void szl_free_interp(struct szl_interp *interp)
 
 	szl_unref(interp->last);
 	szl_unref(interp->exts);
+	szl_unref(interp->priv);
 	szl_unref(interp->args);
 	szl_unref(interp->global);
 	szl_unref(interp->_);
