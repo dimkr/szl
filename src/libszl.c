@@ -1860,6 +1860,7 @@ struct szl_interp *szl_new_interp(int argc, char *argv[])
 		return NULL;
 	}
 
+	interp->seed = (unsigned int)(time(NULL) % UINT_MAX);
 	return interp;
 }
 

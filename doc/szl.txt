@@ -613,6 +613,16 @@ $if [$&& [$== [$+ 1 1] 2] [$== [$+ 2 2] 4]] {$puts yes}
 +$!+ 'obj'::
 	Returns '0' if a condition is true, otherwise '1'.
 
++$is+ 'obj obj'::
+	Determines whether two objects are the same object.
+
+[NOTE]
+Unlike '==', 'is' does not compare objects. For example, there may be two
+different objects with the value '5'. In such cases, 'is' will return '0'.
+
++$id+::
+	Returns a random number which can be used in a procedure name.
+
 Procedures
 ^^^^^^^^^^
 +$proc+ 'name exp ?priv?'::

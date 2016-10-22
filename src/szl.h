@@ -300,6 +300,8 @@ struct szl_interp {
 
 	struct szl_obj *exts; /**< Loaded extensions */
 	struct szl_obj *libs; /**< Loaded extension shared objects */
+
+	unsigned int seed; /**< A random number generation seed */
 };
 
 /**

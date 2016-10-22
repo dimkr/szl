@@ -136,6 +136,22 @@ enum szl_res szl_obj_proc_hex(struct szl_interp *interp,
 }
 
 static
+enum szl_res szl_obj_proc_is(struct szl_interp *interp,
+                             const unsigned int objc,
+                             struct szl_obj **objv)
+{
+	return szl_set_last_bool(interp, objv[1] == objv[2]);
+}
+
+static
+enum szl_res szl_obj_proc_id(struct szl_interp *interp,
+                             const unsigned int objc,
+                             struct szl_obj **objv)
+{
+	return szl_set_last_fmt(interp, "%x", rand_r(&interp->seed));
+}
+
+static
 const struct szl_ext_export obj_exports[] = {
 	{
 		SZL_PROC_INIT("global", "name val", 3, 3, szl_obj_proc_global, NULL)
@@ -157,6 +173,12 @@ const struct szl_ext_export obj_exports[] = {
 	},
 	{
 		SZL_PROC_INIT("hex", "val", 2, 2, szl_obj_proc_hex, NULL)
+	},
+	{
+		SZL_PROC_INIT("is", "obj obj", 3, 3, szl_obj_proc_is, NULL)
+	},
+	{
+		SZL_PROC_INIT("id", NULL, 1, 1, szl_obj_proc_id, NULL)
 	}
 };
 
