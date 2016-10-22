@@ -1842,6 +1842,8 @@ struct szl_interp *szl_new_interp(int argc, char *argv[])
 	szl_set_ro(interp->sep);
 	szl_set_ro(interp->args);
 
+	interp->seed = (unsigned int)(time(NULL) % UINT_MAX);
+
 	if (!szl_init_builtin_exts(interp)) {
 		szl_free_interp(interp);
 		return NULL;
@@ -1860,7 +1862,6 @@ struct szl_interp *szl_new_interp(int argc, char *argv[])
 		return NULL;
 	}
 
-	interp->seed = (unsigned int)(time(NULL) % UINT_MAX);
 	return interp;
 }
 
