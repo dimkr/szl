@@ -29,9 +29,12 @@ $global resp.array_type *
 $global resp.string_fmt [$str.expand {+{}\r\n}]
 $global resp.error_fmt [$str.expand {-ERR {}\r\n}]
 $global resp.integer_fmt [$str.expand {:{}\r\n}]
+$global resp.simple_object_fmt [$str.expand {{}{}\r\n}]
 $global resp.object_fmt [$str.expand {{}{}\r\n{}\r\n}]
 $global resp.objects [$dict.new]
 $global resp.ok [$str.expand +OK\r\n]
+$global resp.pong [$str.expand +PONG\r\n]
+$global resp.null {+ null}
 
 $proc resp.var {
 	$local type [$byte.range $1 0 0]
@@ -85,7 +88,7 @@ $proc resp.respond {
 			$local exist 0
 			$for key [$map arg [$list.range $cmd 1 [$- [$list.len $cmd] 1]] {$list.index $arg 1}] {
 				$try {
-					$dict.get $resp.objects $key
+					$if [$is [$dict.get $resp.objects $key] $resp.null] {$continue}
 					$export exist [$+ $exist 1]
 				}
 				$export exist
@@ -95,20 +98,46 @@ $proc resp.respond {
 		} STRLEN {
 			$str.format $resp.integer_fmt [$str.len [$list.index [$dict.get $resp.objects [$list.index [$list.index $cmd 1] 1]] 1]]
 		} GET {
-			$local obj [$dict.get $resp.objects [$list.index [$list.index $cmd 1] 1]]
+			$local key [$list.index [$list.index $cmd 1] 1]
+			$local obj [$dict.get $resp.objects $key $resp.null]
+			$if [$is $obj $resp.null] {$throw [$str.format {no such object: {}} $key]}
+
 			$local type [$list.index $obj 0]
 			$if [$list.in $resp.simple_types $type] {
-				$str.format {{}{}} $type [$list.index $obj 1]
+				$str.format $resp.simple_object_fmt $type $val
 			} else {
 				$local val [$list.index $obj 1]
 				$str.format $resp.object_fmt $type [$byte.len $val] $val
 			}
+		} DEL {
+			$local removed 0
+			$for key [$map arg [$list.range $cmd 1 [$- [$list.len $cmd] 1]] {$list.index $arg 1}] {
+				$dict.set $resp.objects $key $resp.null
+				$export removed [$+ $removed 1]
+			}
+			$str.format $resp.integer_fmt $removed
 		} APPEND {
 			$local val [$list.index [$dict.get $resp.objects [$list.index [$list.index $cmd 1] 1]] 1]
 			$str.append $val [$list.index [$list.index $cmd 2] 1]
 			$str.format $resp.integer_fmt [$str.len $val]
 		} GETRANGE {
 			$str.format $resp.string_fmt [$str.range [$list.index [$dict.get $resp.objects [$list.index [$list.index $cmd 1] 1]] 1] [$list.index [$list.index $cmd 2] 1] [$list.index [$list.index $cmd 3] 1]]
+		} DBSIZE {
+			$local size 0
+			$for {name val} $resp.objects {
+				$if [$is $val $resp.null] {$continue}
+				$local size [$+ $size 1]
+				$export size
+			}
+			$str.format $resp.integer_fmt $size
+		} FLUSHDB {
+			$for {name val} $resp.objects {
+				$dict.set $resp.objects $name $resp.null
+			}
+			$return $resp.ok
+		} PING {
+			$if [$== [$list.len $cmd] 1] {$return $resp.pong}
+			$str.format $resp.string_fmt [$list.index [$list.index $cmd 1] 1]
 		} * {
 			$throw {bad cmd}
 		}
