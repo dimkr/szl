@@ -187,9 +187,9 @@ typedef double szl_float;
  */
 enum szl_types {
 	/* must correspond to szl_cast_table[][] */
-	SZL_TYPE_STR    = 1, /**< String */
-	SZL_TYPE_WSTR   = 2, /**< Wide-character string; used by string procedures */
-	SZL_TYPE_LIST   = 3, /**< List */
+	SZL_TYPE_LIST   = 1, /**< List */
+	SZL_TYPE_STR    = 2, /**< String */
+	SZL_TYPE_WSTR   = 3, /**< Wide-character string; used by string procedures */
 	SZL_TYPE_INT    = 4, /**< Integer */
 	SZL_TYPE_FLOAT  = 5, /**< Floating-point number */
 
