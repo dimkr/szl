@@ -54,8 +54,8 @@ Use Cases
    scalability, security and reliability over time) hard to achieve in C,
    because memory management is manual and crash-prone, while errors cannot be
    handled using exceptions, because C lacks this feature. +szl+ wraps low-level
-   interfaces like +epoll+, +timerfd+ and +signalfd+ with a simpler interface but
-   with very little overhead, while providing automatic garbage collection,
+   interfaces like +epoll+, +timerfd+ and +signalfd+ with a simpler interface
+   but with very little overhead, while providing automatic garbage collection,
    exceptions and complex data types useful for servers (i.e. dictionaries that
    map sockets to session data).
 3. A systems person needs a quick n' dirty way to call C functions, without
@@ -73,6 +73,11 @@ Use Cases
    of programs that run on underpowered hardware, such as cheap Wi-Fi routers.
 7. One wants to introduce non-technical people to programming, using an easy to
    learn scripting language with a simple syntax.
+
+To sum up, +szl+ is a simple scripting language useful use as an alternative to
+shell scripting and as a language for quick, safe system programming. Its safe,
+consistent syntax contributes to clarity and prevents edge cases usually found
+in shell scripts, like bad handling of input that contains spaces.
 
 History
 ~~~~~~~
