@@ -458,37 +458,25 @@ SZL_STR_CONV(szl_wstr_to_str,
 static
 int szl_wstr_to_list(struct szl_interp *interp, struct szl_obj *obj)
 {
-	if (!szl_wstr_to_str(interp, obj))
-		return 0;
-
-	return szl_str_to_list(interp, obj);
+	return szl_wstr_to_str(interp, obj) && szl_str_to_list(interp, obj);
 }
 
 static
 int szl_wstr_to_int(struct szl_interp *interp, struct szl_obj *obj)
 {
-	if (!szl_wstr_to_str(interp, obj))
-		return 0;
-
-	return szl_str_to_int(interp, obj);
+	return szl_wstr_to_str(interp, obj) && szl_str_to_int(interp, obj);
 }
 
 static
 int szl_wstr_to_float(struct szl_interp *interp, struct szl_obj *obj)
 {
-	if (!szl_wstr_to_str(interp, obj))
-		return 0;
-
-	return szl_str_to_float(interp, obj);
+	return szl_wstr_to_str(interp, obj) && szl_str_to_float(interp, obj);
 }
 
 static
 int szl_wstr_to_code(struct szl_interp *interp, struct szl_obj *obj)
 {
-	if (!szl_wstr_to_str(interp, obj))
-		return 0;
-
-	return szl_str_to_code(interp, obj);
+	return szl_wstr_to_str(interp, obj) && szl_str_to_code(interp, obj);
 }
 
 static
@@ -528,10 +516,7 @@ int szl_list_to_int(struct szl_interp *interp, struct szl_obj *obj)
 		return 0;
 	}
 
-	if (!szl_list_to_str(interp, obj))
-		return 0;
-
-	return szl_str_to_int(interp, obj);
+	return szl_list_to_str(interp, obj) && szl_str_to_int(interp, obj);
 }
 
 static
@@ -542,10 +527,7 @@ int szl_list_to_float(struct szl_interp *interp, struct szl_obj *obj)
 		return 0;
 	}
 
-	if (!szl_list_to_str(interp, obj))
-		return 0;
-
-	return szl_str_to_float(interp, obj);
+	return szl_list_to_str(interp, obj) && szl_str_to_float(interp, obj);
 }
 
 static
@@ -576,19 +558,13 @@ int szl_int_to_str(struct szl_interp *interp, struct szl_obj *obj)
 static
 int szl_int_to_wstr(struct szl_interp *interp, struct szl_obj *obj)
 {
-	if (!szl_int_to_str(interp, obj))
-		return 0;
-
-	return szl_str_to_wstr(interp, obj);
+	return szl_int_to_str(interp, obj) && szl_str_to_wstr(interp, obj);
 }
 
 static
 int szl_int_to_list(struct szl_interp *interp, struct szl_obj *obj)
 {
-	if (!szl_int_to_str(interp, obj))
-		return 0;
-
-	return szl_str_to_list(interp, obj);
+	return szl_int_to_str(interp, obj) && szl_str_to_list(interp, obj);
 }
 
 static
@@ -602,10 +578,7 @@ int szl_int_to_float(struct szl_interp *interp, struct szl_obj *obj)
 static
 int szl_int_to_code(struct szl_interp *interp, struct szl_obj *obj)
 {
-	if (!szl_int_to_str(interp, obj))
-		return 0;
-
-	return szl_str_to_code(interp, obj);
+	return szl_int_to_str(interp, obj) && szl_str_to_code(interp, obj);
 }
 
 static
@@ -639,19 +612,13 @@ int szl_float_to_str(struct szl_interp *interp, struct szl_obj *obj)
 static
 int szl_float_to_wstr(struct szl_interp *interp, struct szl_obj *obj)
 {
-	if (!szl_float_to_str(interp, obj))
-		return 0;
-
-	return szl_str_to_wstr(interp, obj);
+	return szl_float_to_str(interp, obj) && szl_str_to_wstr(interp, obj);
 }
 
 static
 int szl_float_to_list(struct szl_interp *interp, struct szl_obj *obj)
 {
-	if (!szl_float_to_str(interp, obj))
-		return 0;
-
-	return szl_str_to_list(interp, obj);
+	return szl_float_to_str(interp, obj) && szl_str_to_list(interp, obj);
 }
 
 static
@@ -665,52 +632,49 @@ int szl_float_to_int(struct szl_interp *interp, struct szl_obj *obj)
 static
 int szl_float_to_code(struct szl_interp *interp, struct szl_obj *obj)
 {
-	if (!szl_float_to_str(interp, obj))
-		return 0;
-
-	return szl_str_to_code(interp, obj);
+	return szl_float_to_str(interp, obj) &&szl_str_to_code(interp, obj);
 }
 
 typedef int (*szl_cast_t)(struct szl_interp *, struct szl_obj *);
 
 static
 const szl_cast_t szl_cast_table[6][6] = {
+	{ /* SZL_TYPE_LIST */
+		szl_no_cast,
+		szl_list_to_str,
+		szl_list_to_wstr,
+		szl_list_to_int,
+		szl_list_to_float,
+		szl_list_to_code
+	},
 	{ /* SZL_TYPE_STR */
+		szl_str_to_list,
 		szl_no_cast,
 		szl_str_to_wstr,
-		szl_str_to_list,
 		szl_str_to_int,
 		szl_str_to_float,
 		szl_str_to_code
 	},
 	{ /* SZL_TYPE_WSTR */
+		szl_wstr_to_list,
 		szl_wstr_to_str,
 		szl_no_cast,
-		szl_wstr_to_list,
 		szl_wstr_to_int,
 		szl_wstr_to_float,
 		szl_wstr_to_code
 	},
-	{ /* SZL_TYPE_LIST */
-		szl_list_to_str,
-		szl_list_to_wstr,
-		szl_no_cast,
-		szl_list_to_int,
-		szl_list_to_float,
-		szl_list_to_code
-	},
 	{ /* SZL_TYPE_INT */
+		szl_int_to_list,
 		szl_int_to_str,
 		szl_int_to_wstr,
-		szl_int_to_list,
 		szl_no_cast,
 		szl_int_to_float,
 		szl_int_to_code
 	},
 	{ /* SZL_TYPE_FLOAT */
+		szl_float_to_list,
 		szl_float_to_str,
 		szl_float_to_wstr,
-		szl_float_to_list,
 		szl_float_to_int,
 		szl_no_cast,
 		szl_float_to_code
@@ -730,15 +694,12 @@ int szl_cast(struct szl_interp *interp,
 	for (i = 1; i <= sizeof(szl_cast_table) / sizeof(szl_cast_table[0]); ++i) {
 		mask = 1 << i;
 
-		if ((i != type) && (obj->types & mask)) {
-			if (!szl_cast_table[i - 1][type - 1](interp, obj))
-				return 0;
-
-			return 1;
-		}
+		if ((i != type) && (obj->types & mask))
+			return szl_cast_table[i - 1][type - 1](interp, obj);
 	}
 
 	/* unreachable */
+	szl_set_last_fmt(interp, "unknown type: %u", type);
 	return 0;
 }
 
@@ -859,10 +820,13 @@ int szl_as_code(struct szl_interp *interp,
                 struct szl_obj ***stmts,
                 size_t *len)
 {
-	if (!szl_cast(interp, obj, SZL_TYPE_CODE))
-		return 0;
-
-	return szl_as_list(interp, obj->val.c, stmts, len);
+	return szl_cast(interp,
+	                obj,
+	                SZL_TYPE_CODE) &&
+	       szl_as_list(interp,
+	                   obj->val.c,
+	                   stmts,
+	                   len);
 }
 
 /*
@@ -1112,14 +1076,8 @@ struct szl_obj *szl_new_proc(struct szl_interp *interp,
                              void *priv)
 {
 	struct szl_obj *obj;
-	char *s;
-	size_t len;
 
-	s = szl_strdup(interp, name, &len);
-	if (!s)
-		return NULL;
-
-	obj = szl_new_str_noalloc(s, len);
+	obj = szl_new_str_fmt("proc:%"PRIxPTR, (uintptr_t)proc);
 	if (obj) {
 		if (!szl_set(interp, szl_caller(interp), name, obj)) {
 			szl_unref(obj);
@@ -1133,8 +1091,6 @@ struct szl_obj *szl_new_proc(struct szl_interp *interp,
 		obj->del = del;
 		obj->priv = priv;
 	}
-	else
-		free(s);
 
 	return obj;
 }
