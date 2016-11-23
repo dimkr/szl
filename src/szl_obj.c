@@ -152,6 +152,14 @@ enum szl_res szl_obj_proc_id(struct szl_interp *interp,
 }
 
 static
+enum szl_res szl_obj_proc_call(struct szl_interp *interp,
+                               const unsigned int objc,
+                               struct szl_obj **objv)
+{
+	return szl_run_stmt(interp, objv[1]);
+}
+
+static
 const struct szl_ext_export obj_exports[] = {
 	{
 		SZL_PROC_INIT("global", "name val", 3, 3, szl_obj_proc_global, NULL)
@@ -179,6 +187,9 @@ const struct szl_ext_export obj_exports[] = {
 	},
 	{
 		SZL_PROC_INIT("id", NULL, 1, 1, szl_obj_proc_id, NULL)
+	},
+	{
+		SZL_PROC_INIT("call", "stmt", 2, 2, szl_obj_proc_call, NULL)
 	}
 };
 

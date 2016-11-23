@@ -707,6 +707,9 @@ $for {a b} {1 2 3 4 5 6 7 8} {
 	Suspends the script execution for a given interval, specified in seconds.
 	The interval may be a floating-point number (e.g. '4.5').
 
++$call 'exp'+::
+	Runs a single +szl+ statement in the current scope.
+
 +$eval+ 'exp'::
 	Evaluates a +szl+ expression in the current scope.
 

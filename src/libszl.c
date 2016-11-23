@@ -1077,7 +1077,7 @@ struct szl_obj *szl_new_proc(struct szl_interp *interp,
 {
 	struct szl_obj *obj;
 
-	obj = szl_new_str_fmt("proc:%"PRIxPTR, (uintptr_t)proc);
+	obj = szl_new_str_fmt("proc:%x", rand_r(&interp->seed));
 	if (obj) {
 		if (!szl_set(interp, szl_caller(interp), name, obj)) {
 			szl_unref(obj);
@@ -2022,9 +2022,6 @@ int szl_get_byname(struct szl_interp *interp,
  * parsing and evaluation
  */
 
-static
-enum szl_res szl_run_stmt(struct szl_interp *interp, struct szl_obj *stmt);
-
 __attribute__((nonnull(1, 2)))
 enum szl_res szl_eval(struct szl_interp *interp, struct szl_obj *obj)
 {
@@ -2176,7 +2173,6 @@ struct szl_obj *szl_parse_stmts(struct szl_interp *interp,
 }
 
 __attribute__((nonnull(1, 2)))
-static
 enum szl_res szl_run_stmt(struct szl_interp *interp, struct szl_obj *stmt)
 {
 	struct szl_obj **toks, *call, **objv;

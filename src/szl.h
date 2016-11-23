@@ -1014,6 +1014,16 @@ enum szl_res szl_eval(struct szl_interp *interp, struct szl_obj *obj);
  */
 
 /**
+ * @fn enum szl_res szl_run_stmt(struct szl_interp *interp,
+ *                               struct szl_obj *stmt)
+ * @brief Runs a szl statement
+ * @param interp [in,out] An interpreter
+ * @param stmt [in,out] The statement
+ * @return A member of @ref szl_res
+ */
+enum szl_res szl_run_stmt(struct szl_interp *interp, struct szl_obj *stmt);
+
+/**
  * @fn enum enum szl_res szl_run(struct szl_interp *interp,
  *                               const char *buf,
  *                               const size_t len)
