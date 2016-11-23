@@ -1212,7 +1212,7 @@ basic form of object-oriented programming.
 +$klass+ 'methods'::
 	Lists the methods associated with a class.
 
-+$super 'klass ?args...?'::
++$super+ 'klass ?args...?'::
 	Calls a base class method.
 
 --------------------------------------
