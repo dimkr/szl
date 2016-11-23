@@ -34,18 +34,18 @@ $proc class {
 	$local klass [$proc new {
 		$if [$== [$list.len $@] 2] {
 			$if [$== $1 methods] {
-				$return $priv
+				$return $.
 			}
 			$throw {bad use of class}
 		}
 
 		$proc instance {
-			$for {methods this super} $priv {
+			$for {methods this super} $. {
 				$local stmt [$list.new [$dict.get $methods $1]]
 				$list.extend $stmt [$list.range $@ 1 [$- [$list.len $@] 1]]
 				$call $stmt
 			}
-		} [$list.new $priv [$dict.new] [$proc super {
+		} [$list.new $. [$dict.new] [$proc super {
 			$local stmt [$list.new [$dict.get [$1 methods] $2]]
 			$list.extend $stmt [$list.range $@ 3 [$- [$list.len $@] 1]]
 			$call $stmt

@@ -114,7 +114,7 @@
  * @def SZL_PRIV_NAME
  * The name of the special object holding procedure private data
  */
-#	define SZL_PRIV_NAME "priv"
+#	define SZL_PRIV_NAME "."
 
 /**
  * @def SZL_LAST_NAME

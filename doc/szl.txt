@@ -632,7 +632,7 @@ Procedures
 ^^^^^^^^^^
 +$proc+ 'name exp ?priv?'::
 	Defines a new procedure. Optionally, the procedure may store private data in
-	'priv'.
+	'.'.
 
 +$return+ '?obj?'::
 	Stops the execution of a procedure and sets its return value. If no return
