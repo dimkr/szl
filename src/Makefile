@@ -86,6 +86,7 @@ ifeq ($(BUILTIN_ALL), 1)
 	BUILTIN_SERVER = 1
 	BUILTIN_HTTP = 1
 	BUILTIN_RESP = 1
+	BUILTIN_OOP = 1
 else
 	SZL_LIB = $(SHARED_LIB)
 endif
@@ -186,6 +187,13 @@ else
 	EXTERNAL_EXT_NAMES += resp
 endif
 
+ifeq ($(BUILTIN_OOP), 1)
+	BUILTIN_EXT_NAMES += oop
+else
+	EXTERNAL_EXT_NAMES += oop
+endif
+
+
 ifeq ($(BUILTIN_ALL), 1)
 	SZL_LIBS = $(LIBSZL_LIBS)
 endif
@@ -252,6 +260,9 @@ szl_server.o: szl_server.c szl_server.inc
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 szl_resp.o: szl_resp.c szl_resp.inc
+	$(CC) -c -o $@ $< $(CFLAGS)
+
+szl_oop.o: szl_oop.c szl_oop.inc
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 szl_http.o: szl_http.c szl_http.inc

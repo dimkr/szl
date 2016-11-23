@@ -1197,6 +1197,24 @@ The 'test' extension provides test helpers.
 	Runs 'exp' and compares its result or the error it throws (depending on the
 	'throws' flag) to 'result'.
 
+oop
+^^^^
+The 'oop' extension provides classes with multiple inheritance, to allow a basic
+form of object-oriented programming.
+
++$class+ 'code ?base...?'::
+	Creates a class object. Class methods should be declared using 'method' and
+	may store instance variables in 'this'.
+
++$klass+::
+	Creates a new instance of a class.
+
++$klass+ 'methods'::
+	Lists the methods associated with a class.
+
++$super 'klass ?args...?'::
+	Calls a base class method.
+
 ffi
 ^^^
 The 'ffi' extension is a +szl+ wrapper for

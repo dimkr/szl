@@ -10,7 +10,8 @@ Overview
 szl is a tiny, embeddable scripting engine inspired by Tcl and shell. It's a
 balanced mix of their key features: szl combines the simplicity of shell
 scripting with the power of a dynamic, Tcl-like type system, minimalistic
-syntax and programming language features missing in the shell, like exceptions.
+syntax and programming language features missing in the shell, like exceptions
+and OOP.
 
 szl comes with a rich standard library that includes bindings for
 permissively-licensed libraries. Therefore, it can run processes, parse text

@@ -23,7 +23,7 @@
 include(CMakeParseArguments)
 include(FindPkgConfig)
 
-set(extensions archive builtin curl dict dir ed25519 env exc exec ext ffi file http io linenoise list logic loop lzfse math null obj path poll proc resp server signal socket str szl test time timer tls zlib zstd)
+set(extensions archive builtin curl dict dir ed25519 env exc exec ext ffi file http io linenoise list logic loop lzfse math null obj oop path poll proc resp server signal socket str szl test time timer tls zlib zstd)
 
 # add common definitions
 execute_process(
@@ -161,7 +161,7 @@ add_extension(
 	LIBRARIES -lm
 )
 
-foreach(extension loop ext time env path signal poll timer dict szl)
+foreach(extension loop ext time env path signal poll timer dict szl oop)
 	add_extension(
 		${extension}
 		BUILTIN

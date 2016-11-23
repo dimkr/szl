@@ -1,0 +1,67 @@
+# this file is part of szl.
+#
+# Copyright (c) 2016 Dima Krasner
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
+$proc class {
+	$local methods [$dict.new]
+
+	$if [$> [$list.len $@] 2] {
+		$for base [$list.range $@ 2 [$- [$list.len $@] 1]] {
+			$for {name obj} [$base methods] {
+				$dict.set $methods $name $obj
+			}
+		}
+	}
+
+	$local klass [$proc new {
+		$if [$== [$list.len $@] 2] {
+			$if [$== $1 methods] {
+				$return $priv
+			}
+			$throw {bad use of class}
+		}
+
+		$proc instance {
+			$for {methods this super} $priv {
+				$local stmt [$list.new [$dict.get $methods $1]]
+				$list.extend $stmt [$list.range $@ 1 [$- [$list.len $@] 1]]
+				$call $stmt
+			}
+		} [$list.new $priv [$dict.new] [$proc super {
+			$local stmt [$list.new [$dict.get [$1 methods] $2]]
+			$list.extend $stmt [$list.range $@ 2 [$- [$list.len $@] 2]]
+			$call $stmt
+		}]]
+	} $methods]
+
+	$proc method {
+		$local obj [$proc $1 $2]
+		$dict.set $methods $1 $obj
+	}
+
+	$eval $1
+
+	$method methods {
+		$return $methods
+	}
+
+	$return $klass
+}
