@@ -1199,8 +1199,8 @@ The 'test' extension provides test helpers.
 
 oop
 ^^^^
-The 'oop' extension provides classes with multiple inheritance, to allow a basic
-form of object-oriented programming.
+The 'oop' extension implements classes with multiple inheritance, to allow a
+basic form of object-oriented programming.
 
 +$class+ 'code ?base...?'::
 	Creates a class object. Class methods should be declared using 'method' and
@@ -1214,6 +1214,51 @@ form of object-oriented programming.
 
 +$super 'klass ?args...?'::
 	Calls a base class method.
+
+--------------------------------------
+$load oop
+
+$local food [$class {
+	$method is_tasty {
+		$return 0
+	}
+
+	$method size {
+		$dict.get $this size s
+	}
+
+	$method enlarge {
+		$dict.set $this size $1
+	}
+}]
+
+$local carrot [$class {
+	$method size {
+		$dict.get $this size m
+	}
+
+	$method enlarge {
+		$super $food enlarge xl
+	}
+} $food]
+
+$local rice [$class {
+	$method is_tasty {
+		$return 1
+	}
+
+	$method enlarge {
+		$super $food enlarge l
+	}
+} $food]
+
+$for dish [$list.new [$rice] [$carrot]] {
+	$puts [$dish is_tasty]
+	$puts [$dish size]
+	$dish enlarge
+	$puts [$dish size]
+}
+--------------------------------------
 
 ffi
 ^^^

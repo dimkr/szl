@@ -47,7 +47,7 @@ $proc class {
 			}
 		} [$list.new $priv [$dict.new] [$proc super {
 			$local stmt [$list.new [$dict.get [$1 methods] $2]]
-			$list.extend $stmt [$list.range $@ 2 [$- [$list.len $@] 2]]
+			$list.extend $stmt [$list.range $@ 3 [$- [$list.len $@] 1]]
 			$call $stmt
 		}]]
 	} $methods]
