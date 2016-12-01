@@ -83,12 +83,14 @@ enum szl_res szl_exc_proc_try(struct szl_interp *interp,
 
 	if (finally)
 		return fres;
-	else if (except)
-		return eres;
-	/* if the try block throws an exception but there's no except block, silence
-	 * it */
-	else if (res == SZL_ERR)
+	else if (res == SZL_ERR) {
+		if (except)
+			return eres;
+
+		/* if the try block throws an exception but there's no except block,
+		 * silence it */
 		return SZL_OK;
+	}
 
 	return res;
 }
