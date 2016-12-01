@@ -20,53 +20,30 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-$proc class {
-	$local methods [$dict.new]
+$load oop
+$load http
+$load tls
 
-	$if [$> [$list.len $@] 2] {
-		$for base [$list.range $@ 2 [$- [$list.len $@] 1]] {
-			$for {name obj} [$base methods] {
-				$dict.set $methods $name $obj
+$global https.server [$class {
+	$method accept {
+		$local clients [$2 accept]
+		$local tls_clients {}
+
+		$for s $clients {
+			$try {
+				$local t [$tls.accept [$s handle] [$dict.get $data tls_cert] [$dict.get $data tls_key]]
+				$list.append $tls_clients $t
+			} finally {
+				$s close
 			}
 		}
+
+		$return $tls_clients
 	}
 
-	$local klass [$proc new {
-		$if [$== [$list.len $@] 2] {
-			$if [$== $1 methods] {
-				$return $.
-			}
-			$throw {bad use of class}
-		}
-
-		$local priv [$list.new $. [$dict.new] [$proc super {
-			$local stmt [$list.new [$dict.get [$1 methods] $2]]
-			$list.extend $stmt [$list.range $@ 3 [$- [$list.len $@] 1]]
-			$call $stmt
-		}]]
-
-		$proc instance {
-			$for {methods data super this} $. {
-				$local stmt [$list.new [$dict.get $methods $1]]
-				$list.extend $stmt [$list.range $@ 1 [$- [$list.len $@] 1]]
-				$call $stmt
-			}
-		} $priv
-
-		$list.append $priv $instance
-		$return $instance
-	} $methods]
-
-	$proc method {
-		$local obj [$proc $1 $2]
-		$dict.set $methods $1 $obj
+	$method serve {
+		$dict.set $data tls_cert $6
+		$dict.set $data tls_key $7
+		$super $http.server serve $1 $2 $3 $4 $5
 	}
-
-	$eval $1
-
-	$method methods {
-		$return $methods
-	}
-
-	$return $klass
-}
+} $http.server]

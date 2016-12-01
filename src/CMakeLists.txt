@@ -161,7 +161,7 @@ add_extension(
 	LIBRARIES -lm
 )
 
-foreach(extension loop ext time env path signal poll timer dict szl oop)
+foreach(extension loop ext time env path signal poll timer dict szl)
 	add_extension(
 		${extension}
 		BUILTIN
@@ -246,12 +246,14 @@ add_extension(
 	SOURCES zstd/lib/compress/huf_compress.c zstd/lib/compress/zstd_compress.c zstd/lib/compress/fse_compress.c zstd/lib/compress/zbuff_compress.c zstd/lib/common/zstd_common.c zstd/lib/common/fse_decompress.c zstd/lib/common/entropy_common.c zstd/lib/common/xxhash.c zstd/lib/decompress/zbuff_decompress.c zstd/lib/decompress/zstd_decompress.c zstd/lib/decompress/huf_decompress.c
 	DOCS zstd/LICENSE zstd/PATENTS
 )
-add_extension(server)
-add_extension(resp)
+foreach(extension oop server resp)
+	add_extension(${extension})
+endforeach()
 if (OPENSSL_FOUND AND ZLIB_FOUND AND CURL_FOUND)
 	add_extension(http)
+	add_extension(https)
 else()
-	message("Disabling the http extension")
+	message("Disabling the http and https extensions")
 endif()
 
 # once all extensions are added, generate szl_builtin.c, which initializes them

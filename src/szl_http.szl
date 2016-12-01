@@ -23,6 +23,7 @@
 $load tls
 $load zlib
 $load curl
+$load oop
 $load server
 
 $global http.meth_delim [$str.expand \r\n\r\n]
@@ -56,7 +57,11 @@ $proc http.parse {
 	$if [$== [$dict.get $hdrs {Content-Encoding} {}] gzip] {
 		$list.append $out [$zlib.gunzip [$list.index $resp 1]]
 	} else {
-		$list.append $out [$list.index $resp 1]
+		$if [$> [$list.len $resp] 1] {
+			$list.append $out [$list.index $resp 1]
+		} else {
+			$list.append $out {}
+		}
 	}
 
 	$list.append $out $hdrs
@@ -107,119 +112,91 @@ $global http.index_dir_fmt [$str.expand {\t\t\t<li><a href="{}/{}">{}</a></li>\n
 $global http.index_file_fmt [$str.expand {\t\t\t<li><a href="{}/{}">{}</a> ({} bytes)</li>\n}]
 $global http.index_footer [$str.expand \t\t</ul>\n\t</body>\n</html>]
 
-$proc http.respond {
-	$try {
-		$local request [$http.parse $1]
-		$local url [$list.index $request 0]
-		$if [$str.in $url ..] {$throw}
-
+$global http.server [$class {
+	$method get_response {
 		$try {
-			$return [$dict.get $response_cache $url]
-		}
+			$local request [$http.parse $2]
+			$local url [$list.index $request 0]
+			$if [$str.in $url ..] {$throw}
 
-		$local path [$path.realpath [$path.join . $url]]
-		$if [$path.exists $path] {
-			$if [$path.isdir $path] {
-				$local index_path [$path.join $path $index_name]
-				$if [$path.exists $index_path] {
-					$export body [[$open $index_path ru] read]
-				} else {
-					$local body [$str.format $http.index_header_fmt $url $url]
+			$try {
+				$return [$dict.get $response_cache $url]
+			}
 
-					$local names [$dir.list $path]
+			$local path [$path.realpath [$path.join . $url]]
+			$if [$path.exists $path] {
+				$if [$path.isdir $path] {
+					$local index_path [$path.join $path $index_name]
+					$if [$path.exists $index_path] {
+						$export body [[$open $index_path ru] read]
+					} else {
+						$local body [$str.format $http.index_header_fmt $url $url]
 
-					$for name [$list.index $names 0] {
-						$str.append $body [$str.format $http.index_dir_fmt $url $name $name]
+						$local names [$dir.list $path]
+
+						$for name [$list.index $names 0] {
+							$str.append $body [$str.format $http.index_dir_fmt $url $name $name]
+						}
+
+						$for name [$list.index $names 1] {
+							$str.append $body [$str.format $http.index_file_fmt $url $name $name [$file.size [$path.join $path $name]]]
+						}
+
+						$str.append $body $http.index_footer
+						$export body
 					}
 
-					$for name [$list.index $names 1] {
-						$str.append $body [$str.format $http.index_file_fmt $url $name $name [$file.size [$path.join $path $name]]]
-					}
-
-					$str.append $body $http.index_footer
 					$export body
+				} else {
+					$export body [[$open $path ru] read]
 				}
 
 				$export body
+				$export status_code 200
+				$export status_text [$dict.get $http.codes 200]
 			} else {
-				$export body [[$open $path ru] read]
+				$export status_code 404
+				$local body [$dict.get $http.codes 404]
+				$export body
+				$export status_text $body
 			}
 
-			$export body
-			$export status_code 200
-			$export status_text [$dict.get $http.codes 200]
-		} else {
-			$export status_code 404
-			$local body [$dict.get $http.codes 404]
-			$export body
-			$export status_text $body
-		}
+			$local len [$byte.len $body]
+			$local cbody $body
 
-		$local len [$byte.len $body]
-		$local cbody $body
-
-		$local binary 0
-		$if [$> $len 8] {
-			$for o [$byte.ord [$byte.range $body 0 7]] {
-				$if [$|| [$< $o 0] [$> $o 127]] {$export binary 1}
+			$local binary 0
+			$if [$> $len 8] {
+				$for o [$byte.ord [$byte.range $body 0 7]] {
+					$if [$|| [$< $o 0] [$> $o 127]] {$export binary 1}
+					$export binary
+					$if $binary {$break}
+				}
 				$export binary
-				$if $binary {$break}
 			}
-			$export binary
-		}
 
-		$if [$&& [$! $binary] [$list.in [$dict.get [$list.index $request 2] {Accept-Encoding} {}] gzip]] {
-			$export cbody [$zlib.gzip $body 9]
-		}
-
-		$local headers [$dict.new Server $http.banner]
-
-		$local clen [$byte.len $cbody]
-		$if [$< $clen $len] {
-			$dict.set $headers {Content-Encoding} gzip
-			$export body $cbody
-			$export len $clen
-		}
-
-		$dict.set $headers {Content-Length} $len
-		$local response [$str.format $http.response_fmt $status_code $status_text [$list.join $http.hdr_newline [$map {k v} $headers {$str.format {{}: {}} $k $v}]] $body]
-		$dict.set $response_cache $url $response
-		$export response
-	} except {
-		$local error $_
-		$export response [$str.format $http.response_fmt 500 [$dict.get $http.codes 500] {} [$str.format {Server error: {}} $error]]
-	}
-
-	$return $response
-}
-
-$proc http.server {
-	$proc http.accept {
-		$1 accept
-	}
-
-	$server.tcp $1 $2 $http.accept $http.respond $3 $4
-}
-
-$proc http.tls_server {
-	$local tls_cert $5
-	$local tls_key $6
-
-	$proc http.tls_accept {
-		$local clients [$1 accept]
-		$local tls_clients {}
-
-		$for s $clients {
-			$try {
-				$local t [tls.accept [$s handle] $tls_cert $tls_key]
-				$list.append $tls_clients $t
-			} finally {
-				$s close
+			$if [$&& [$! $binary] [$list.in [$dict.get [$list.index $request 2] {Accept-Encoding} {}] gzip]] {
+				$export cbody [$zlib.gzip $body 9]
 			}
+
+			$local headers [$dict.new Server $http.banner]
+
+			$local clen [$byte.len $cbody]
+			$if [$< $clen $len] {
+				$dict.set $headers {Content-Encoding} gzip
+				$export body $cbody
+				$export len $clen
+			}
+
+			$dict.set $headers {Content-Length} $len
+			$local response [$str.format $http.response_fmt $status_code $status_text [$list.join $http.hdr_newline [$map {k v} $headers {$str.format {{}: {}} $k $v}]] $body]
+
+			$dict.set $response_cache $url $response
+			$export response
+		} except {
+			$local error $_
+			$export response [$str.format $http.response_fmt 500 [$dict.get $http.codes 500] {} [$str.format {Server error: {}} $error]]
 		}
 
-		$return $tls_clients
+		$return $response
 	}
-
-	$server.tcp $1 $2 $http.tls_accept $http.respond $3 $4
-}
+} $server.tcp]

@@ -85,6 +85,7 @@ ifeq ($(BUILTIN_ALL), 1)
 	BUILTIN_ZSTD = 1
 	BUILTIN_SERVER = 1
 	BUILTIN_HTTP = 1
+	BUILTIN_HTTPS = 1
 	BUILTIN_RESP = 1
 	BUILTIN_OOP = 1
 else
@@ -181,6 +182,12 @@ else
 	EXTERNAL_EXT_NAMES += http
 endif
 
+ifeq ($(BUILTIN_HTTPS), 1)
+	BUILTIN_EXT_NAMES += https
+else
+	EXTERNAL_EXT_NAMES += https
+endif
+
 ifeq ($(BUILTIN_RESP), 1)
 	BUILTIN_EXT_NAMES += resp
 else
@@ -266,6 +273,9 @@ szl_oop.o: szl_oop.c szl_oop.inc
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 szl_http.o: szl_http.c szl_http.inc
+	$(CC) -c -o $@ $< $(CFLAGS)
+
+szl_https.o: szl_https.c szl_https.inc
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 szl_tls.o: szl_tls.c

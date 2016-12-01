@@ -1019,6 +1019,69 @@ Environment
 
 Extensions
 ~~~~~~~~~~
+oop
+^^^
+The 'oop' extension implements classes with multiple inheritance, to allow a
+basic form of object-oriented programming.
+
++$class+ 'code ?base...?'::
+	Creates a class object. Class methods should be declared using 'method' and
+	may call its own methods via 'this' and store instance variables in 'data'.
+
++$klass+::
+	Creates a new instance of a class.
+
++$klass+ 'methods'::
+	Lists the methods associated with a class.
+
++$super+ 'klass ?args...?'::
+	Calls a base class method.
+
+--------------------------------------
+$load oop
+
+$local food [$class {
+	$method is_tasty {
+		$return 0
+	}
+
+	$method size {
+		$dict.get $data size s
+	}
+
+	$method enlarge {
+		$dict.set $data size $1
+	}
+}]
+
+$local carrot [$class {
+	$method size {
+		$dict.get $data size m
+	}
+
+	$method enlarge {
+		$super $food enlarge xl
+	}
+} $food]
+
+$local rice [$class {
+	$method is_tasty {
+		$return 1
+	}
+
+	$method enlarge {
+		$super $food enlarge l
+	}
+} $food]
+
+$for dish [$list.new [$rice] [$carrot]] {
+	$puts [$dish is_tasty]
+	$puts [$dish size]
+	$dish enlarge
+	$puts [$dish size]
+}
+--------------------------------------
+
 Compression
 ^^^^^^^^^^^
 zlib
@@ -1133,6 +1196,19 @@ https://curl.haxx.se/[cURL].
 +$curl.get+ 'url path...'::
 	Downloads multiple files in parallel.
 
+server
+++++++
+The 'server' extension implements common, core server logic.
+
++$server.tcp+::
+	A class that implements a TCP echo server. Subclasses should override the
+	'accept' and 'get_response' methods.
+
++$server+ 'serve host port backlog timeout'::
+	Starts a TCP echo server which listens on 'host:port', with a queue of up to
+	'backlog' incoming clients and a timeout of 'timeout' seconds for each
+	connection.
+
 http
 ++++
 The 'http' extension is a high-level interface for sending HTTP requests, mostly
@@ -1153,17 +1229,25 @@ $puts [$list.index [$http.get httpbin.org 443 1 /get [$dict.new a {123 456} b 78
 +$http.post+ 'host port tls url params'::
 	Similar to 'http.get', but sends a 'POST' request instead.
 
-+$http.server+ 'host port backlog timeout'::
-	Runs a HTTP server which listens on 'host:port', with a queue of up to
-	'backlog' incoming clients and a timeout of 'timeout' seconds for each
-	connection.
-
-+$http.tls_server+ 'host port backlog timeout cert priv'::
-	Runs a HTTPS server.
-
 +$http.codes+::
 	A dictionary that maps HTTP status codes (e.g. '200') to their textual
-	representation (e.g. 'ok').
+	representation (e.g. 'OK').
+
++$http.server+::
+	A class that implements a HTTP server.
+
++$server+ 'serve host port backlog timeout'::
+	Runs a HTTP server.
+
+https
++++++
+The 'https' extension implements a HTTP server.
+
++$https.server+::
+	A class that implements a HTTPS server.
+
++$server+ 'serve host port backlog timeout cert priv'::
+	Runs a HTTPS server.
 
 resp
 ++++
@@ -1196,69 +1280,6 @@ The 'test' extension provides test helpers.
 +$test.run+ 'desc throws exp result'::
 	Runs 'exp' and compares its result or the error it throws (depending on the
 	'throws' flag) to 'result'.
-
-oop
-^^^^
-The 'oop' extension implements classes with multiple inheritance, to allow a
-basic form of object-oriented programming.
-
-+$class+ 'code ?base...?'::
-	Creates a class object. Class methods should be declared using 'method' and
-	may store instance variables in 'this'.
-
-+$klass+::
-	Creates a new instance of a class.
-
-+$klass+ 'methods'::
-	Lists the methods associated with a class.
-
-+$super+ 'klass ?args...?'::
-	Calls a base class method.
-
---------------------------------------
-$load oop
-
-$local food [$class {
-	$method is_tasty {
-		$return 0
-	}
-
-	$method size {
-		$dict.get $this size s
-	}
-
-	$method enlarge {
-		$dict.set $this size $1
-	}
-}]
-
-$local carrot [$class {
-	$method size {
-		$dict.get $this size m
-	}
-
-	$method enlarge {
-		$super $food enlarge xl
-	}
-} $food]
-
-$local rice [$class {
-	$method is_tasty {
-		$return 1
-	}
-
-	$method enlarge {
-		$super $food enlarge l
-	}
-} $food]
-
-$for dish [$list.new [$rice] [$carrot]] {
-	$puts [$dish is_tasty]
-	$puts [$dish size]
-	$dish enlarge
-	$puts [$dish size]
-}
---------------------------------------
 
 ffi
 ^^^

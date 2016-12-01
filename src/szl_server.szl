@@ -20,190 +20,199 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-$global min_events 1
+$load oop
 
-$proc server.tcp {
-	$local accept $3
-	$local get_response $4
-	$local backlog $5
-
-	$proc cleanup {
-		$for close_handle $1 {
-			$try {
-				$poller remove $close_handle
-			} finally {
-				[$dict.get $sockets $close_handle] close
-
-				# close the matching timer
-				$local timer [$dict.get $client_handles_to_timers $close_handle {}]
-				$if $timer {
-					$local timer_handle [$timer handle]
-					$try {
-						$poller remove $timer_handle
-					} finally {
-						$timer close
-					}
-				}
-			}
-
-			$if [$<= $events $min_events] {
-				$global events $min_events
-			} else {
-				$global events [$- $events 3]
-			}
-		}
+$global server.tcp [$class {
+	$method accept {
+		$2 accept
 	}
 
-	# 3 events per client - in and out for each client, plus in for a timer
-	$local max_events [$+ 1 [$* $backlog 3]]
+	$method get_response {
+		$return $2
+	}
 
-	$local requests {}
-	$local responses {}
+	$method serve {
+		$local backlog $4
 
-	$local listening_socket [$stream.server $1 $2 $backlog]
-	$listening_socket unblock
-	$local listening_socket_handle [$listening_socket handle]
-
-	$local sockets [$dict.new $listening_socket_handle $listening_socket]
-	$local timers {}
-	$local timer_handles_to_client_handles {}
-	$local client_handles_to_timers {}
-
-	$local poller [$poll.create]
-	$local events $min_events
-	$poller add $listening_socket_handle in
-
-	$local blocked_signals [$signal $sigint $sigterm]
-	$local blocked_signals_handle [$blocked_signals handle]
-	$poller add $blocked_signals_handle in
-
-	$while 1 {
-		$local ready_handles [$poller wait $events]
-
-		$local read_handles [$list.index $ready_handles 0]
-		$cleanup [$list.index $ready_handles 2]
-		$local close_handles {}
-
-		$for read_handle $read_handles {
-			$if [$== $read_handle $listening_socket_handle] {
+		$proc cleanup {
+			$for close_handle $1 {
 				$try {
-					$export client_sockets [$accept $listening_socket]
-				} except {
-					$export client_sockets {}
-				}
+					$poller remove $close_handle
+				} finally {
+					[$dict.get $sockets $close_handle] close
 
-				$if $client_sockets {
-					$for client_socket $client_sockets {
-						$local client_socket_handle [$client_socket handle]
-
-						$try {$client_socket setopt cork 1}
-
+					# close the matching timer
+					$local timer [$dict.get $client_handles_to_timers $close_handle {}]
+					$if $timer {
+						$local timer_handle [$timer handle]
 						$try {
-							$client_socket unblock
-
-							$export client_socket_handle [$client_socket handle]
-
-							$local client_timer [$timer $6]
-							$export client_timer_handle [$client_timer handle]
-							$export client_timer
-
-							$client_timer unblock
-						} except {
-							$client_socket close
-							$continue
-						}
-
-						$try {
-							$poller add $client_timer_handle in
-						} except {
-							$client_timer close
-							$client_socket close
-							$continue
-						}
-
-						$try {
-							$poller add $client_socket_handle in
-						} except {
-							$poller remove $client_timer_handle
-							$client_timer close
-							$client_socket close
-							$continue
-						}
-
-						$dict.set $sockets $client_socket_handle $client_socket
-						$dict.set $requests $client_socket_handle {}
-						$dict.set $responses $client_socket {}
-						$dict.set $timers $client_timer_handle $client_timer
-						$dict.set $timer_handles_to_client_handles $client_timer_handle $client_socket_handle
-						$dict.set $client_handles_to_timers $client_socket_handle $client_timer
-
-						$if [$< $events $max_events] {
-							$global events [$+ $events 3]
+							$poller remove $timer_handle
+						} finally {
+							$timer close
 						}
 					}
-				} else {
-					$break
 				}
-			} else {
-				$if [$== $read_handle $blocked_signals_handle] {
-					$try {$blocked_signals read}
-					$exit
-				} else {
-					$local client_socket_handle [$dict.get $timer_handles_to_client_handles $read_handle {}]
-					$if $client_socket_handle {
-						$dict.set $timer_handles_to_client_handles $read_handle {}
-						$list.append $close_handles $client_socket_handle
-					} else {
-						$local client_socket [$dict.get $sockets $read_handle]
-						$try {
-							$export chunk [$client_socket read]
-						} except {
-							$list.append $close_handles $read_handle
-							$export chunk {}
-						}
 
-						$if $chunk {
-							$local request [$str.join {} [$dict.get $requests $read_handle] $chunk]
-							$dict.set $requests $read_handle $request
+				$if [$<= [$dict.get $data $events 1] 1] {
+					$dict.set $data events 1
+				} else {
+					$dict.set $data events [$- $events 3]
+				}
+			}
+		}
+
+		# 3 events per client - in and out for each client, plus in for a timer
+		$local max_events [$+ 1 [$* $backlog 3]]
+
+		$local requests {}
+		$local responses {}
+
+		$local listening_socket [$stream.server $2 $3 $backlog]
+		$listening_socket unblock
+		$local listening_socket_handle [$listening_socket handle]
+
+		$local sockets [$dict.new $listening_socket_handle $listening_socket]
+		$local timers {}
+		$local timer_handles_to_client_handles {}
+		$local client_handles_to_timers {}
+
+		$local poller [$poll.create]
+		$poller add $listening_socket_handle in
+
+		$local blocked_signals [$signal $sigint $sigterm]
+		$local blocked_signals_handle [$blocked_signals handle]
+		$poller add $blocked_signals_handle in
+
+		$while 1 {
+			$local events [$dict.get $data events 1]
+			$local ready_handles [$poller wait $events]
+
+			$local read_handles [$list.index $ready_handles 0]
+			$cleanup [$list.index $ready_handles 2]
+			$local close_handles {}
+
+			$for read_handle $read_handles {
+				$if [$== $read_handle $listening_socket_handle] {
+					$try {
+						$export client_sockets [$this accept $listening_socket]
+					} except {
+						$export client_sockets {}
+					}
+
+					$if $client_sockets {
+						$for client_socket $client_sockets {
+							$local client_socket_handle [$client_socket handle]
+
+							$try {$client_socket setopt cork 1}
 
 							$try {
-								$local response [$get_response $request]
-								$dict.set $requests $read_handle {}
-								$dict.set $responses $client_socket $response
-								$poller remove $read_handle
-								$poller add $read_handle in out
+								$client_socket unblock
+
+								$export client_socket_handle [$client_socket handle]
+
+								$local client_timer [$timer $5]
+								$export client_timer_handle [$client_timer handle]
+								$export client_timer
+
+								$client_timer unblock
+							} except {
+								$client_socket close
+								$continue
+							}
+
+							$try {
+								$poller add $client_timer_handle in
+							} except {
+								$client_timer close
+								$client_socket close
+								$continue
+							}
+
+							$try {
+								$poller add $client_socket_handle in
+							} except {
+								$poller remove $client_timer_handle
+								$client_timer close
+								$client_socket close
+								$continue
+							}
+
+							$dict.set $sockets $client_socket_handle $client_socket
+							$dict.set $requests $client_socket_handle {}
+							$dict.set $responses $client_socket {}
+							$dict.set $timers $client_timer_handle $client_timer
+							$dict.set $timer_handles_to_client_handles $client_timer_handle $client_socket_handle
+							$dict.set $client_handles_to_timers $client_socket_handle $client_timer
+
+							$if [$< $events $max_events] {
+								$dict.set $data events [$+ $events 3]
+							}
+						}
+					} else {
+						$break
+					}
+				} else {
+					$if [$== $read_handle $blocked_signals_handle] {
+						$try {$blocked_signals read}
+						$exit
+					} else {
+						$local client_socket_handle [$dict.get $timer_handles_to_client_handles $read_handle {}]
+						$if $client_socket_handle {
+							$dict.set $timer_handles_to_client_handles $read_handle {}
+							$list.append $close_handles $client_socket_handle
+						} else {
+							$local client_socket [$dict.get $sockets $read_handle]
+							$try {
+								$export chunk [$client_socket read]
+							} except {
+								$list.append $close_handles $read_handle
+								$export chunk {}
+							}
+
+							$if $chunk {
+								$local request [$str.join {} [$dict.get $requests $read_handle] $chunk]
+								$dict.set $requests $read_handle $request
+
+								$try {
+									$local response [$this get_response $request]
+									$dict.set $requests $read_handle {}
+									$dict.set $responses $client_socket $response
+									$poller remove $read_handle
+									$poller add $read_handle in out
+								}
 							}
 						}
 					}
 				}
 			}
-		}
 
-		$for write_handle [$list.index $ready_handles 1] {
-			$local client_socket [$dict.get $sockets $write_handle]
-			$local response [$dict.get $responses $client_socket {}]
+			$for write_handle [$list.index $ready_handles 1] {
+				$local client_socket [$dict.get $sockets $write_handle]
+				$local response [$dict.get $responses $client_socket {}]
 
-			$if $response {
-				$try {
-					$local response_length [$byte.len $response]
-					$local sent [$client_socket write $response]
+				$if $response {
+					$try {
+						$local response_length [$byte.len $response]
+						$local sent [$client_socket write $response]
 
-					$if [$== $sent $response_length] {
-						$poller remove $write_handle
-						$poller add $write_handle in
-						$dict.set $responses $client_socket {}
+						$if [$== $sent $response_length] {
+							$poller remove $write_handle
+							$poller add $write_handle in
+							$dict.set $responses $client_socket {}
 
-						# reset the timer
-						[$dict.get $client_handles_to_timers $write_handle] rewind
-					} else {
-						$dict.set $responses $client_socket [$byte.range $response $sent [$- $response_length 1]]
+							# reset the timer
+							[$dict.get $client_handles_to_timers $write_handle] rewind
+						} else {
+							$dict.set $responses $client_socket [$byte.range $response $sent [$- $response_length 1]]
+						}
+					} except {
+						$list.append $close_handles $write_handle
 					}
-				} except {
-					$list.append $close_handles $write_handle
 				}
 			}
-		}
 
-		$cleanup $close_handles
+
+			$cleanup $close_handles
+		}
 	}
-}
+}]

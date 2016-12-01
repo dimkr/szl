@@ -2612,7 +2612,7 @@ enum szl_res szl_stream_read_all(struct szl_interp *interp,
 		                 sizeof("read from closed stream") - 1);
 
 	free(buf);
-	return (tot <= 0) ? SZL_ERR : SZL_OK;
+	return (tot < 0) ? SZL_ERR : SZL_OK;
 }
 
 static
