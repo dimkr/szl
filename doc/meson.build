@@ -20,12 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-cmake_minimum_required(VERSION 3.3)
+install_man('szl.1', 'szlsh.1')
 
-add_subdirectory(src)
-add_subdirectory(doc)
+docdir = join_paths(get_option('datadir'), 'doc', 'szl')
 
-install(
-	FILES README COPYING AUTHORS
-	DESTINATION share/doc/szl
-)
+custom_target('manual', input: 'szl.txt', output: 'szl.html', command : ['asciidoc', '-a', 'toc', '-a', 'toclevels=4', '-o', '@OUTPUT@', '@INPUT@'], install: true, install_dir: docdir)
+
+custom_target('api', input: 'doxygen.conf', output: 'api_doc', command : ['doxygen', '@INPUT@'])
+install_subdir('api_doc', install_dir: docdir)

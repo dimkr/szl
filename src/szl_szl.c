@@ -28,7 +28,7 @@
 #include "szl.h"
 
 static const char szl_szl_inc[] = {
-#include "szl_szl.inc"
+#include "szl_szl.h"
 };
 
 static

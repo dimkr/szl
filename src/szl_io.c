@@ -35,7 +35,7 @@
 #define SZL_DEFAULT_FMODE "r"
 
 static const char szl_io_inc[] = {
-#include "szl_io.inc"
+#include "szl_io.h"
 };
 
 static

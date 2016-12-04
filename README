@@ -45,20 +45,17 @@ Building
 
 On Debian (http://www.debian.org) based distributions:
 
-  $ apt-get install git gcc cmake make
+  $ apt-get install git gcc python3 ninja-build zlib1g-dev libcurl4-gnutls-dev
+                    libarchive-dev libssl-dev libffi-dev
 
 Then:
 
   $ git clone --recursive https://github.com/dimkr/szl
   $ cd szl
-  $ cmake .
-  $ cmake --build .
-  $ make install
-
-To enable additional extensions, install their dependencies:
-
-  $ apt-get install zlib1g-dev libcurl4-gnutls-dev libarchive-dev libssl-dev
-                    libffi-dev
+  $ meson build
+  $ cd build
+  $ ninja
+  $ ninja install
 
 By default, szl is built with core functionality built-in to the interpreter,
 while a big part of the standard library resides in dynamically-loaded shared
@@ -71,15 +68,11 @@ project), this is undesirable.
 To build szl as a single executable file, with all extensions linked statically
 into the interpreter:
 
-  $ cmake -DBUILTIN_ALL=ON .
+  $ mesonconf -Dbuiltin_all=true
 
 In addition, built-in extensions can be chosen individually, e.g.:
 
-  $ cmake -DBUILTIN_CURL=ON -DBUILTIN_FFI=ON .
-
-Alternatively, szl can be built without CMake (http://cmake.org/). For example:
-
-  $ make BUILTIN_ALL=1
+  $ mesonconf -Dbuiltin_curl=true -Dbuiltin_ffi=true
 
 Embedding
 =========

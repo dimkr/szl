@@ -25,7 +25,7 @@
 #include "szl.h"
 
 static const char szl_http_inc[] = {
-#include "szl_http.inc"
+#include "szl_http.h"
 };
 
 int szl_init_http(struct szl_interp *interp)

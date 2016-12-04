@@ -30,7 +30,7 @@
 #include "szl.h"
 
 static const char szl_dir_inc[] = {
-#include "szl_dir.inc"
+#include "szl_dir.h"
 };
 
 static

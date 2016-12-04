@@ -1,4 +1,4 @@
-#!@CMAKE_INSTALL_PREFIX@/bin/szl
+#!@prefix@/@bindir@/szl
 
 # this file is part of szl.
 #

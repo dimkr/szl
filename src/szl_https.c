@@ -25,7 +25,7 @@
 #include "szl.h"
 
 static const char szl_https_inc[] = {
-#include "szl_https.inc"
+#include "szl_https.h"
 };
 
 int szl_init_https(struct szl_interp *interp)

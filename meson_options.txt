@@ -20,37 +20,20 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-include ../Makefile.common
+option('builtin_all', type : 'boolean', value : false)
 
-GENERATED = szl.1 szl.html api
-
-all: szl.1
-
-%.1: %.1.in
-	sed s~@CMAKE_INSTALL_PREFIX@~$(PREFIX)~ $^ > $@
-
-%.html: %.txt
-	asciidoc -a toc -a toclevels=4 -o $@ $^
-
-api: doxygen.conf ../src/szl.h
-	doxygen $^
-
-install: all
-	$(INSTALL) -D -m 644 szl.1 $(DESTDIR)/$(MAN_DIR)/szl.1
-	$(INSTALL) -m 644 szlsh.1 $(DESTDIR)/$(MAN_DIR)/szlsh.1
-	$(INSTALL) -D -m 644 ../README $(DESTDIR)/$(DOC_DIR)/szl/README
-	$(INSTALL) -m 644 ../AUTHORS $(DESTDIR)/$(DOC_DIR)/szl/AUTHORS
-	$(INSTALL) -m 644 ../COPYING $(DESTDIR)/$(DOC_DIR)/szl/COPYING
-	$(INSTALL) -m 644 ../src/lzfse/LICENSE \
-	                  $(DESTDIR)/$(DOC_DIR)/szl/LICENSE.lzfse
-	$(INSTALL) -m 644 ../src/zstd/LICENSE \
-	                  $(DESTDIR)/$(DOC_DIR)/szl/LICENSE.zstd
-	$(INSTALL) -m 644 ../src/zstd/PATENTS \
-	                  $(DESTDIR)/$(DOC_DIR)/szl/PATENTS.zstd
-	$(INSTALL) -m 644 ../src/ed25519/license.txt \
-	                  $(DESTDIR)/$(DOC_DIR)/szl/license.txt.ed25519
-	$(INSTALL) -m 644 ../src/linenoise/LICENSE \
-	                  $(DESTDIR)/$(DOC_DIR)/szl/LICENSE.linenoise
-
-clean:
-	rm -rf $(GENERATED)
+option('builtin_zlib', type : 'boolean', value : false)
+option('builtin_tls', type : 'boolean', value : false)
+option('builtin_ffi', type : 'boolean', value : false)
+option('builtin_curl', type : 'boolean', value : false)
+option('builtin_archive', type : 'boolean', value : false)
+option('builtin_linenoise', type : 'boolean', value : false)
+option('builtin_ed25519', type : 'boolean', value : false)
+option('builtin_lzfse', type : 'boolean', value : false)
+option('builtin_zstd', type : 'boolean', value : false)
+option('builtin_test', type : 'boolean', value : false)
+option('builtin_oop', type : 'boolean', value : false)
+option('builtin_server', type : 'boolean', value : false)
+option('builtin_resp', type : 'boolean', value : false)
+option('builtin_http', type : 'boolean', value : false)
+option('builtin_https', type : 'boolean', value : false)

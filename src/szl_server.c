@@ -25,7 +25,7 @@
 #include "szl.h"
 
 static const char szl_server_inc[] = {
-#include "szl_server.inc"
+#include "szl_server.h"
 };
 
 int szl_init_server(struct szl_interp *interp)

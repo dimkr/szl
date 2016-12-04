@@ -25,7 +25,7 @@
 #include "szl.h"
 
 static const char szl_test_inc[] = {
-#include "szl_test.inc"
+#include "szl_test.h"
 };
 
 int szl_init_test(struct szl_interp *interp)

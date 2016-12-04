@@ -25,7 +25,7 @@
 #include "szl.h"
 
 static const char szl_oop_inc[] = {
-#include "szl_oop.inc"
+#include "szl_oop.h"
 };
 
 int szl_init_oop(struct szl_interp *interp)

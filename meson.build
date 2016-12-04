@@ -20,19 +20,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-all: .src .doc
-install: all
+project('szl', 'c', version : '0.0.1', license : 'MIT')
 
-.src:
-	cd src; $(MAKE)
+subdir('src')
+subdir('doc')
 
-.doc:
-	cd doc; $(MAKE)
-
-install:
-	cd doc; $(MAKE) install
-	cd src; $(MAKE) install
-
-clean:
-	cd doc; $(MAKE) clean
-	cd src; $(MAKE) clean
+install_data('README', 'AUTHORS', 'COPYING', install_dir: join_paths(get_option('datadir'), 'doc', 'szl'))
