@@ -1652,7 +1652,7 @@ on top of more low-level procedures exposed by the C extensions.
 
 Build System
 ~~~~~~~~~~~~
-+szl+ is built using https://cmake.org/[CMake].
++szl+ is built using http://mesonbuild.com/[Meson].
 
 API Documentation
 ~~~~~~~~~~~~~~~~~
