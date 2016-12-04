@@ -133,7 +133,7 @@ install_data(join_paths('lzfse', 'LICENSE'),
              install_dir: join_paths(doc_dir, 'lzfse'))
 
 zstd_dep = declare_dependency(include_directories: include_directories('zstd/lib/common', 'zstd/lib'),
-                              sources: ['zstd/lib/compress/huf_compress.c', 'zstd/lib/compress/zstd_compress.c', 'zstd/lib/compress/fse_compress.c', 'zstd/lib/compress/zbuff_compress.c', 'zstd/lib/common/zstd_common.c', 'zstd/lib/common/fse_decompress.c', 'zstd/lib/common/entropy_common.c', 'zstd/lib/common/xxhash.c', 'zstd/lib/decompress/zbuff_decompress.c', 'zstd/lib/decompress/zstd_decompress.c', 'zstd/lib/decompress/huf_decompress.c'])
+                              sources: ['zstd/lib/common/error_private.c', 'zstd/lib/compress/huf_compress.c', 'zstd/lib/compress/zstd_compress.c', 'zstd/lib/compress/fse_compress.c', 'zstd/lib/compress/zbuff_compress.c', 'zstd/lib/common/zstd_common.c', 'zstd/lib/common/fse_decompress.c', 'zstd/lib/common/entropy_common.c', 'zstd/lib/common/xxhash.c', 'zstd/lib/decompress/zbuff_decompress.c', 'zstd/lib/decompress/zstd_decompress.c', 'zstd/lib/decompress/huf_decompress.c'])
 if builtin_all
 	builtin_zstd = true
 else
