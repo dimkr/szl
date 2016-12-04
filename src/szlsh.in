@@ -25,7 +25,6 @@
 $try {
 	$szl.shell $@
 } except {
-	$stderr write $_
-	$stderr write $newline
+	$stderr writeln $_
 	$exit 1
 }
