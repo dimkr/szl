@@ -112,7 +112,7 @@ $global http.index_dir_fmt [$str.expand {\t\t\t<li><a href="{}/{}">{}</a></li>\n
 $global http.index_file_fmt [$str.expand {\t\t\t<li><a href="{}/{}">{}</a> ({} bytes)</li>\n}]
 $global http.index_footer [$str.expand \t\t</ul>\n\t</body>\n</html>]
 
-$global http.server [$class {
+$class http.server {
 	$method get_response {
 		$try {
 			$local request [$http.parse $2]
@@ -199,4 +199,4 @@ $global http.server [$class {
 
 		$return $response
 	}
-} $server.tcp]
+} $server.tcp

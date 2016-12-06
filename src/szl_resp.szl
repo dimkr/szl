@@ -77,79 +77,73 @@ $proc resp.error {
 	$str.format $resp.error_fmt $1
 }
 
-$proc resp.respond {
-	$try {
-		$local cmd [$list.index [$resp.array $1] 1]
+$class resp.server {
+	$method get_response {
+		$try {
+			$local cmd [$list.index [$resp.array $2] 1]
 
-		$switch [$list.index [$list.index $cmd 0] 1] SET {
-			$dict.set $resp.objects [$list.index [$list.index $cmd 1] 1] [$list.index $cmd 2]
-			$return $resp.ok
-		} EXISTS {
-			$local exist 0
-			$for key [$map arg [$list.range $cmd 1 [$- [$list.len $cmd] 1]] {$list.index $arg 1}] {
-				$try {
-					$if [$is [$dict.get $resp.objects $key] $resp.null] {$continue}
-					$export exist [$+ $exist 1]
+			$switch [$list.index [$list.index $cmd 0] 1] SET {
+				$dict.set $resp.objects [$list.index [$list.index $cmd 1] 1] [$list.index $cmd 2]
+				$return $resp.ok
+			} EXISTS {
+				$local exist 0
+				$for key [$map arg [$list.range $cmd 1 [$- [$list.len $cmd] 1]] {$list.index $arg 1}] {
+					$try {
+						$if [$is [$dict.get $resp.objects $key] $resp.null] {$continue}
+						$export exist [$+ $exist 1]
+					}
+					$export exist
 				}
-				$export exist
-			}
 
-			$str.format $resp.integer_fmt $exist
-		} STRLEN {
-			$str.format $resp.integer_fmt [$str.len [$list.index [$dict.get $resp.objects [$list.index [$list.index $cmd 1] 1]] 1]]
-		} GET {
-			$local key [$list.index [$list.index $cmd 1] 1]
-			$local obj [$dict.get $resp.objects $key $resp.null]
-			$if [$is $obj $resp.null] {$throw [$str.format {no such object: {}} $key]}
+				$str.format $resp.integer_fmt $exist
+			} STRLEN {
+				$str.format $resp.integer_fmt [$str.len [$list.index [$dict.get $resp.objects [$list.index [$list.index $cmd 1] 1]] 1]]
+			} GET {
+				$local key [$list.index [$list.index $cmd 1] 1]
+				$local obj [$dict.get $resp.objects $key $resp.null]
+				$if [$is $obj $resp.null] {$throw [$str.format {no such object: {}} $key]}
 
-			$local type [$list.index $obj 0]
-			$if [$list.in $resp.simple_types $type] {
-				$str.format $resp.simple_object_fmt $type $val
-			} else {
-				$local val [$list.index $obj 1]
-				$str.format $resp.object_fmt $type [$byte.len $val] $val
+				$local type [$list.index $obj 0]
+				$if [$list.in $resp.simple_types $type] {
+					$str.format $resp.simple_object_fmt $type $val
+				} else {
+					$local val [$list.index $obj 1]
+					$str.format $resp.object_fmt $type [$byte.len $val] $val
+				}
+			} DEL {
+				$local removed 0
+				$for key [$map arg [$list.range $cmd 1 [$- [$list.len $cmd] 1]] {$list.index $arg 1}] {
+					$dict.set $resp.objects $key $resp.null
+					$export removed [$+ $removed 1]
+				}
+				$str.format $resp.integer_fmt $removed
+			} APPEND {
+				$local val [$list.index [$dict.get $resp.objects [$list.index [$list.index $cmd 1] 1]] 1]
+				$str.append $val [$list.index [$list.index $cmd 2] 1]
+				$str.format $resp.integer_fmt [$str.len $val]
+			} GETRANGE {
+				$str.format $resp.string_fmt [$str.range [$list.index [$dict.get $resp.objects [$list.index [$list.index $cmd 1] 1]] 1] [$list.index [$list.index $cmd 2] 1] [$list.index [$list.index $cmd 3] 1]]
+			} DBSIZE {
+				$local size 0
+				$for {name val} $resp.objects {
+					$if [$is $val $resp.null] {$continue}
+					$local size [$+ $size 1]
+					$export size
+				}
+				$str.format $resp.integer_fmt $size
+			} FLUSHDB {
+				$for {name val} $resp.objects {
+					$dict.set $resp.objects $name $resp.null
+				}
+				$return $resp.ok
+			} PING {
+				$if [$== [$list.len $cmd] 1] {$return $resp.pong}
+				$str.format $resp.string_fmt [$list.index [$list.index $cmd 1] 1]
+			} * {
+				$throw {bad cmd}
 			}
-		} DEL {
-			$local removed 0
-			$for key [$map arg [$list.range $cmd 1 [$- [$list.len $cmd] 1]] {$list.index $arg 1}] {
-				$dict.set $resp.objects $key $resp.null
-				$export removed [$+ $removed 1]
-			}
-			$str.format $resp.integer_fmt $removed
-		} APPEND {
-			$local val [$list.index [$dict.get $resp.objects [$list.index [$list.index $cmd 1] 1]] 1]
-			$str.append $val [$list.index [$list.index $cmd 2] 1]
-			$str.format $resp.integer_fmt [$str.len $val]
-		} GETRANGE {
-			$str.format $resp.string_fmt [$str.range [$list.index [$dict.get $resp.objects [$list.index [$list.index $cmd 1] 1]] 1] [$list.index [$list.index $cmd 2] 1] [$list.index [$list.index $cmd 3] 1]]
-		} DBSIZE {
-			$local size 0
-			$for {name val} $resp.objects {
-				$if [$is $val $resp.null] {$continue}
-				$local size [$+ $size 1]
-				$export size
-			}
-			$str.format $resp.integer_fmt $size
-		} FLUSHDB {
-			$for {name val} $resp.objects {
-				$dict.set $resp.objects $name $resp.null
-			}
-			$return $resp.ok
-		} PING {
-			$if [$== [$list.len $cmd] 1] {$return $resp.pong}
-			$str.format $resp.string_fmt [$list.index [$list.index $cmd 1] 1]
-		} * {
-			$throw {bad cmd}
+		} except {
+			$resp.error $_
 		}
-	} except {
-		$resp.error $_
 	}
-}
-
-$proc resp.server {
-	$proc resp.accept {
-		$1 accept
-	}
-
-	$server.tcp $1 $2 $resp.accept $resp.respond $3 $4
-}
+} $server.tcp
