@@ -24,7 +24,9 @@ install_man('szl.1', 'szlsh.1')
 
 docdir = join_paths(get_option('datadir'), 'doc', 'szl')
 
-custom_target('manual', input: 'szl.txt', output: 'szl.html', command : ['asciidoc', '-a', 'toc', '-a', 'toclevels=4', '-o', '@OUTPUT@', '@INPUT@'], install: true, install_dir: docdir)
-
-custom_target('api', input: 'doxygen.conf', output: 'api_doc', command : ['doxygen', '@INPUT@'])
-install_subdir('api_doc', install_dir: docdir)
+custom_target('manual',
+              input: 'szl.txt',
+              output: 'szl.html',
+              command: ['asciidoc', '-a', 'toc', '-a', 'toclevels=4', '-o', '@OUTPUT@', '@INPUT@'],
+              install: true,
+              install_dir: docdir)
