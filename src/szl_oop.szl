@@ -39,12 +39,6 @@ $proc class {
 			$throw {bad use of class}
 		}
 
-		$local priv [$list.new $. [$dict.new] [$proc super {
-			$local stmt [$list.new [$dict.get [$1 methods] $2]]
-			$list.extend $stmt [$list.range $@ 3 [$- [$list.len $@] 1]]
-			$call $stmt
-		}]]
-
 		$proc instance {
 			$for {methods data super} $. {
 				$local this $0
@@ -52,7 +46,11 @@ $proc class {
 				$list.extend $stmt [$list.range $@ 1 [$- [$list.len $@] 1]]
 				$call $stmt
 			}
-		} $priv
+		} [$list.new $. [$dict.new] [$proc super {
+			$local stmt [$list.new [$dict.get [$1 methods] $2]]
+			$list.extend $stmt [$list.range $@ 3 [$- [$list.len $@] 1]]
+			$call $stmt
+		}]]
 
 		$return $instance
 	} $methods]
