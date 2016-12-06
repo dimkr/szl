@@ -45,8 +45,8 @@ Building
 
 On Debian (http://www.debian.org) based distributions:
 
-  $ apt-get install git gcc python3 ninja-build zlib1g-dev libcurl4-gnutls-dev
-                    libarchive-dev libssl-dev libffi-dev
+  $ apt-get install git gcc meson zlib1g-dev libcurl4-gnutls-dev libarchive-dev
+                    libssl-dev libffi-dev
 
 Then:
 
