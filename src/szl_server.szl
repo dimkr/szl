@@ -22,7 +22,7 @@
 
 $load oop
 
-$global server.tcp [$class {
+$class server.tcp {
 	$method accept {
 		$2 accept
 	}
@@ -215,4 +215,4 @@ $global server.tcp [$class {
 			$cleanup $close_handles
 		}
 	}
-}]
+}

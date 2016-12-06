@@ -24,7 +24,7 @@ $load oop
 $load http
 $load tls
 
-$global https.server [$class {
+$class https.server {
 	$method accept {
 		$local clients [$2 accept]
 		$local tls_clients {}
@@ -46,4 +46,4 @@ $global https.server [$class {
 		$dict.set $data tls_key $7
 		$super $http.server serve $1 $2 $3 $4 $5
 	}
-} $http.server]
+} $http.server

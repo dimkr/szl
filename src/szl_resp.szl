@@ -77,7 +77,7 @@ $proc resp.error {
 	$str.format $resp.error_fmt $1
 }
 
-$global resp.server [$class {
+$class resp.server {
 	$method get_response {
 		$try {
 			$local cmd [$list.index [$resp.array $2] 1]
@@ -146,4 +146,4 @@ $global resp.server [$class {
 			$resp.error $_
 		}
 	}
-} $server.tcp]
+} $server.tcp

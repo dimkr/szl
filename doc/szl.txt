@@ -1024,7 +1024,7 @@ oop
 The 'oop' extension implements classes with multiple inheritance, to allow a
 basic form of object-oriented programming.
 
-+$class+ 'code ?base...?'::
++$class+ 'name code ?base...?'::
 	Creates a class object. Class methods should be declared using 'method' and
 	may call its own methods via 'this' and store instance variables in 'data'.
 
@@ -1040,7 +1040,7 @@ basic form of object-oriented programming.
 --------------------------------------
 $load oop
 
-$local food [$class {
+$class food {
 	$method is_tasty {
 		$return 0
 	}
@@ -1052,9 +1052,9 @@ $local food [$class {
 	$method enlarge {
 		$dict.set $data size $1
 	}
-}]
+}
 
-$local carrot [$class {
+$class carrot {
 	$method size {
 		$dict.get $data size m
 	}
@@ -1062,9 +1062,9 @@ $local carrot [$class {
 	$method enlarge {
 		$super $food enlarge xl
 	}
-} $food]
+} $food
 
-$local rice [$class {
+$class rice {
 	$method is_tasty {
 		$return 1
 	}
@@ -1072,7 +1072,7 @@ $local rice [$class {
 	$method enlarge {
 		$super $food enlarge l
 	}
-} $food]
+} $food
 
 $for dish [$list.new [$rice] [$carrot]] {
 	$puts [$dish is_tasty]

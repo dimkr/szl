@@ -23,8 +23,8 @@
 $proc class {
 	$local methods [$dict.new]
 
-	$if [$> [$list.len $@] 2] {
-		$for base [$list.range $@ 2 [$- [$list.len $@] 1]] {
+	$if [$> [$list.len $@] 3] {
+		$for base [$list.range $@ 3 [$- [$list.len $@] 1]] {
 			$for {name obj} [$base methods] {
 				$dict.set $methods $name $obj
 			}
@@ -62,11 +62,12 @@ $proc class {
 		$dict.set $methods $1 $obj
 	}
 
-	$eval $1
+	$eval $2
 
 	$method methods {
 		$return $methods
 	}
 
+	$export $1 $klass
 	$return $klass
 }
