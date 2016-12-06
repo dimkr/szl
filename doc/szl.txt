@@ -1254,7 +1254,10 @@ resp
 The 'resp' extension implements a basic http://redis.io/topics/protocol[RESP]
 server which can be used to store data, like http://redis.io/[Redis].
 
-+$resp.server+ 'host port backlog timeout'::
++$resp.server+::
+	A class that implements a RESP server.
+
++$server+ 'serve host port backlog timeout'::
 	Runs a RESP server.
 
 dict
