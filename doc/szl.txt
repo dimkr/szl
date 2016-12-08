@@ -1611,34 +1611,36 @@ used very often.
 
 Statement Execution
 ~~~~~~~~~~~~~~~~~~~
-Internally, each +szl+ statement that is executed returns two things:
+Statements are executed in blocks of multiple statements, like those passed to
+'if' or 'for'.
 
-1. A status code, member of 'enum szl_res'
-2. An object (a new reference to a newly-created or existing object), which acts
+Internally, each +szl+ statement returns two things:
+
+1. An object (a new reference to a newly-created or existing object), which acts
    as return value upon success or as an error message upon failure
+2. A status code, a member of 'enum szl_res'
 
 The status code determines the direction of the script flow:
 
-* 'SZL_OK': business as usual; the interpreter will continue to the next
-  statement.
-* 'SZL_ERR': the interpreter will not execute the next statement; the current
-  statement's return value (typically, an error string describing why it
-  failed) will be used as the return value of the entire block and the error
-  condition will be reported to the caller.
-* 'SZL_BREAK': the interpreter will halt execution of statements in the current
-  block.
-* 'SZL_CONT': instead of executing the next statement in the loop body, the
-  interpreter will continue to the next iteration.
-* 'SZL_RET': the interpreter will stop the execution of statements in the
-  current block and propagate the return value until it reaches a +szl+
-  procedure.
-* 'SZL_EXIT': the interpreter will stop the execution of statements and
-  propagate the return value until the script execution stops.
-
-'break' and 'continue' are empty procedures that only return a status code
-('SZL_BREAK' and 'SZL_CONT', respectively). 'throw', 'return' and 'exit' return
-'SZL_BREAK', 'SZL_RET' and 'SZL_EXIT', respectively, but also set the return
-value.
+* 'SZL_OK': the status code returned by procedures upon success. The interpreter
+  will continue to the next statement in the block. For any status code other
+  than 'SZL_OK', the next statements in the block will not be executed.
+* 'SZL_BREAK': the status code returned by 'break'. This status code is
+  propagated until it reaches 'for', 'do' or 'while'. If the loop body returns
+  'SZL_BREAK', the loop procedure stops and returns 'SZL_OK'.
+* 'SZL_CONT': the status code returned by 'continue'. This status code is
+  propagated until it reaches 'for', 'do' or 'while'. If the loop body returns
+  'SZL_CONT', the loop procedure re-executes the loop body without propagating
+  this status code.
+* 'SZL_ERR': the status code returned by 'throw' or upon failure of a procedure
+  (i.e. failure to open a file). This status code is always propagated. However,
+  'try' returns 'SZL_OK' if the 'try' block returns 'SZL_ERR' and no other error
+  condition was triggered.
+* 'SZL_RET': the status code returned by 'return'. This status code is
+  propagated until it reaches 'proc', which returns 'SZL_OK' if the procedure
+  body returned 'SZL_RET'.
+* 'SZL_EXIT': the status code returned by 'exit'. This status code is always
+  propagated.
 
 Extensions
 ~~~~~~~~~~
