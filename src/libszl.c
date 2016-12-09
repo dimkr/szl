@@ -2274,7 +2274,6 @@ enum szl_res szl_run_obj(struct szl_interp *interp, struct szl_obj *obj)
 	return res;
 }
 
-
 /*
  * extensions
  */

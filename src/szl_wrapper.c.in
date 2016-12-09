@@ -5,8 +5,8 @@
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
- * in the Software without rehttpsiction, including without limitation the rights
- * to use, copy, modify, merge, publish, dihttpsibute, sublicense, and/or sell
+ * in the Software without rerespiction, including without limitation the rights
+ * to use, copy, modify, merge, publish, direspibute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
@@ -24,13 +24,11 @@
 
 #include "szl.h"
 
-static const char szl_https_inc[] = {
-#include "szl_https.h"
+static const char src[] = {
+#include "@src@"
 };
 
-int szl_init_https(struct szl_interp *interp)
+int szl_init_@name@(struct szl_interp *interp)
 {
-	return (szl_run(interp,
-	                szl_https_inc,
-	                sizeof(szl_https_inc) - 1) == SZL_OK) ? 1 : 0;
+	return (szl_run(interp, src, sizeof(src) - 1) == SZL_OK) ? 1 : 0;
 }
