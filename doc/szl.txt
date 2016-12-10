@@ -763,6 +763,9 @@ Interpreters
 +$szl.shell+::
 	Runs an interactive +szl+ interpreter.
 
++$szl.main+::
+	Runs an interactive +szl+ interpreter; upon error, prints it and exits.
+
 I/O
 ^^^
 +$puts+ 'msg'::
@@ -1623,8 +1626,8 @@ Internally, each +szl+ statement returns two things:
 The status code determines the direction of the script flow:
 
 * 'SZL_OK': the status code returned by procedures upon success. The interpreter
-  will continue to the next statement in the block. For any status code other
-  than 'SZL_OK', the next statements in the block will not be executed.
+  continues to the next statement in the block. For any status code other than
+  'SZL_OK', the next statements in the block will not be executed.
 * 'SZL_BREAK': the status code returned by 'break'. This status code is
   propagated until it reaches 'for', 'do' or 'while'. If the loop body returns
   'SZL_BREAK', the loop procedure stops and returns 'SZL_OK'.
