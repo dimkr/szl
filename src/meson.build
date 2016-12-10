@@ -186,7 +186,8 @@ foreach ext: exts
 	               link_with: libszl,
 	               dependencies: get_variable('@0@_ext_deps'.format(ext)),
 	               name_prefix: '',
-	               install: true)
+	               install: true,
+	               install_dir: ext_dir)
 endforeach
 
 executable('szl', 'szl.c', link_with: libszl, install: true)
