@@ -191,12 +191,4 @@ foreach ext: exts
 endforeach
 
 executable('szl', 'szl.c', link_with: libszl, install: true)
-
-szlsh_cfg = configuration_data()
-szlsh_cfg.set('prefix', get_option('prefix'))
-bindir = get_option('bindir')
-szlsh_cfg.set('bindir', bindir)
-configure_file(input: 'szlsh.in',
-               output: 'szlsh',
-               install_dir: bindir,
-               configuration: szlsh_cfg)
+executable('szlsh', 'szlsh.c', link_with: libszl, install: true)

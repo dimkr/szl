@@ -94,3 +94,12 @@ $proc szl.shell {
 		}
 	}
 }
+
+$proc szl.main {
+	$try {
+		$szl.shell $@
+	} except {
+		$stderr writeln $_
+		$exit 1
+	}
+}
