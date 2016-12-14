@@ -51,7 +51,7 @@ $proc szl.shell {
 				$local exp [$linenoise.read {>>> }]
 
 				$while {[$|| [$!= [$str.count $exp $obrace] [$str.count $exp $cbrace]] [$!= [$str.count $exp $obracket] [$str.count $exp $cbracket]]]} {
-					$str.append $exp [$linenoise.read {... }]
+					$if [$local exp_cont [$linenoise.read {... }]] {$str.append $exp [$str.join {} [$str.expand \n] $exp_cont]}
 				}
 
 				$export exp
@@ -85,7 +85,7 @@ $proc szl.shell {
 					}
 				}
 
-				$try {$linenoise.add $exp}
+				$try {$for exp_line [$str.split $exp [$str.expand \n]] {$linenoise.add $exp_line}}
 			}
 		}
 	} finally {
