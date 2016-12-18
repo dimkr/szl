@@ -35,38 +35,49 @@ dl_dep = cc.find_library('dl', required: false)
 builtin_all = get_option('builtin_all')
 
 tls_ext_deps = dependency('openssl')
-if builtin_all or get_option('builtin_tls')
-	builtin_exts += 'tls'
-else
-	exts += 'tls'
+if tls_ext_deps.found()
+	if builtin_all or get_option('builtin_tls')
+		builtin_exts += 'tls'
+	else
+		exts += 'tls'
+	endif
 endif
 
 zlib_ext_deps = dependency('zlib')
-if builtin_all or get_option('builtin_zlib')
-	builtin_exts += 'zlib'
-else
-	exts += 'zlib'
+if zlib_ext_deps.found()
+	if builtin_all or get_option('builtin_zlib')
+		builtin_exts += 'zlib'
+	else
+		exts += 'zlib'
+	endif
 endif
 
-ffi_ext_deps = [dl_dep, dependency('libffi')]
-if builtin_all or get_option('builtin_ffi')
-	builtin_exts += 'ffi'
-else
-	exts += 'ffi'
+libffi_dep = dependency('libffi')
+if libffi_dep.found()
+	ffi_ext_deps = [dl_dep, libffi_dep]
+	if builtin_all or get_option('builtin_ffi')
+		builtin_exts += 'ffi'
+	else
+		exts += 'ffi'
+	endif
 endif
 
 curl_ext_deps = dependency('libcurl')
-if builtin_all or get_option('builtin_curl')
-	builtin_exts += 'curl'
-else
-	exts += 'curl'
+if curl_ext_deps.found()
+	if builtin_all or get_option('builtin_curl')
+		builtin_exts += 'curl'
+	else
+		exts += 'curl'
+	endif
 endif
 
 archive_ext_deps = dependency('libarchive')
-if builtin_all or get_option('builtin_archive')
-	builtin_exts += 'archive'
-else
-	exts += 'archive'
+if archive_ext_deps.found()
+	if builtin_all or get_option('builtin_archive')
+		builtin_exts += 'archive'
+	else
+		exts += 'archive'
+	endif
 endif
 
 linenoise_ext_deps = declare_dependency(sources: join_paths('linenoise', 'linenoise.c'))
