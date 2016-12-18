@@ -216,7 +216,7 @@ struct szl_val {
 	struct {
 		struct szl_obj **items;
 		size_t len;
-		int sorted;
+		uint8_t sorted;
 	} l; /**< List value */
 	struct szl_obj *c; /**< Code value */
 	szl_int i; /**< Integer value */
@@ -255,14 +255,22 @@ typedef enum szl_res (*szl_proc_t)(struct szl_interp *,
 typedef void (*szl_del_t)(void *);
 
 /**
+ * @enum szl_obj_flags
+ * Boolean object attributes
+ */
+enum szl_obj_flags {
+	SZL_OBJECT_HASHED = 1, /**< The current object value has been hashed */
+	SZL_OBJECT_RO     = 1 << 1 /**< The object is marked as read-only */
+};
+
+/**
  * @struct szl_obj
  * A szl object
  */
 struct szl_obj {
 	unsigned int refc; /**< The object reference count; the object is freed when it drops to zero */
 	uint32_t hash; /**< The object's string representation hash */
-	int hashed; /**< A flag set when the object is hashed and unset upon modification */
-	int ro; /**< A flag set when an object is marked as read-only */
+	uint8_t flags; /**< Object flags */
 
 	unsigned int types; /**< Available representations of the object */
 	struct szl_val val; /**< The object values */
@@ -273,8 +281,17 @@ struct szl_obj {
 	int max_objc; /**< The maximum number of arguments to @ref proc or -1 */
 	const char *help; /**< A message shown upon incorrect usage */
 	szl_del_t del; /**< Cleanup callback which frees @ref priv */
+};
 
-	struct szl_obj *caller; /**< The calling frame */
+
+struct szl_frame;
+
+/**
+ * @struct szl_frame
+ * A szl stack frame
+ */
+struct szl_frame {
+	struct szl_frame *caller; /**< The calling frame */
 	struct szl_obj *locals; /**< Local objects */
 	struct szl_obj *args; /**< The calling statement */
 };
@@ -294,8 +311,8 @@ struct szl_interp {
 	struct szl_obj *args; /**< A SZL_OBJV_NAME singleton */
 	struct szl_obj *priv; /**< A SZL_PRIV_NAME singleton */
 
-	struct szl_obj *global; /**< The global frame */
-	struct szl_obj *current; /**< The currently running procedure */
+	struct szl_frame *global; /**< The global frame */
+	struct szl_frame *current; /**< The currently running procedure */
 	unsigned int depth; /**< The call stack depth */
 
 	struct szl_obj *exts; /**< Loaded extensions */
@@ -557,7 +574,7 @@ struct szl_obj *szl_new_proc(struct szl_interp *interp,
 
 /**
  * @fn int szl_set_args(struct szl_interp *interp,
- *                      struct szl_obj *call,
+ *                      struct szl_frame *call,
  *                      struct szl_obj *args)
  * @brief Sets the arguments of a procedure
  * @param interp [in,out] An interpreter
@@ -566,7 +583,7 @@ struct szl_obj *szl_new_proc(struct szl_interp *interp,
  * @return 1 or 0
  */
 int szl_set_args(struct szl_interp *interp,
-                 struct szl_obj *call,
+                 struct szl_frame *call,
                  struct szl_obj *args);
 
 /**
@@ -581,7 +598,7 @@ int szl_set_args(struct szl_interp *interp,
  * @def szl_set_ro
  * Marks an object as read-only
  */
-#	define szl_set_ro(obj) obj->ro = 1
+#	define szl_set_ro(obj) obj->flags &= SZL_OBJECT_RO
 
 /**
  * @defgroup str_op String Operations
@@ -979,8 +996,8 @@ enum szl_res szl_set_last_help(struct szl_interp *interp,
  * @def szl_set
  * Registers a local object
  */
-#	define szl_set(interp, proc, name, val) \
-	szl_dict_set(interp, proc->locals, name, val)
+#	define szl_set(interp, call, name, val) \
+	szl_dict_set(interp, call->locals, name, val)
 
 /**
  * @fn int szl_get(struct szl_interp *interp,
