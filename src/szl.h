@@ -216,7 +216,6 @@ struct szl_val {
 	struct {
 		struct szl_obj **items;
 		size_t len;
-		uint8_t sorted;
 	} l; /**< List value */
 	struct szl_obj *c; /**< Code value */
 	szl_int i; /**< Integer value */
@@ -260,7 +259,8 @@ typedef void (*szl_del_t)(void *);
  */
 enum szl_obj_flags {
 	SZL_OBJECT_HASHED = 1, /**< The current object value has been hashed */
-	SZL_OBJECT_RO     = 1 << 1 /**< The object is marked as read-only */
+	SZL_OBJECT_RO     = 1 << 1, /**< The object is marked as read-only */
+	SZL_OBJECT_SORTED = 1 << 2 /**< The object list representation is sorted */
 };
 
 /**
@@ -268,11 +268,11 @@ enum szl_obj_flags {
  * A szl object
  */
 struct szl_obj {
-	unsigned int refc; /**< The object reference count; the object is freed when it drops to zero */
+	unsigned short refc; /**< The object reference count; the object is freed when it drops to zero */
 	uint32_t hash; /**< The object's string representation hash */
 	uint8_t flags; /**< Object flags */
 
-	unsigned int types; /**< Available representations of the object */
+	uint8_t types; /**< Available representations of the object */
 	struct szl_val val; /**< The object values */
 
 	void *priv; /**< Private data used by @ref proc and freed by @ref del */
@@ -282,7 +282,6 @@ struct szl_obj {
 	const char *help; /**< A message shown upon incorrect usage */
 	szl_del_t del; /**< Cleanup callback which frees @ref priv */
 };
-
 
 struct szl_frame;
 
@@ -598,7 +597,7 @@ int szl_set_args(struct szl_interp *interp,
  * @def szl_set_ro
  * Marks an object as read-only
  */
-#	define szl_set_ro(obj) obj->flags &= SZL_OBJECT_RO
+#	define szl_set_ro(obj) obj->flags |= SZL_OBJECT_RO
 
 /**
  * @defgroup str_op String Operations

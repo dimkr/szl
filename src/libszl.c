@@ -255,7 +255,7 @@ int szl_str_to_list(struct szl_interp *interp, struct szl_obj *obj)
 		obj->val.l.items = NULL;
 		obj->val.l.len = 0;
 		/* an empty dictionary is sorted */
-		obj->val.l.sorted = 1;
+		obj->flags |= SZL_OBJECT_SORTED;
 		return 1;
 	}
 
@@ -265,7 +265,7 @@ int szl_str_to_list(struct szl_interp *interp, struct szl_obj *obj)
 
 	ret = szl_split(interp, buf2, &obj->val.l.items, &obj->val.l.len);
 	free(buf2);
-	obj->val.l.sorted = 0;
+	obj->flags &= ~SZL_OBJECT_SORTED;
 	obj->types |= 1 << SZL_TYPE_LIST;
 	return ret;
 }
@@ -1042,7 +1042,7 @@ struct szl_obj *szl_new_list(struct szl_obj **objv, const size_t len)
 		return NULL;
 	}
 	obj->val.l.len = len;
-	obj->val.l.sorted = 0;
+	obj->flags &= ~SZL_OBJECT_SORTED;
 
 	for (i = 0; i < len; ++i)
 		obj->val.l.items[i] = szl_ref(objv[i]);
@@ -1289,7 +1289,7 @@ int szl_list_append(struct szl_interp *interp,
 	items[list->val.l.len] = szl_ref(item);
 	++list->val.l.len;
 	list->val.l.items = items;
-	list->val.l.sorted = 0;
+	list->flags &= ~SZL_OBJECT_SORTED;
 
 	/* invalidate all other representations */
 	if (list->types & (1 << SZL_TYPE_STR))
@@ -1412,7 +1412,7 @@ int szl_list_extend(struct szl_interp *interp,
 
 	dest->val.l.items = di;
 	dest->val.l.len += slen;
-	dest->val.l.sorted = 0;
+	dest->flags &= ~SZL_OBJECT_SORTED;
 
 	/* invalidate all other representations */
 	if (dest->types & (1 << SZL_TYPE_STR))
@@ -1556,14 +1556,14 @@ int szl_dict_get_key(struct szl_interp *interp,
 
 	*pos = NULL;
 	if (szl_likely(len)) {
-		if (!dict->val.l.sorted) {
+		if (!(dict->flags & SZL_OBJECT_SORTED)) {
 			for (i = 0; i < len; i += 2) {
 				if (!szl_hash(interp, items[i], NULL))
 					return 0;
 			}
 
 			qsort(items, len / 2, sizeof(struct szl_obj *) * 2, szl_cmp);
-			dict->val.l.sorted = 1;
+			dict->flags |= SZL_OBJECT_SORTED;
 		}
 
 		p = k;
@@ -1633,7 +1633,7 @@ struct szl_obj *szl_copy_dict(struct szl_interp *interp, struct szl_obj *dict)
 	copy = szl_new_list(items, len);
 	/* if the copied dictionary is sorted, we don't want to sort it again */
 	if (copy)
-		copy->val.l.sorted = dict->val.l.sorted;
+		copy->flags |= (dict->flags & SZL_OBJECT_SORTED);
 
 	return copy;
 }
