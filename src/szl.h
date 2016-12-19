@@ -205,21 +205,15 @@ enum szl_types {
  * Values of an object
  */
 struct szl_val {
-	struct {
-		char *buf;
-		size_t len;
-	} s; /**< String value */
-	struct {
-		wchar_t *buf;
-		size_t len;
-	} ws; /**< Wide-character string value */
-	struct {
-		struct szl_obj **items;
-		size_t len;
-	} l; /**< List value */
+	char *s; /**< String value */
+	wchar_t *w; /**< Wide-character string value */
+	struct szl_obj **items; /**< List value */
 	struct szl_obj *c; /**< Code value */
-	szl_int i; /**< Integer value */
+	size_t slen; /**< String length */
+	size_t wlen; /**< Wide-character string length */
+	size_t llen; /**< List length */
 	szl_float f; /**< Floating-point value */
+	szl_int i; /**< Integer value */
 };
 
 /**
@@ -270,10 +264,8 @@ enum szl_obj_flags {
 struct szl_obj {
 	unsigned short refc; /**< The object reference count; the object is freed when it drops to zero */
 	uint32_t hash; /**< The object's string representation hash */
-	uint8_t flags; /**< Object flags */
-
 	uint8_t types; /**< Available representations of the object */
-	struct szl_val val; /**< The object values */
+	uint8_t flags; /**< Object flags */
 
 	void *priv; /**< Private data used by @ref proc and freed by @ref del */
 	szl_proc_t proc; /**< C procedure implementation */
@@ -281,6 +273,8 @@ struct szl_obj {
 	int max_objc; /**< The maximum number of arguments to @ref proc or -1 */
 	const char *help; /**< A message shown upon incorrect usage */
 	szl_del_t del; /**< Cleanup callback which frees @ref priv */
+
+	struct szl_val val; /**< The object values */
 };
 
 struct szl_frame;
