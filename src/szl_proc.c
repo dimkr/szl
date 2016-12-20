@@ -115,7 +115,8 @@ enum szl_res szl_proc_proc_stack(struct szl_interp *interp,
                                  const unsigned int objc,
                                  struct szl_obj **objv)
 {
-	struct szl_obj *stack, *call;
+	struct szl_obj *stack;
+	struct szl_frame *call;
 	szl_int lim = SZL_INT_MAX, i;
 
 	if (objc == 2) {
