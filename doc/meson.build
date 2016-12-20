@@ -24,9 +24,12 @@ install_man('szl.1', 'szlsh.1')
 
 docdir = join_paths(get_option('datadir'), 'doc', 'szl')
 
-custom_target('manual',
-              input: 'szl.txt',
-              output: 'szl.html',
-              command: ['asciidoc', '-a', 'toc', '-a', 'toclevels=4', '-o', '@OUTPUT@', '@INPUT@'],
-              install: true,
-              install_dir: docdir)
+asciidoc = find_program('asciidoc', required: false)
+if asciidoc.found()
+	custom_target('manual',
+	              input: 'szl.txt',
+	              output: 'szl.html',
+	              command: [asciidoc.path(), '-a', 'toc', '-a', 'toclevels=4', '-o', '@OUTPUT@', '@INPUT@'],
+	              install: true,
+	              install_dir: docdir)
+endif

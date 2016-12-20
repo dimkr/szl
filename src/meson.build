@@ -34,7 +34,7 @@ dl_dep = cc.find_library('dl', required: false)
 
 builtin_all = get_option('builtin_all')
 
-tls_ext_deps = dependency('openssl')
+tls_ext_deps = dependency('openssl', required: false)
 if tls_ext_deps.found()
 	if builtin_all or get_option('builtin_tls')
 		builtin_exts += 'tls'
@@ -43,7 +43,7 @@ if tls_ext_deps.found()
 	endif
 endif
 
-zlib_ext_deps = dependency('zlib')
+zlib_ext_deps = dependency('zlib', required: false)
 if zlib_ext_deps.found()
 	if builtin_all or get_option('builtin_zlib')
 		builtin_exts += 'zlib'
@@ -52,7 +52,7 @@ if zlib_ext_deps.found()
 	endif
 endif
 
-libffi_dep = dependency('libffi')
+libffi_dep = dependency('libffi', required: false)
 if libffi_dep.found()
 	ffi_ext_deps = [dl_dep, libffi_dep]
 	if builtin_all or get_option('builtin_ffi')
@@ -62,7 +62,7 @@ if libffi_dep.found()
 	endif
 endif
 
-curl_ext_deps = dependency('libcurl')
+curl_ext_deps = dependency('libcurl', required: false)
 if curl_ext_deps.found()
 	if builtin_all or get_option('builtin_curl')
 		builtin_exts += 'curl'
@@ -71,7 +71,7 @@ if curl_ext_deps.found()
 	endif
 endif
 
-archive_ext_deps = dependency('libarchive')
+archive_ext_deps = dependency('libarchive', required: false)
 if archive_ext_deps.found()
 	if builtin_all or get_option('builtin_archive')
 		builtin_exts += 'archive'
