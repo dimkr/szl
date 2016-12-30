@@ -42,6 +42,7 @@
  */
 
 __attribute__((nonnull(1)))
+inline
 struct szl_obj *szl_ref(struct szl_obj *obj)
 {
 	++obj->refc;
