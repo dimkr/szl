@@ -21,18 +21,31 @@
 # THE SOFTWARE.
 
 ext_dir = join_paths(get_option('prefix'), get_option('libdir'), 'szl')
-add_project_arguments(['-std=gnu99', '-D_GNU_SOURCE', '-DSZL_VERSION="@0@"'.format(meson.project_version()), '-DSZL_EXT_DIR="@0@"'.format(ext_dir), '-Wall', '-pedantic', '-Wno-overlength-strings'],
-                      language: 'c')
+
+cflags = ['-std=gnu99', '-D_GNU_SOURCE', '-DSZL_VERSION="@0@"'.format(meson.project_version()), '-DSZL_EXT_DIR="@0@"'.format(ext_dir), '-Wall', '-pedantic', '-Wno-overlength-strings']
+
+builtin_all = get_option('builtin_all')
+if builtin_all
+	with_dl = false
+else
+	with_dl = get_option('with_dl')
+endif
+
+cc = meson.get_compiler('c')
+dl_dep = cc.find_library('dl', required: false)
+if not dl_dep.found()
+	with_dl = false
+endif
+
+if not with_dl
+	cflags += ['-DSZL_NO_DL']
+endif
+add_project_arguments(cflags, language: 'c', license: 'MIT')
 
 doc_dir = join_paths(get_option('datadir'), 'doc', 'szl')
 
 builtin_exts = ['obj', 'proc', 'exec', 'str', 'exc', 'socket', 'null', 'logic', 'file', 'dir', 'io', 'list', 'math', 'loop', 'ext', 'time', 'env', 'path', 'signal', 'poll', 'timer', 'dict', 'szl']
 exts = []
-
-cc = meson.get_compiler('c')
-dl_dep = cc.find_library('dl', required: false)
-
-builtin_all = get_option('builtin_all')
 
 tls_ext_deps = dependency('openssl', required: false)
 if tls_ext_deps.found()
@@ -54,7 +67,11 @@ endif
 
 libffi_dep = dependency('libffi', required: false)
 if libffi_dep.found()
-	ffi_ext_deps = [dl_dep, libffi_dep]
+	if with_dl
+		ffi_ext_deps = [dl_dep, libffi_dep]
+	else
+		ffi_ext_deps = [libffi_dep]
+	endif
 	if builtin_all or get_option('builtin_ffi')
 		builtin_exts += 'ffi'
 	else
@@ -178,15 +195,19 @@ foreach builtin: builtin_exts
 	endif
 endforeach
 
+if with_dl
+	libszl_deps += [dl_dep]
+endif
+
 if builtin_all
 	libszl = static_library('szl',
 	                        libszl_srcs + [builtin_c],
-	                        dependencies: libszl_deps + [dl_dep, cc.find_library('m', required: false)],
+	                        dependencies: libszl_deps + [cc.find_library('m', required: true)],
 	                        install: true)
 else
 	libszl = shared_library('szl',
 	                        libszl_srcs + [builtin_c],
-	                        dependencies: libszl_deps + [dl_dep, cc.find_library('m', required: false)],
+	                        dependencies: libszl_deps + [cc.find_library('m', required: true)],
 	                        install: true)
 endif
 install_headers('szl.h')

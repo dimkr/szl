@@ -25,7 +25,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <dlfcn.h>
+#ifndef SZL_NO_DL
+#	include <dlfcn.h>
+#endif
 
 #include <ffi.h>
 
@@ -917,6 +919,8 @@ enum szl_res szl_ffi_proc_struct(struct szl_interp *interp,
 	return szl_set_last(interp, obj);
 }
 
+#ifndef SZL_NO_DL
+
 /* libraries */
 
 static
@@ -994,6 +998,8 @@ enum szl_res szl_ffi_proc_dlopen(struct szl_interp *interp,
 
 	return szl_set_last(interp, obj);
 }
+
+#endif
 
 /* functions */
 
@@ -1256,6 +1262,7 @@ const struct szl_ext_export ffi_exports[] = {
 		              szl_ffi_proc_struct,
 		              NULL)
 	},
+#ifndef SZL_NO_DL
 	{
 		SZL_PROC_INIT("ffi.dlopen",
 		              "path",
@@ -1264,6 +1271,7 @@ const struct szl_ext_export ffi_exports[] = {
 		              szl_ffi_proc_dlopen,
 		              NULL)
 	},
+#endif
 	{
 		SZL_PROC_INIT("ffi.function",
 		              "addr rtype ?type...?",

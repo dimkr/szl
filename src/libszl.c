@@ -26,7 +26,9 @@
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
-#include <dlfcn.h>
+#ifndef SZL_NO_DL
+#	include <dlfcn.h>
+#endif
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -2348,28 +2350,37 @@ int szl_new_ext(struct szl_interp *interp,
 	return 1;
 }
 
+#ifndef SZL_NO_DL
 void szl_unload(void *h)
 {
 	dlclose(h);
 }
+#endif
 
 extern char *szl_builtin_exts[];
 
 __attribute__((nonnull(1, 2)))
 int szl_load(struct szl_interp *interp, const char *name)
 {
+	char **builtin;
+#ifndef SZL_NO_DL
 	char *path;
-	char **builtin, init_name[SZL_MAX_EXT_INIT_FUNC_NAME_LEN + 1];
+	char init_name[SZL_MAX_EXT_INIT_FUNC_NAME_LEN + 1];
 	struct szl_obj *lib, *last;
 	struct szl_frame *current = interp->current;
 	szl_ext_init init;
 	int res, loaded;
+#endif
 
 	for (builtin = szl_builtin_exts; *builtin; ++builtin) {
 		if (strcmp(*builtin, name) == 0)
 			return 1;
 	}
 
+#ifdef SZL_NO_DL
+	szl_set_last_fmt(interp, "no such extension: %s", name);
+	return 0;
+#else
 	lib = szl_new_str_fmt(SZL_EXT_PATH_FMT, name);
 	if (!lib)
 		return 0;
@@ -2421,6 +2432,7 @@ int szl_load(struct szl_interp *interp, const char *name)
 	szl_set_last(interp, last);
 
 	return res;
+#endif
 }
 
 __attribute__((nonnull(1, 2)))

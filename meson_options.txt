@@ -21,6 +21,7 @@
 # THE SOFTWARE.
 
 option('builtin_all', type : 'boolean', value : false)
+option('with_dl', type : 'boolean', value : true)
 
 option('builtin_zlib', type : 'boolean', value : false)
 option('builtin_tls', type : 'boolean', value : false)

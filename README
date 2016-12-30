@@ -80,6 +80,20 @@ Embedding
 To embed szl into other projects, use the API defined in szl.h and link with
 libszl.
 
+Security
+========
+
+Support for dynamic loading of szl extensions can be disabled:
+
+  $ mesonconf -Dwith_dl=false
+
+When dynamic loading is disabled, szl will refuse to load extensions, unless
+they are linked statically into the interpreter.
+
+This way, a szl interpreter embedded into another program does not make it
+vulnerable to dynamic loader hijacking (e.g. LD_LIBRARY_PATH) during extension
+loading.
+
 Running
 =======
 
