@@ -645,6 +645,16 @@ Procedures
 +$load+ 'name'::
 	Loads a 'szl' extension, to make additional procedures available.
 
++$syscall+ 'num arg...'::
+	Performs a system call.
+
+[TIP]
+'syscall' is useful when one wishes to perform a system call without having to
+implement a 'szl' extension.
+
+[TIP]
+Use the 'ffi' extension to create pointers that can be passed to 'syscall'.
+
 Flow Control
 ^^^^^^^^^^^^
 +$if+ 'cond exp ?else exp?'::

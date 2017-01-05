@@ -44,7 +44,7 @@ add_project_arguments(cflags, language: 'c', license: 'MIT')
 
 doc_dir = join_paths(get_option('datadir'), 'doc', 'szl')
 
-builtin_exts = ['obj', 'proc', 'exec', 'str', 'exc', 'socket', 'null', 'logic', 'file', 'dir', 'io', 'list', 'math', 'loop', 'ext', 'time', 'env', 'path', 'signal', 'poll', 'timer', 'dict', 'szl']
+builtin_exts = ['obj', 'proc', 'exec', 'str', 'exc', 'socket', 'null', 'logic', 'file', 'dir', 'io', 'list', 'math', 'loop', 'ext', 'time', 'env', 'path', 'signal', 'poll', 'timer', 'syscall', 'dict', 'szl']
 exts = []
 
 tls_ext_deps = dependency('openssl', required: false)
