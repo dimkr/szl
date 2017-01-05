@@ -650,7 +650,7 @@ Procedures
 
 [TIP]
 'syscall' is useful when one wishes to perform a system call without having to
-implement a 'szl' extension.
+implement a +szl+ extension.
 
 [TIP]
 Use the 'ffi' extension to create pointers that can be passed to 'syscall'.

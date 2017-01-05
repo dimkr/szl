@@ -1,7 +1,7 @@
 /*
  * this file is part of szl.
  *
- * Copyright (c) 2016 Dima Krasner
+ * Copyright (c) 2016, 2017 Dima Krasner
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,6 +24,7 @@
 
 #include <string.h>
 #include <sys/types.h>
+#include <stdlib.h>
 
 #include "linenoise/linenoise.h"
 
@@ -40,9 +41,8 @@ enum szl_res szl_linenoise_proc_read(struct szl_interp *interp,
 	char *prompt;
 	char *s;
 
-	if (!szl_as_str(interp, objv[1], &prompt, NULL)) {
+	if (!szl_as_str(interp, objv[1], &prompt, NULL))
 		return SZL_ERR;
-	}
 
 	s = linenoise(prompt);
 	if (!s)
