@@ -1,7 +1,7 @@
 /*
  * this file is part of szl.
  *
- * Copyright (c) 2016 Dima Krasner
+ * Copyright (c) 2016, 2017 Dima Krasner
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,7 +35,9 @@
 #	include <limits.h>
 #	include <stdarg.h>
 #	include <stdio.h>
-#	include <wchar.h>
+#	ifndef SZL_NO_UNICODE
+#		include <wchar.h>
+#	endif
 
 /**
  * @mainpage Welcome
@@ -143,19 +145,31 @@ int szl_isspace(const char ch);
  * @typedef szl_int
  * The type used for representing szl objects as integers
  */
+#	ifdef SZL_USE_INT
+typedef int szl_int;
+#	else
 typedef intmax_t szl_int;
+#	endif
 
 /**
  * @def SZL_INT_MAX
  * The maximum value of an szl_int
  */
-#	define SZL_INT_MAX INTMAX_MAX
+#	ifdef SZL_USE_INT
+#		define SZL_INT_MAX INT_MAX
+#	else
+#		define SZL_INT_MAX INTMAX_MAX
+#	endif
 
 /**
  * @def SZL_INT_FMT
  * The format string for printing @ref szl_int
  */
-#	define SZL_INT_FMT "%j"
+#	ifdef SZL_USE_INT
+#		define SZL_INT_FMT "%"
+#	else
+#		define SZL_INT_FMT "%j"
+#	endif
 
 /**
  * @def SZL_INT_SCANF_FMT
@@ -167,19 +181,47 @@ typedef intmax_t szl_int;
  * @typedef szl_float
  * The type used for representing szl objects as floating-point numbers
  */
+#	ifdef SZL_NO_FLOAT
+typedef szl_int szl_float;
+#	elif defined(SZL_USE_FLOAT)
+typedef float szl_float;
+#	else
 typedef double szl_float;
+#	endif
 
 /**
  * @def SZL_FLOAT_FMT
  * The format string for printing @ref szl_float
  */
-#	define SZL_FLOAT_FMT "%.12f"
+#	ifndef SZL_NO_FLOAT
+#		ifdef SZL_USE_FLOAT
+#			define SZL_FLOAT_FMT "%f"
+#		else
+#			define SZL_FLOAT_FMT "%.12f"
+#		endif
+#	endif
 
 /**
  * @def SZL_FLOAT_SCANF_FMT
  * The format string for converting an @ref szl_float into a string
  */
-#	define SZL_FLOAT_SCANF_FMT "%lf"
+#	ifndef SZL_NO_FLOAT
+#		ifdef SZL_USE_FLOAT
+#			define SZL_FLOAT_SCANF_FMT "%f"
+#		else
+#			define SZL_FLOAT_SCANF_FMT "%lf"
+#		endif
+#	endif
+
+/**
+ * @typedef szl_wchar
+ * The type used by szl to represent characters
+ */
+#	ifdef SZL_NO_UNICODE
+typedef char szl_wchar;
+#	else
+typedef wchar_t szl_wchar;
+#	endif
 
 /**
  * @enum szl_types
@@ -188,16 +230,19 @@ typedef double szl_float;
 enum szl_types {
 	/* must correspond to szl_cast_table[][] */
 	SZL_TYPE_LIST   = 1, /**< List */
-	SZL_TYPE_STR    = 2, /**< String */
-	SZL_TYPE_WSTR   = 3, /**< Wide-character string; used by string procedures */
-	SZL_TYPE_INT    = 4, /**< Integer */
-	SZL_TYPE_FLOAT  = 5, /**< Floating-point number */
-
+	SZL_TYPE_STR, /**< String */
+#	ifndef SZL_NO_UNICODE
+	SZL_TYPE_WSTR, /**< Wide-character string; used by string procedures */
+#	endif
+	SZL_TYPE_INT, /**< Integer */
+#	ifndef SZL_NO_FLOAT
+	SZL_TYPE_FLOAT, /**< Floating-point number */
+#	endif
 	/* used internally during code evaluation */
-	SZL_TYPE_CODE   = 6, /**< Code block */
+	SZL_TYPE_CODE, /**< Code block */
 
 	/* only used by szl_new_ext() */
-	SZL_TYPE_PROC   = 7 /**< Procedure */
+	SZL_TYPE_PROC /**< Procedure */
 };
 
 /**
@@ -206,13 +251,19 @@ enum szl_types {
  */
 struct szl_val {
 	char *s; /**< String value */
-	wchar_t *w; /**< Wide-character string value */
+#ifndef SZL_NO_UNICODE
+	szl_wchar *w; /**< Wide-character string value */
+#endif
 	struct szl_obj **items; /**< List value */
 	struct szl_obj *c; /**< Code value */
 	size_t slen; /**< String length */
+#ifndef SZL_NO_UNICODE
 	size_t wlen; /**< Wide-character string length */
+#endif
 	size_t llen; /**< List length */
+#ifndef SZL_NO_FLOAT
 	szl_float f; /**< Floating-point value */
+#endif
 	szl_int i; /**< Integer value */
 };
 
@@ -366,7 +417,7 @@ int szl_as_str(struct szl_interp *interp,
 /**
  * @fn int szl_as_wstr(struct szl_interp *interp,
  *                     struct szl_obj *obj,
- *                     wchar_t **ws,
+ *                     szl_wchar **ws,
  *                     size_t *len)
  * @brief Returns the wide-character string representation of an object
  * @param interp [in,out] An interpreter
@@ -375,11 +426,14 @@ int szl_as_str(struct szl_interp *interp,
  * @param len [out] The string length or NULL if not needed
  * @return A wide-character C string or NULL
  */
+#	ifdef SZL_NO_UNICODE
+#		define szl_as_wstr szl_as_str
+#	else
 int szl_as_wstr(struct szl_interp *interp,
                 struct szl_obj *obj,
-                wchar_t **ws,
+                szl_wchar **ws,
                 size_t *len);
-
+#	endif
 
 /**
  * @fn int szl_as_list(struct szl_interp *interp,
@@ -439,9 +493,13 @@ int szl_as_int(struct szl_interp *interp,
  * @param f [out] The floating point representation
  * @return 1 or 0
  */
+#	ifdef SZL_NO_FLOAT
+#		define szl_as_float szl_as_int
+#	else
 int szl_as_float(struct szl_interp *interp,
                  struct szl_obj *obj,
                  szl_float *f);
+#	endif
 
 /**
  * @fn int szl_as_bool(struct szl_obj *obj, int *b)
@@ -471,14 +529,18 @@ int szl_as_bool(struct szl_obj *obj, int *b);
 struct szl_obj *szl_new_str(const char *buf, ssize_t len);
 
 /**
- * @fn struct szl_obj *szl_new_wstr(const wchar_t *ws, ssize_t len)
+ * @fn struct szl_obj *szl_new_wstr(const szl_wchar *ws, ssize_t len)
  * @brief Creates a new wide-character string object, by copying an existing C
  *        string
  * @param ws [in] The wide-character string
  * @param len [in] The string length or -1 if unknown
  * @return A new reference to the created wide-character string object or NULL
  */
-struct szl_obj *szl_new_wstr(const wchar_t *ws, ssize_t len);
+#	ifdef SZL_NO_UNICODE
+#		define szl_new_str szl_new_str
+#	else
+struct szl_obj *szl_new_wstr(const szl_wchar *ws, ssize_t len);
+#	endif
 
 /**
  * @fn struct szl_obj *szl_new_str_noalloc(char *buf, const size_t len)
@@ -508,12 +570,18 @@ struct szl_obj *szl_new_str_fmt(const char *fmt, ...);
 struct szl_obj *szl_new_int(struct szl_interp *interp, const szl_int i);
 
 /**
- * @fn struct szl_obj *szl_new_float(const szl_float f)
+ * @fn struct szl_obj *szl_new_float(struct szl_interp *interp,
+ *                                   const szl_float f)
  * @brief Creates a new floating point number object
+ * @param interp [in,out] An interpreter
  * @param f [in] The floating point number value
  * @return A new reference to the created floating point number object or NULL
  */
-struct szl_obj *szl_new_float(const szl_float f);
+#	ifdef SZL_NO_FLOAT
+#		define szl_new_float szl_new_int
+#	else
+struct szl_obj *szl_new_float(struct szl_interp *interp, const szl_float f);
+#	endif
 
 /**
  * @def szl_new_empty
@@ -909,7 +977,11 @@ enum szl_res szl_set_last_int(struct szl_interp *interp, const szl_int i);
  * @param f [in] The floating point number
  * @return SZL_OK or SZL_ERR
  */
+#	ifdef SZL_NO_FLOAT
+#		define szl_set_last_float szl_set_last_int
+#	else
 enum szl_res szl_set_last_float(struct szl_interp *interp, const szl_float f);
+#	endif
 
 /**
  * @fn enum szl_res szl_set_last_bool(struct szl_interp *interp, const int b)
@@ -937,7 +1009,7 @@ enum szl_res szl_set_last_str(struct szl_interp *interp,
 
 /**
  * @fn enum szl_res szl_set_last_wstr(struct szl_interp *interp,
- *                                    const wchar_t *ws,
+ *                                    const szl_wchar *ws,
  *                                    const ssize_t len);
  * @brief Sets the return value of a procedure to a new wide-character string
  *        object
@@ -946,10 +1018,13 @@ enum szl_res szl_set_last_str(struct szl_interp *interp,
  * @param len [in] The string length or -1
  * @return SZL_OK or SZL_ERR
  */
+#	ifdef SZL_NO_UNICODE
+#		define szl_set_last_wstr szl_set_last_str
+#	else
 enum szl_res szl_set_last_wstr(struct szl_interp *interp,
-                               const wchar_t *ws,
+                               const szl_wchar *ws,
                                const ssize_t len);
-
+#	endif
 
 /**
  * @fn enum szl_res szl_set_last_fmt(struct szl_interp *interp,
@@ -1088,7 +1163,9 @@ struct szl_ext_export {
 			size_t len;
 		} s; /**< String */
 		szl_int i; /**< Integer */
+#	ifndef SZL_NO_FLOAT
 		szl_float f; /**< Floating-point number */
+#	endif
 	} val; /**< The object value */
 };
 

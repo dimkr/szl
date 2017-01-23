@@ -24,6 +24,22 @@ ext_dir = join_paths(get_option('prefix'), get_option('libdir'), 'szl')
 
 cflags = ['-std=gnu99', '-D_GNU_SOURCE', '-DSZL_VERSION="@0@"'.format(meson.project_version()), '-DSZL_EXT_DIR="@0@"'.format(ext_dir), '-Wall', '-pedantic', '-Wno-overlength-strings']
 
+if get_option('use_int')
+	cflags += ['-DSZL_USE_INT']
+endif
+
+if not get_option('with_float')
+	cflags += ['-DSZL_NO_FLOAT']
+endif
+
+if get_option('use_float')
+	cflags += ['-DSZL_USE_FLOAT']
+endif
+
+if not get_option('with_unicode')
+	cflags += ['-DSZL_NO_UNICODE']
+endif
+
 builtin_all = get_option('builtin_all')
 if builtin_all
 	with_dl = false

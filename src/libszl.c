@@ -1,7 +1,7 @@
 /*
  * this file is part of szl.
  *
- * Copyright (c) 2016 Dima Krasner
+ * Copyright (c) 2016, 2017 Dima Krasner
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -58,8 +58,10 @@ void szl_unref(struct szl_obj *obj)
 		if (obj->types & (1 << SZL_TYPE_STR))
 			free(obj->val.s);
 
+#ifndef SZL_NO_UNICODE
 		if (obj->types & (1 << SZL_TYPE_WSTR))
 			free(obj->val.w);
+#endif
 
 		if ((obj->types & (1 << SZL_TYPE_LIST)) && obj->val.llen) {
 			for (i = 0; i < obj->val.llen; ++i)
@@ -273,17 +275,19 @@ int szl_str_to_list(struct szl_interp *interp, struct szl_obj *obj)
 	return ret;
 }
 
-#define SZL_STR_CONV(fname,                                                    \
-                     stype,                                                    \
-                     intype,                                                   \
-                     outtype,                                                  \
-                     inmemb,                                                   \
-                     inlmemb,                                                  \
-                     outmemb,                                                  \
-                     outlmemb,                                                 \
-                     convproc,                                                 \
-                     nullc,                                                    \
-                     szltype)                                                  \
+#ifndef SZL_NO_UNICODE
+
+#	define SZL_STR_CONV(fname,                                                 \
+                        stype,                                                 \
+                        intype,                                                \
+                        outtype,                                               \
+                        inmemb,                                                \
+                        inlmemb,                                               \
+                        outmemb,                                               \
+                        outlmemb,                                              \
+                        convproc,                                              \
+                        nullc,                                                 \
+                        szltype)                                               \
 static                                                                         \
 int fname(struct szl_interp *interp, struct szl_obj *obj)                      \
 {                                                                              \
@@ -337,6 +341,7 @@ SZL_STR_CONV(szl_str_to_wstr,
              mbsrtowcs,
              L'\0',
              SZL_TYPE_WSTR)
+#endif
 
 static
 int szl_str_to_int(struct szl_interp *interp, struct szl_obj *obj)
@@ -350,6 +355,8 @@ int szl_str_to_int(struct szl_interp *interp, struct szl_obj *obj)
 	return 0;
 }
 
+#ifndef SZL_NO_FLOAT
+
 static
 int szl_str_to_float(struct szl_interp *interp, struct szl_obj *obj)
 {
@@ -361,6 +368,8 @@ int szl_str_to_float(struct szl_interp *interp, struct szl_obj *obj)
 	szl_set_last_fmt(interp, "bad float: %s", obj->val.s);
 	return 0;
 }
+
+#endif
 
 static
 int szl_str_to_code(struct szl_interp *interp, struct szl_obj *obj)
@@ -443,6 +452,8 @@ int szl_str_to_code(struct szl_interp *interp, struct szl_obj *obj)
 	return 1;
 }
 
+#ifndef SZL_NO_UNICODE
+
 SZL_STR_CONV(szl_wstr_to_str,
              "wstr",
              wchar_t,
@@ -467,17 +478,23 @@ int szl_wstr_to_int(struct szl_interp *interp, struct szl_obj *obj)
 	return szl_wstr_to_str(interp, obj) && szl_str_to_int(interp, obj);
 }
 
+#	ifndef SZL_NO_FLOAT
+
 static
 int szl_wstr_to_float(struct szl_interp *interp, struct szl_obj *obj)
 {
 	return szl_wstr_to_str(interp, obj) && szl_str_to_float(interp, obj);
 }
 
+#	endif
+
 static
 int szl_wstr_to_code(struct szl_interp *interp, struct szl_obj *obj)
 {
 	return szl_wstr_to_str(interp, obj) && szl_str_to_code(interp, obj);
 }
+
+#endif
 
 static
 int szl_list_to_str(struct szl_interp *interp, struct szl_obj *obj)
@@ -499,6 +516,8 @@ int szl_list_to_str(struct szl_interp *interp, struct szl_obj *obj)
 	return 1;
 }
 
+#ifndef SZL_NO_UNICODE
+
 static
 int szl_list_to_wstr(struct szl_interp *interp, struct szl_obj *obj)
 {
@@ -507,6 +526,8 @@ int szl_list_to_wstr(struct szl_interp *interp, struct szl_obj *obj)
 
 	return szl_str_to_wstr(interp, obj);
 }
+
+#endif
 
 static
 int szl_list_to_int(struct szl_interp *interp, struct szl_obj *obj)
@@ -519,6 +540,8 @@ int szl_list_to_int(struct szl_interp *interp, struct szl_obj *obj)
 	return szl_list_to_str(interp, obj) && szl_str_to_int(interp, obj);
 }
 
+#ifndef SZL_NO_FLOAT
+
 static
 int szl_list_to_float(struct szl_interp *interp, struct szl_obj *obj)
 {
@@ -529,6 +552,8 @@ int szl_list_to_float(struct szl_interp *interp, struct szl_obj *obj)
 
 	return szl_list_to_str(interp, obj) && szl_str_to_float(interp, obj);
 }
+
+#endif
 
 static
 int szl_list_to_code(struct szl_interp *interp, struct szl_obj *obj)
@@ -555,17 +580,23 @@ int szl_int_to_str(struct szl_interp *interp, struct szl_obj *obj)
 	return 1;
 }
 
+#ifndef SZL_NO_UNICODE
+
 static
 int szl_int_to_wstr(struct szl_interp *interp, struct szl_obj *obj)
 {
 	return szl_int_to_str(interp, obj) && szl_str_to_wstr(interp, obj);
 }
 
+#endif
+
 static
 int szl_int_to_list(struct szl_interp *interp, struct szl_obj *obj)
 {
 	return szl_int_to_str(interp, obj) && szl_str_to_list(interp, obj);
 }
+
+#ifndef SZL_NO_FLOAT
 
 static
 int szl_int_to_float(struct szl_interp *interp, struct szl_obj *obj)
@@ -575,11 +606,15 @@ int szl_int_to_float(struct szl_interp *interp, struct szl_obj *obj)
 	return 1;
 }
 
+#endif
+
 static
 int szl_int_to_code(struct szl_interp *interp, struct szl_obj *obj)
 {
 	return szl_int_to_str(interp, obj) && szl_str_to_code(interp, obj);
 }
+
+#ifndef SZL_NO_FLOAT
 
 static
 int szl_float_to_str(struct szl_interp *interp, struct szl_obj *obj)
@@ -609,11 +644,15 @@ int szl_float_to_str(struct szl_interp *interp, struct szl_obj *obj)
 	return 1;
 }
 
+#	ifndef SZL_NO_UNICODE
+
 static
 int szl_float_to_wstr(struct szl_interp *interp, struct szl_obj *obj)
 {
 	return szl_float_to_str(interp, obj) && szl_str_to_wstr(interp, obj);
 }
+
+#	endif
 
 static
 int szl_float_to_list(struct szl_interp *interp, struct szl_obj *obj)
@@ -635,6 +674,8 @@ int szl_float_to_code(struct szl_interp *interp, struct szl_obj *obj)
 	return szl_float_to_str(interp, obj) &&szl_str_to_code(interp, obj);
 }
 
+#endif
+
 typedef int (*szl_cast_t)(struct szl_interp *, struct szl_obj *);
 
 static
@@ -642,43 +683,65 @@ const szl_cast_t szl_cast_table[6][6] = {
 	{ /* SZL_TYPE_LIST */
 		szl_no_cast,
 		szl_list_to_str,
+#ifndef SZL_NO_UNICODE
 		szl_list_to_wstr,
+#endif
 		szl_list_to_int,
+#ifndef SZL_NO_FLOAT
 		szl_list_to_float,
+#endif
 		szl_list_to_code
 	},
 	{ /* SZL_TYPE_STR */
 		szl_str_to_list,
 		szl_no_cast,
+#ifndef SZL_NO_UNICODE
 		szl_str_to_wstr,
+#endif
 		szl_str_to_int,
+#ifndef SZL_NO_FLOAT
 		szl_str_to_float,
+#endif
 		szl_str_to_code
 	},
+#ifndef SZL_NO_UNICODE
 	{ /* SZL_TYPE_WSTR */
 		szl_wstr_to_list,
 		szl_wstr_to_str,
 		szl_no_cast,
 		szl_wstr_to_int,
+#	ifndef SZL_NO_FLOAT
 		szl_wstr_to_float,
+#	endif
 		szl_wstr_to_code
 	},
+#endif
 	{ /* SZL_TYPE_INT */
 		szl_int_to_list,
 		szl_int_to_str,
+#ifndef SZL_NO_UNICODE
 		szl_int_to_wstr,
+#endif
 		szl_no_cast,
+#ifndef SZL_NO_FLOAT
 		szl_int_to_float,
+#endif
 		szl_int_to_code
+#ifdef SZL_NO_FLOAT
+	}
+#else
 	},
 	{ /* SZL_TYPE_FLOAT */
 		szl_float_to_list,
 		szl_float_to_str,
+#	ifndef SZL_NO_UNICODE
 		szl_float_to_wstr,
+#	endif
 		szl_float_to_int,
 		szl_no_cast,
 		szl_float_to_code
 	}
+#endif
 };
 
 static
@@ -718,6 +781,8 @@ int szl_as_str(struct szl_interp *interp,
 	return 1;
 }
 
+#ifndef SZL_NO_UNICODE
+
 __attribute__((nonnull(1, 2, 3)))
 int szl_as_wstr(struct szl_interp *interp,
                 struct szl_obj *obj,
@@ -732,6 +797,8 @@ int szl_as_wstr(struct szl_interp *interp,
 		*len = obj->val.wlen;
 	return 1;
 }
+
+#endif
 
 __attribute__((nonnull(1, 2, 3, 4)))
 int szl_as_list(struct szl_interp *interp,
@@ -774,6 +841,8 @@ int szl_as_int(struct szl_interp *interp, struct szl_obj *obj, szl_int *i)
 	return 1;
 }
 
+#ifndef SZL_NO_FLOAT
+
 __attribute__((nonnull(1, 2, 3)))
 int szl_as_float(struct szl_interp *interp, struct szl_obj *obj, szl_float *f)
 {
@@ -784,6 +853,8 @@ int szl_as_float(struct szl_interp *interp, struct szl_obj *obj, szl_float *f)
 	return 1;
 }
 
+#endif
+
 __attribute__((nonnull(1, 2)))
 int szl_as_bool(struct szl_obj *obj, int *b)
 {
@@ -792,10 +863,12 @@ int szl_as_bool(struct szl_obj *obj, int *b)
 		return 1;
 	}
 
+#ifndef SZL_NO_FLOAT
 	if (szl_unlikely(obj->types & (1 << SZL_TYPE_FLOAT))) {
 		*b = obj->val.f != 0;
 		return 1;
 	}
+#endif
 
 	if (szl_likely(obj->types & (1 << SZL_TYPE_STR))) {
 		/* "0" is false, anything else is true */
@@ -891,7 +964,9 @@ struct szl_obj *fname(const ctype *buf, ssize_t len)                  \
 }
 
 SZL_NEW_STR(szl_new_str, char, SZL_TYPE_STR, s, slen, '\0', strlen)
+#ifndef SZL_NO_UNICODE
 SZL_NEW_STR(szl_new_wstr, wchar_t, SZL_TYPE_WSTR, w, wlen, L'\0', wcslen)
+#endif
 
 __attribute__((nonnull(1)))
 struct szl_obj *szl_new_str_noalloc(char *buf, const size_t len)
@@ -1022,7 +1097,9 @@ struct szl_obj *szl_new_int(struct szl_interp *interp, const szl_int i)
 	return szl_new_int_nocache(i);
 }
 
-struct szl_obj *szl_new_float(const szl_float f)
+#ifndef SZL_NO_FLOAT
+
+struct szl_obj *szl_new_float(struct szl_interp *interp, const szl_float f)
 {
 	struct szl_obj *obj;
 
@@ -1034,6 +1111,8 @@ struct szl_obj *szl_new_float(const szl_float f)
 
 	return obj;
 }
+
+#endif
 
 struct szl_obj *szl_new_list(struct szl_obj **objv, const size_t len)
 {
@@ -1249,8 +1328,10 @@ int szl_str_append_str(struct szl_interp *interp,
 	dest->val.slen = nlen;
 
 	/* invalidate all other representations */
+#ifndef SZL_NO_UNICODE
 	if (dest->types & (1 << SZL_TYPE_WSTR))
 		free(dest->val.w);
+#endif
 
 	if (dest->types & (1 << SZL_TYPE_LIST)) {
 		for (i = 0; i < dest->val.llen; ++i)
@@ -1304,8 +1385,10 @@ int szl_list_append(struct szl_interp *interp,
 	if (list->types & (1 << SZL_TYPE_STR))
 		free(list->val.s);
 
+#ifndef SZL_NO_UNICODE
 	if (list->types & (1 << SZL_TYPE_WSTR))
 		free(list->val.w);
+#endif
 
 	if (list->types & (1 << SZL_TYPE_CODE))
 		szl_unref(list->val.c);
@@ -1427,8 +1510,10 @@ int szl_list_extend(struct szl_interp *interp,
 	if (dest->types & (1 << SZL_TYPE_STR))
 		free(dest->val.s);
 
+#ifndef SZL_NO_UNICODE
 	if (dest->types & (1 << SZL_TYPE_WSTR))
 		free(dest->val.w);
+#endif
 
 	if (dest->types & (1 << SZL_TYPE_CODE))
 		szl_unref(dest->val.c);
@@ -1871,17 +1956,21 @@ enum szl_res szl_set_last_int(struct szl_interp *interp, const szl_int i)
 	return SZL_ERR;
 }
 
+#ifndef SZL_NO_FLOAT
+
 __attribute__((nonnull(1)))
 enum szl_res szl_set_last_float(struct szl_interp *interp, const szl_float f)
 {
 	struct szl_obj *obj;
 
-	obj = szl_new_float(f);
+	obj = szl_new_float(interp, f);
 	if (obj)
 		return szl_set_last(interp, obj);
 
 	return SZL_ERR;
 }
+
+#endif
 
 __attribute__((nonnull(1)))
 enum szl_res szl_set_last_bool(struct szl_interp *interp, const int b)
@@ -1906,6 +1995,8 @@ enum szl_res szl_set_last_str(struct szl_interp *interp,
 	return szl_set_last(interp, str);
 }
 
+#ifndef SZL_NO_UNICODE
+
 __attribute__((nonnull(1, 2)))
 enum szl_res szl_set_last_wstr(struct szl_interp *interp,
                                const wchar_t *ws,
@@ -1919,6 +2010,8 @@ enum szl_res szl_set_last_wstr(struct szl_interp *interp,
 
 	return szl_set_last(interp, wstr);
 }
+
+#endif
 
 __attribute__((nonnull(1, 2)))
 enum szl_res szl_set_last_fmt(struct szl_interp *interp,
@@ -2315,9 +2408,11 @@ int szl_new_ext(struct szl_interp *interp,
 				val = szl_new_int(interp, exports[i].val.i);
 				break;
 
+#ifndef SZL_NO_FLOAT
 			case SZL_TYPE_FLOAT:
-				val = szl_new_float(exports[i].val.f);
+				val = szl_new_float(interp, exports[i].val.f);
 				break;
+#endif
 
 			default:
 				szl_unref(obj_name);

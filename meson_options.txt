@@ -1,6 +1,6 @@
 # this file is part of szl.
 #
-# Copyright (c) 2016 Dima Krasner
+# Copyright (c) 2016, 2017 Dima Krasner
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,21 +20,25 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-option('builtin_all', type : 'boolean', value : false)
-option('with_dl', type : 'boolean', value : true)
+option('builtin_all', type: 'boolean', value: false)
+option('with_dl', type: 'boolean', value: true)
+option('use_int', type: 'boolean', value: false)
+option('with_float', type: 'boolean', value: true)
+option('use_float', type: 'boolean', value: false)
+option('with_unicode', type: 'boolean', value: true)
 
-option('builtin_zlib', type : 'boolean', value : false)
-option('builtin_tls', type : 'boolean', value : false)
-option('builtin_ffi', type : 'boolean', value : false)
-option('builtin_curl', type : 'boolean', value : false)
-option('builtin_archive', type : 'boolean', value : false)
-option('builtin_linenoise', type : 'boolean', value : false)
-option('builtin_ed25519', type : 'boolean', value : false)
-option('builtin_lzfse', type : 'boolean', value : false)
-option('builtin_zstd', type : 'boolean', value : false)
-option('builtin_test', type : 'boolean', value : false)
-option('builtin_oop', type : 'boolean', value : false)
-option('builtin_server', type : 'boolean', value : false)
-option('builtin_resp', type : 'boolean', value : false)
-option('builtin_http', type : 'boolean', value : false)
-option('builtin_https', type : 'boolean', value : false)
+option('builtin_zlib', type: 'boolean', value: false)
+option('builtin_tls', type: 'boolean', value: false)
+option('builtin_ffi', type: 'boolean', value: false)
+option('builtin_curl', type: 'boolean', value: false)
+option('builtin_archive', type: 'boolean', value: false)
+option('builtin_linenoise', type: 'boolean', value: false)
+option('builtin_ed25519', type: 'boolean', value: false)
+option('builtin_lzfse', type: 'boolean', value: false)
+option('builtin_zstd', type: 'boolean', value: false)
+option('builtin_test', type: 'boolean', value: false)
+option('builtin_oop', type: 'boolean', value: false)
+option('builtin_server', type: 'boolean', value: false)
+option('builtin_resp', type: 'boolean', value: false)
+option('builtin_http', type: 'boolean', value: false)
+option('builtin_https', type: 'boolean', value: false)

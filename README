@@ -80,6 +80,32 @@ Embedding
 To embed szl into other projects, use the API defined in szl.h and link with
 libszl.
 
+The size and performance of szl can be tuned using advanced build options:
+
+  $ mesonconf -Duse_int=true
+
+This build option changes the large integer type used by szl to represent
+numeric types, to the standard C int. This may improve performance under
+platforms without native support for 64 bit integers, at the cost of a limited
+range of valid integer values.
+
+  $ mesonconf -Duse_float=false
+
+This build option changes the precision of floating-point numbers in szl from
+double to single precision. This may improve performance under platforms without
+native support for double-precision floating point numbers, at the cost of
+precision.
+
+  $ mesonconf -Dwith_float=false
+
+This build options disables support for floating-point arithmetic.
+
+  $ mesonconf -Dwith_unicode=false
+
+This build options disables support for Unicode strings and disables szl's
+internal distinction between encoded byte strings and arrays of Unicode code
+points.
+
 Security
 ========
 

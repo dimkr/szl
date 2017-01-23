@@ -1,7 +1,7 @@
 /*
  * this file is part of szl.
  *
- * Copyright (c) 2016 Dima Krasner
+ * Copyright (c) 2016, 2017 Dima Krasner
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <wchar.h>
+#ifndef SZL_NO_UNICODE
+#	include <wchar.h>
+#endif
 #include <errno.h>
 
 #include "szl.h"
@@ -47,8 +49,12 @@ enum szl_res fname(struct szl_interp *interp,      \
 	return szl_set_last_int(interp, (szl_int)len); \
 }
 
-SZL_STR_LEN(szl_str_proc_len, szl_as_wstr, wchar_t)
 SZL_STR_LEN(szl_byte_proc_len, szl_as_str, char)
+#ifdef SZL_NO_UNICODE
+#	define szl_str_proc_len szl_byte_proc_len
+#else
+SZL_STR_LEN(szl_str_proc_len, szl_as_wstr, szl_wchar)
+#endif
 
 static
 enum szl_res szl_str_proc_find(struct szl_interp *interp,
@@ -175,15 +181,19 @@ enum szl_res fname(struct szl_interp *interp,                         \
 	return lastproc(interp, buf + start, end - start + 1);            \
 }
 
-SZL_STR_RANGE(szl_str_proc_range, wchar_t, szl_as_wstr, szl_set_last_wstr)
 SZL_STR_RANGE(szl_byte_proc_range, char, szl_as_str, szl_set_last_str)
+#ifdef SZL_NO_UNICODE
+#	define szl_str_proc_range szl_byte_proc_range
+#else
+SZL_STR_RANGE(szl_str_proc_range, szl_wchar, szl_as_wstr, szl_set_last_wstr)
+#endif
 
 static
 enum szl_res szl_str_proc_tail(struct szl_interp *interp,
                                const unsigned int objc,
                                struct szl_obj **objv)
 {
-	wchar_t *ws;
+	szl_wchar *ws;
 	szl_int n = 1;
 	size_t len;
 
