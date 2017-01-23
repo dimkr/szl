@@ -84,10 +84,10 @@ The size and performance of szl can be tuned using advanced build options:
 
   $ mesonconf -Duse_int=true
 
-This build option changes the large integer type used by szl to represent
-numeric types, to the standard C int. This may improve performance under
-platforms without native support for 64 bit integers, at the cost of a limited
-range of valid integer values.
+This build option replaces the large integer type used by szl to represent
+integers, to the standard C int. This may improve performance under platforms
+without native support for 64 bit integers, at the cost of a limited range of
+valid integer values.
 
   $ mesonconf -Duse_float=false
 
@@ -98,13 +98,15 @@ precision.
 
   $ mesonconf -Dwith_float=false
 
-This build options disables support for floating-point arithmetic.
+This build options disables support for floating-point arithmetic. This reduces
+szl's size.
 
   $ mesonconf -Dwith_unicode=false
 
-This build options disables support for Unicode strings and disables szl's
+This build options disables support for Unicode strings and cancels szl's
 internal distinction between encoded byte strings and arrays of Unicode code
-points.
+points. This reduces szl's size and may improve performance with zero side
+effects, if szl is guaranteed not to perform any sort of Unicode string slicing.
 
 Security
 ========
