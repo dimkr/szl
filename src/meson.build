@@ -63,58 +63,73 @@ doc_dir = join_paths(get_option('datadir'), 'doc', 'szl')
 builtin_exts = ['obj', 'proc', 'exec', 'str', 'exc', 'socket', 'null', 'logic', 'file', 'dir', 'io', 'list', 'math', 'loop', 'ext', 'time', 'env', 'path', 'signal', 'poll', 'timer', 'syscall', 'dict', 'szl']
 exts = []
 
-tls_ext_deps = dependency('openssl', required: false)
-if tls_ext_deps.found()
-	if builtin_all or get_option('builtin_tls')
-		builtin_exts += 'tls'
-	else
-		exts += 'tls'
+with_tls = get_option('with_tls')
+if with_tls != 'no'
+	tls_ext_deps = dependency('openssl', required: false)
+	if tls_ext_deps.found()
+		if builtin_all or with_tls == 'builtin'
+			builtin_exts += 'tls'
+		else
+			exts += 'tls'
+		endif
 	endif
 endif
 
-zlib_ext_deps = dependency('zlib', required: false)
-if zlib_ext_deps.found()
-	if builtin_all or get_option('builtin_zlib')
-		builtin_exts += 'zlib'
-	else
-		exts += 'zlib'
+with_zlib = get_option('with_zlib')
+if with_zlib != 'no'
+	zlib_ext_deps = dependency('zlib', required: false)
+	if zlib_ext_deps.found()
+		if builtin_all or with_zlib == 'builtin'
+			builtin_exts += 'zlib'
+		else
+			exts += 'zlib'
+		endif
 	endif
 endif
 
-libffi_dep = dependency('libffi', required: false)
-if libffi_dep.found()
-	if with_dl
-		ffi_ext_deps = [dl_dep, libffi_dep]
-	else
-		ffi_ext_deps = [libffi_dep]
-	endif
-	if builtin_all or get_option('builtin_ffi')
-		builtin_exts += 'ffi'
-	else
-		exts += 'ffi'
-	endif
-endif
-
-curl_ext_deps = dependency('libcurl', required: false)
-if curl_ext_deps.found()
-	if builtin_all or get_option('builtin_curl')
-		builtin_exts += 'curl'
-	else
-		exts += 'curl'
+with_ffi = get_option('with_ffi')
+if with_ffi != 'no'
+	libffi_dep = dependency('libffi', required: false)
+	if libffi_dep.found()
+		if with_dl
+			ffi_ext_deps = [dl_dep, libffi_dep]
+		else
+			ffi_ext_deps = [libffi_dep]
+		endif
+		if builtin_all or with_ffi == 'builtin'
+			builtin_exts += 'ffi'
+		else
+			exts += 'ffi'
+		endif
 	endif
 endif
 
-archive_ext_deps = dependency('libarchive', required: false)
-if archive_ext_deps.found()
-	if builtin_all or get_option('builtin_archive')
-		builtin_exts += 'archive'
-	else
-		exts += 'archive'
+with_curl = get_option('with_curl')
+if with_curl != 'no'
+	curl_ext_deps = dependency('libcurl', required: false)
+	if curl_ext_deps.found()
+		if builtin_all or with_curl == 'builtin'
+			builtin_exts += 'curl'
+		else
+			exts += 'curl'
+		endif
+	endif
+endif
+
+with_archive = get_option('with_archive')
+if with_archive != 'no'
+	archive_ext_deps = dependency('libarchive', required: false)
+	if archive_ext_deps.found()
+		if builtin_all or with_archive == 'builtin'
+			builtin_exts += 'archive'
+		else
+			exts += 'archive'
+		endif
 	endif
 endif
 
 linenoise_ext_deps = declare_dependency(sources: join_paths('linenoise', 'linenoise.c'))
-if builtin_all or get_option('builtin_linenoise')
+if builtin_all or get_option('with_linenoise') == 'builtin'
 	builtin_exts += 'linenoise'
 else
 	exts += 'linenoise'
@@ -122,40 +137,51 @@ endif
 install_data(join_paths('linenoise', 'LICENSE'),
              install_dir: join_paths(doc_dir, 'linenoise'))
 
-ed25519_ext_deps = declare_dependency(sources: ['ed25519/src/add_scalar.c', 'ed25519/src/fe.c', 'ed25519/src/ge.c', 'ed25519/src/key_exchange.c', 'ed25519/src/keypair.c', 'ed25519/src/sc.c', 'ed25519/src/seed.c', 'ed25519/src/sha512.c', 'ed25519/src/sign.c', 'ed25519/src/verify.c'])
-if builtin_all or get_option('builtin_ed25519')
-	builtin_exts += 'ed25519'
-else
-	exts += 'ed25519'
+with_ed25519 = get_option('with_ed25519')
+if with_ed25519 != 'no'
+	ed25519_ext_deps = declare_dependency(sources: ['ed25519/src/add_scalar.c', 'ed25519/src/fe.c', 'ed25519/src/ge.c', 'ed25519/src/key_exchange.c', 'ed25519/src/keypair.c', 'ed25519/src/sc.c', 'ed25519/src/seed.c', 'ed25519/src/sha512.c', 'ed25519/src/sign.c', 'ed25519/src/verify.c'])
+	if builtin_all or with_ed25519 == 'builtin'
+		builtin_exts += 'ed25519'
+	else
+		exts += 'ed25519'
+	endif
+	install_data(join_paths('ed25519', 'license.txt'),
+	             install_dir: join_paths(doc_dir, 'ed25519'))
 endif
-install_data(join_paths('ed25519', 'license.txt'),
-             install_dir: join_paths(doc_dir, 'ed25519'))
 
-lzfse_ext_deps = declare_dependency(sources: ['lzfse/src/lzfse_decode_base.c', 'lzfse/src/lzfse_decode.c', 'lzfse/src/lzfse_encode_base.c', 'lzfse/src/lzfse_encode.c', 'lzfse/src/lzfse_fse.c', 'lzfse/src/lzvn_decode_base.c', 'lzfse/src/lzvn_encode_base.c'],
-                                    compile_args: ['-Wno-unknown-pragmas', '-Wno-unused-variable', '-Wno-pedantic'])
-if builtin_all or get_option('builtin_lzfse')
-	builtin_exts += 'lzfse'
-else
-	exts += 'lzfse'
+with_lzfse = get_option('with_lzfse')
+if with_lzfse != 'no'
+	lzfse_ext_deps = declare_dependency(sources: ['lzfse/src/lzfse_decode_base.c', 'lzfse/src/lzfse_decode.c', 'lzfse/src/lzfse_encode_base.c', 'lzfse/src/lzfse_encode.c', 'lzfse/src/lzfse_fse.c', 'lzfse/src/lzvn_decode_base.c', 'lzfse/src/lzvn_encode_base.c'],
+	                                    compile_args: ['-Wno-unknown-pragmas', '-Wno-unused-variable', '-Wno-pedantic'])
+	if builtin_all or with_lzfse == 'builtin'
+		builtin_exts += 'lzfse'
+	else
+		exts += 'lzfse'
+	endif
+	install_data(join_paths('lzfse', 'LICENSE'),
+	             install_dir: join_paths(doc_dir, 'lzfse'))
 endif
-install_data(join_paths('lzfse', 'LICENSE'),
-             install_dir: join_paths(doc_dir, 'lzfse'))
 
-zstd_ext_deps = declare_dependency(include_directories: include_directories('zstd/lib/common', 'zstd/lib'),
-                                   sources: ['zstd/lib/common/error_private.c', 'zstd/lib/compress/huf_compress.c', 'zstd/lib/compress/zstd_compress.c', 'zstd/lib/compress/fse_compress.c', 'zstd/lib/compress/zbuff_compress.c', 'zstd/lib/common/zstd_common.c', 'zstd/lib/common/fse_decompress.c', 'zstd/lib/common/entropy_common.c', 'zstd/lib/common/xxhash.c', 'zstd/lib/decompress/zbuff_decompress.c', 'zstd/lib/decompress/zstd_decompress.c', 'zstd/lib/decompress/huf_decompress.c'])
-if builtin_all or get_option('builtin_zstd')
-	builtin_exts += 'zstd'
-else
-	exts += 'zstd'
+with_zstd = get_option('with_zstd')
+if with_zstd != 'no'
+	zstd_ext_deps = declare_dependency(include_directories: include_directories('zstd/lib/common', 'zstd/lib'),
+	                                   sources: ['zstd/lib/common/error_private.c', 'zstd/lib/compress/huf_compress.c', 'zstd/lib/compress/zstd_compress.c', 'zstd/lib/compress/fse_compress.c', 'zstd/lib/compress/zbuff_compress.c', 'zstd/lib/common/zstd_common.c', 'zstd/lib/common/fse_decompress.c', 'zstd/lib/common/entropy_common.c', 'zstd/lib/common/xxhash.c', 'zstd/lib/decompress/zbuff_decompress.c', 'zstd/lib/decompress/zstd_decompress.c', 'zstd/lib/decompress/huf_decompress.c'])
+	if builtin_all or with_zstd == 'builtin'
+		builtin_exts += 'zstd'
+	else
+		exts += 'zstd'
+	endif
+	install_data(join_paths('zstd', 'LICENSE'), join_paths('zstd', 'PATENTS'),
+	             install_dir: join_paths(doc_dir, 'zstd'))
 endif
-install_data(join_paths('zstd', 'LICENSE'), join_paths('zstd', 'PATENTS'),
-             install_dir: join_paths(doc_dir, 'zstd'))
 
 foreach ext: ['test', 'oop', 'server', 'resp', 'http', 'https']
-	if builtin_all or get_option('builtin_@0@'.format(ext))
-		builtin_exts += ext
-	else
-		exts += ext
+	if get_option('with_@0@'.format(ext)) != 'no'
+		if builtin_all or get_option('with_@0@'.format(ext)) == 'builtin'
+			builtin_exts += ext
+		else
+			exts += ext
+		endif
 	endif
 endforeach
 

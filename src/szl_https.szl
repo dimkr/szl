@@ -1,6 +1,6 @@
 # this file is part of szl.
 #
-# Copyright (c) 2016 Dima Krasner
+# Copyright (c) 2016, 2017 Dima Krasner
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -22,7 +22,7 @@
 
 $load oop
 $load http
-$load tls
+$try {$load tls}
 
 $class https.server {
 	$method accept {

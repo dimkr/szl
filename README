@@ -72,7 +72,7 @@ into the interpreter:
 
 In addition, built-in extensions can be chosen individually, e.g.:
 
-  $ mesonconf -Dbuiltin_curl=true -Dbuiltin_ffi=true
+  $ mesonconf -Dwith_curl=builtin -Dwith_ffi=no
 
 Embedding
 =========
