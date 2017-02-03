@@ -37,9 +37,6 @@ This Document
 This is a comprehensive manual, for the +szl+ user or for developers who wish to
 extend +szl+ or integrate it into their projects.
 
-[WARNING]
-This manual may reflect a future state of +szl+.
-
 Use Cases
 ~~~~~~~~~
 +szl+ is especially useful when:
