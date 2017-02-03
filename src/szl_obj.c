@@ -122,7 +122,7 @@ enum szl_res szl_obj_proc_hex(struct szl_interp *interp,
 	if (!szl_as_int(interp, objv[1], &i))
 		return SZL_ERR;
 
-	len = asprintf(&s, SZL_INT_FMT"x", i);
+	len = asprintf(&s, SZL_INT_FMT"x", (szl_uint)i);
 	if (len < 0)
 		return SZL_ERR;
 

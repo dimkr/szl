@@ -177,6 +177,17 @@ typedef intmax_t szl_int;
  */
 #	define SZL_INT_SCANF_FMT SZL_INT_FMT
 
+
+/**
+ * @typedef szl_uint
+ * The type used for casting szl integer values to unsigned integers
+ */
+#	ifdef SZL_USE_INT
+typedef unsigned int szl_uint;
+#	else
+typedef uintmax_t szl_uint;
+#	endif
+
 /**
  * @typedef szl_float
  * The type used for representing szl objects as floating-point numbers

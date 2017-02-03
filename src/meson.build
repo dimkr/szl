@@ -22,7 +22,11 @@
 
 ext_dir = join_paths(get_option('prefix'), get_option('libdir'), 'szl')
 
-cflags = ['-std=gnu99', '-D_GNU_SOURCE', '-DSZL_VERSION="@0@"'.format(meson.project_version()), '-DSZL_EXT_DIR="@0@"'.format(ext_dir), '-Wall', '-pedantic', '-Wno-overlength-strings']
+cflags = ['-std=gnu99', '-D_GNU_SOURCE', '-DSZL_VERSION="@0@"'.format(meson.project_version()), '-DSZL_EXT_DIR="@0@"'.format(ext_dir), '-Wall', '-pedantic', '-Wno-overlength-strings', '-Wformat', '-Wformat-security']
+cc = meson.get_compiler('c')
+if cc.has_argument('-Wformat-signedness')
+    cflags += ['-Wformat-signedness']
+endif
 
 if get_option('use_int')
 	cflags += ['-DSZL_USE_INT']
@@ -47,7 +51,6 @@ else
 	with_dl = get_option('with_dl')
 endif
 
-cc = meson.get_compiler('c')
 dl_dep = cc.find_library('dl', required: false)
 if not dl_dep.found()
 	with_dl = false
@@ -151,8 +154,14 @@ endif
 
 with_lzfse = get_option('with_lzfse')
 if with_lzfse != 'no'
+	if cc.has_argument('-Wno-pedantic')
+		lzfse_cflags = ['-Wno-unknown-pragmas', '-Wno-unused-variable', '-Wno-pedantic']
+	else
+		lzfse_cflags = ['-Wno-unknown-pragmas', '-Wno-unused-variable']
+	endif
+
 	lzfse_ext_deps = declare_dependency(sources: ['lzfse/src/lzfse_decode_base.c', 'lzfse/src/lzfse_decode.c', 'lzfse/src/lzfse_encode_base.c', 'lzfse/src/lzfse_encode.c', 'lzfse/src/lzfse_fse.c', 'lzfse/src/lzvn_decode_base.c', 'lzfse/src/lzvn_encode_base.c'],
-	                                    compile_args: ['-Wno-unknown-pragmas', '-Wno-unused-variable', '-Wno-pedantic'])
+	                                    compile_args: lzfse_cflags)
 	if builtin_all or with_lzfse == 'builtin'
 		builtin_exts += 'lzfse'
 	else

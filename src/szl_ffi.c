@@ -1,7 +1,7 @@
 /*
  * this file is part of szl.
  *
- * Copyright (c) 2016 Dima Krasner
+ * Copyright (c) 2016, 2017 Dima Krasner
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -217,7 +217,7 @@ static enum szl_res szl_ffi_scalar_proc(struct szl_interp *interp,
 		return szl_set_last(interp, obj);
 	}
 	else if (strcmp("size", op) == 0)
-		return szl_set_last_fmt(interp, "%zd", ffi_obj->size);
+		return szl_set_last_fmt(interp, "%zu", ffi_obj->size);
 
 	return szl_set_last_help(interp, objv[0]);
 }

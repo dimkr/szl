@@ -1151,7 +1151,7 @@ struct szl_obj *szl_new_proc(struct szl_interp *interp,
 {
 	struct szl_obj *obj;
 
-	obj = szl_new_str_fmt("proc:%x", rand_r(&interp->seed));
+	obj = szl_new_str_fmt("proc:%x", (unsigned int)rand_r(&interp->seed));
 	if (obj) {
 		if (!szl_set(interp, szl_caller(interp), name, obj)) {
 			szl_unref(obj);
@@ -2014,6 +2014,7 @@ enum szl_res szl_set_last_wstr(struct szl_interp *interp,
 #endif
 
 __attribute__((nonnull(1, 2)))
+__attribute__((format(printf, 2, 3)))
 enum szl_res szl_set_last_fmt(struct szl_interp *interp,
                               const char *fmt,
                               ...)

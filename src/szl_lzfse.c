@@ -1,7 +1,7 @@
 /*
  * this file is part of szl.
  *
- * Copyright (c) 2016 Dima Krasner
+ * Copyright (c) 2016, 2017 Dima Krasner
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -49,7 +49,7 @@ enum szl_res szl_lzfse_op(struct szl_interp *interp,
 
 	outlen = get_outlen(inlen);
 	if (!outlen) {
-		szl_set_last_fmt(interp, "bad input len: %zd", inlen);
+		szl_set_last_fmt(interp, "bad input len: %zu", inlen);
 		return SZL_ERR;
 	}
 
