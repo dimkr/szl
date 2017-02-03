@@ -1,7 +1,7 @@
 /*
  * this file is part of szl.
  *
- * Copyright (c) 2016 Dima Krasner
+ * Copyright (c) 2016, 2017 Dima Krasner
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -309,6 +309,33 @@ enum szl_res szl_list_proc_zip(struct szl_interp *interp,
 }
 
 static
+enum szl_res szl_list_proc_uniq(struct szl_interp *interp,
+                                const unsigned int objc,
+                                struct szl_obj **objv)
+{
+	struct szl_obj **items, *uniq;
+	size_t len, i;
+	int in;
+
+	if (!szl_as_list(interp, objv[1], &items, &len))
+		return SZL_ERR;
+
+	uniq = szl_new_list(items, len ? 1 : 0);
+	if (!uniq)
+		return SZL_ERR;
+
+	for (i = 1; i < len; ++i) {
+		if (!szl_list_in(interp, items[i], uniq, &in) ||
+		    (!in && !szl_list_append(interp, uniq, items[i]))) {
+			szl_unref(uniq);
+			return SZL_ERR;
+		}
+	}
+
+	return szl_set_last(interp, uniq);
+}
+
+static
 const struct szl_ext_export list_exports[] = {
 	{
 		SZL_PROC_INIT("list.new", "?item...?", 1, -1, szl_list_proc_new, NULL)
@@ -386,6 +413,14 @@ const struct szl_ext_export list_exports[] = {
 		              3,
 		              -1,
 		              szl_list_proc_zip,
+		              NULL)
+	},
+	{
+		SZL_PROC_INIT("uniq",
+		              "list",
+		              2,
+		              2,
+		              szl_list_proc_uniq,
 		              NULL)
 	}
 };

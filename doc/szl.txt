@@ -550,6 +550,9 @@ $for pair [$list.zip {apple orange pear} {red orange green}] {
 +$list.index+ 'list index'::
 	Returns the list item at the zero-based position 'index'.
 
++$uniq+ 'list'::
+	Returns a list of all unique items in a list.
+
 +$range+ '?start? end'::
 	Returns a list of integers in a given range. The maximum is non-inclusive.
 	If no minimum is specified, the range starts at '0'.
