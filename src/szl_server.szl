@@ -1,6 +1,6 @@
 # this file is part of szl.
 #
-# Copyright (c) 2016 Dima Krasner
+# Copyright (c) 2016, 2017 Dima Krasner
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -165,11 +165,10 @@ $class server.tcp {
 							$try {
 								$export chunk [$client_socket read]
 							} except {
-								$list.append $close_handles $read_handle
 								$export chunk {}
 							}
 
-							$if $chunk {
+							$if [$byte.len $chunk] {
 								$local request [$str.join {} [$dict.get $requests $read_handle] $chunk]
 								$dict.set $requests $read_handle $request
 
@@ -180,6 +179,8 @@ $class server.tcp {
 									$poller remove $read_handle
 									$poller add $read_handle in out
 								}
+							} else {
+								$list.append $close_handles $read_handle
 							}
 						}
 					}

@@ -1,7 +1,7 @@
 /*
  * this file is part of szl.
  *
- * Copyright (c) 2016 Dima Krasner
+ * Copyright (c) 2016, 2017 Dima Krasner
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -157,11 +157,10 @@ int szl_new_file(struct szl_interp *interp,
 		return 0;
 
 	strm->ops = &szl_file_ops;
-	strm->keep = keep;
-	strm->closed = 0;
+	strm->flags =
+	       keep ? (SZL_STREAM_BLOCKING | SZL_STREAM_KEEP) : SZL_STREAM_BLOCKING;
 	strm->priv = fp;
 	strm->buf = NULL;
-	strm->blocking = 1;
 
 	obj = szl_new_stream(interp, strm, "file");
 	if (!obj) {
@@ -328,11 +327,9 @@ struct szl_stream *szl_io_wrap_pipe(struct szl_interp *interp, FILE *fp)
 		return strm;
 
 	strm->ops = &szl_pipe_ops;
-	strm->keep = 1;
-	strm->closed = 0;
+	strm->flags = SZL_STREAM_BLOCKING | SZL_STREAM_KEEP;
 	strm->priv = fp;
 	strm->buf = NULL;
-	strm->blocking = 1;
 
 	if (!isatty(fileno(fp)) && !szl_io_enable_fbf(strm, fp)) {
 		szl_stream_free(strm);

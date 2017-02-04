@@ -1,7 +1,7 @@
 /*
  * this file is part of szl.
  *
- * Copyright (c) 2016 Dima Krasner
+ * Copyright (c) 2016, 2017 Dima Krasner
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -218,11 +218,9 @@ enum szl_res szl_exec_proc_exec(struct szl_interp *interp,
 	exec->reap = 1;
 
 	strm->ops = &szl_exec_ops;
-	strm->keep = 0;
-	strm->closed = 0;
+	strm->flags = SZL_STREAM_BLOCKING;
 	strm->priv = exec;
 	strm->buf = NULL;
-	strm->blocking = 1;
 
 	obj = szl_new_stream(interp, strm, "exec");
 	if (!obj) {

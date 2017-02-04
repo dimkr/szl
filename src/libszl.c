@@ -2602,7 +2602,7 @@ enum szl_res szl_stream_read(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	if (strm->closed)
+	if (strm->flags & SZL_STREAM_EOF)
 		return SZL_OK;
 
 	buf = (unsigned char *)malloc(len + 1);
@@ -2624,12 +2624,8 @@ enum szl_res szl_stream_read(struct szl_interp *interp,
 
 		if (out < 0)
 			return SZL_ERR;
-		else if (!more) {
-			szl_set_last_str(interp,
-			                 "read from closed stream",
-			                 sizeof("read from closed stream") - 1);
-			return SZL_ERR;
-		}
+		else if (!more)
+			strm->flags |= SZL_STREAM_EOF;
 	}
 
 	return SZL_OK;
@@ -2651,7 +2647,7 @@ enum szl_res szl_stream_read_all(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	if (strm->closed)
+	if (strm->flags & SZL_STREAM_EOF)
 		return SZL_OK;
 
 	/* if we know the amount of pending data, we'd like to enhance efficiency by
@@ -2695,10 +2691,13 @@ enum szl_res szl_stream_read_all(struct szl_interp *interp,
 				}
 				else if (more)
 					tot += more;
-				else if (!strm->blocking || !cont)
+				else if (!(strm->flags & SZL_STREAM_BLOCKING) || !cont)
 					break;
 			} while (1);
 		}
+
+		if (!cont)
+			strm->flags |= SZL_STREAM_EOF;
 
 		/* wrap the buffer with a string object */
 		buf[tot] = '\0';
@@ -2709,10 +2708,7 @@ enum szl_res szl_stream_read_all(struct szl_interp *interp,
 		}
 
 		return szl_set_last(interp, obj);
-	} else if (!cont)
-		szl_set_last_str(interp,
-		                 "read from closed stream",
-		                 sizeof("read from closed stream") - 1);
+	}
 
 	free(buf);
 	return (tot < 0) ? SZL_ERR : SZL_OK;
@@ -2735,7 +2731,7 @@ enum szl_res szl_stream_readln(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	if (strm->closed)
+	if (strm->flags & SZL_STREAM_EOF)
 		return SZL_OK;
 
 	buf = (unsigned char *)malloc(buflen + 1);
@@ -2790,7 +2786,7 @@ enum szl_res szl_stream_write(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	if (strm->closed) {
+	if (strm->flags & SZL_STREAM_CLOSED) {
 		szl_set_last_str(interp,
 		                 "write to closed stream",
 		                 sizeof("write to closed stream") - 1);
@@ -2809,7 +2805,7 @@ enum szl_res szl_stream_write(struct szl_interp *interp,
 		out += chunk;
 	}
 
-	if (strm->blocking && ((size_t)out != len))
+	if ((strm->flags & SZL_STREAM_BLOCKING) && ((size_t)out != len))
 		return SZL_ERR;
 
 	return szl_set_last_int(interp, (szl_int)out);
@@ -2851,7 +2847,7 @@ enum szl_res szl_stream_flush(struct szl_interp *interp,
 	if (!strm->ops->flush)
 		return SZL_OK;
 
-	if (strm->closed) {
+	if (strm->flags & SZL_STREAM_CLOSED) {
 		szl_set_last_str(interp,
 		                 "flush of closed stream",
 		                 sizeof("flush of closed stream") - 1);
@@ -2864,14 +2860,14 @@ enum szl_res szl_stream_flush(struct szl_interp *interp,
 static
 void szl_stream_close(struct szl_stream *strm)
 {
-	if (!strm->closed) {
-		if (strm->ops->close && !strm->keep)
+	if (!(strm->flags & SZL_STREAM_CLOSED)) {
+		if (strm->ops->close && !(strm->flags & SZL_STREAM_KEEP))
 			strm->ops->close(strm->priv);
 
 		if (strm->buf)
 			free(strm->buf);
 
-		strm->closed = 1;
+		strm->flags |= (SZL_STREAM_EOF | SZL_STREAM_CLOSED);
 	}
 }
 
@@ -2886,7 +2882,7 @@ static
 struct szl_obj *szl_stream_handle(struct szl_interp *interp,
                                   struct szl_stream *strm)
 {
-	if (strm->closed)
+	if (strm->flags & SZL_STREAM_CLOSED)
 		return szl_ref(interp->empty);
 
 	return szl_new_int(interp, strm->ops->handle(strm->priv));
@@ -2906,7 +2902,7 @@ enum szl_res szl_stream_accept(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	if (strm->closed) {
+	if (strm->flags & SZL_STREAM_CLOSED) {
 		szl_set_last_str(interp,
 		                 "accept from closed stream",
 		                 sizeof("accept from closed stream") - 1);
@@ -2940,7 +2936,7 @@ enum szl_res szl_stream_accept(struct szl_interp *interp,
 		}
 
 		szl_unref(csock);
-	} while (!strm->blocking);
+	} while (!(strm->flags & SZL_STREAM_BLOCKING));
 
 	return szl_set_last(interp, list);
 }
@@ -2958,7 +2954,7 @@ enum szl_res szl_stream_unblock(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	if (strm->closed) {
+	if (strm->flags & SZL_STREAM_CLOSED) {
 		szl_set_last_str(interp,
 		                 "unblock on closed stream",
 		                 sizeof("unblock on closed stream") -1);
@@ -2967,7 +2963,7 @@ enum szl_res szl_stream_unblock(struct szl_interp *interp,
 
 	res = strm->ops->unblock(strm->priv);
 	if (res == SZL_OK)
-		strm->blocking = 0;
+		strm->flags &= ~SZL_STREAM_BLOCKING;
 
 	return res;
 }
@@ -2983,7 +2979,7 @@ enum szl_res szl_stream_rewind(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	if (strm->closed) {
+	if (strm->flags & SZL_STREAM_CLOSED) {
 		szl_set_last_str(interp,
 		                 "rewind on closed stream",
 		                 sizeof("rewind on closed stream") -1);
@@ -3006,7 +3002,7 @@ enum szl_res szl_stream_setopt(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	if (strm->closed) {
+	if (strm->flags & SZL_STREAM_CLOSED) {
 		szl_set_last_str(interp,
 		                 "setopt on closed stream",
 		                 sizeof("setopt on closed stream") -1);

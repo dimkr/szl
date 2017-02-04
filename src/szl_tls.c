@@ -1,7 +1,7 @@
 /*
  * this file is part of szl.
  *
- * Copyright (c) 2016 Dima Krasner
+ * Copyright (c) 2016, 2017 Dima Krasner
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -195,10 +195,8 @@ enum szl_res szl_tls_new(struct szl_interp *interp,
 
 	strm->priv = ssl;
 	strm->ops = &szl_tls_ops;
-	strm->keep = 0;
-	strm->closed = 0;
+	strm->flags = SZL_STREAM_BLOCKING;
 	strm->buf = NULL;
-	strm->blocking = 1;
 
 	obj = szl_new_stream(interp, strm, server ? "tls.server" : "tls.client");
 	if (!obj) {

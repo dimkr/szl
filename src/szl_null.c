@@ -1,7 +1,7 @@
 /*
  * this file is part of szl.
  *
- * Copyright (c) 2016 Dima Krasner
+ * Copyright (c) 2016, 2017 Dima Krasner
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -72,11 +72,9 @@ int szl_init_null(struct szl_interp *interp)
 		return 0;
 
 	strm->ops = &szl_null_ops;
-	strm->keep = 0;
-	strm->closed = 0;
+	strm->flags = SZL_STREAM_BLOCKING;
 	strm->priv = NULL;
 	strm->buf = NULL;
-	strm->blocking = 1;
 
 	null_exports[0].val.proc.priv = strm;
 
