@@ -1,7 +1,7 @@
 /*
  * this file is part of szl.
  *
- * Copyright (c) 2016 Dima Krasner
+ * Copyright (c) 2016, 2017 Dima Krasner
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -163,6 +163,7 @@ enum szl_res szl_file_proc_lock(struct szl_interp *interp,
 		close(lock->fd);
 		free(lock->path);
 		free(lock);
+		return SZL_ERR;
 	}
 
 	proc = szl_new_proc(interp,
@@ -173,8 +174,8 @@ enum szl_res szl_file_proc_lock(struct szl_interp *interp,
 	                    szl_file_lock_proc,
 	                    szl_file_lock_del,
 	                    lock);
+	szl_unref(name);
 	if (!proc) {
-		szl_unref(name);
 		lockf(lock->fd, F_ULOCK, 0);
 		close(lock->fd);
 		free(lock->path);

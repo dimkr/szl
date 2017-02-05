@@ -713,10 +713,6 @@ $for {a b} {1 2 3 4 5 6 7 8} {
 +$exit+ '?obj?'::
 	Stops the execution of the script and optionally, sets its return value.
 
-+$sleep+ 'sec'::
-	Suspends the script execution for a given interval, specified in seconds.
-	The interval may be a floating-point number (e.g. '4.5').
-
 +$call 'exp'+::
 	Runs a single +szl+ statement in the current scope.
 
@@ -1021,6 +1017,22 @@ Signals
 
 +$wait+::
 	Waits for a child process to terminate and returns its exit code.
+
+Time
+^^^^
++$sleep+ 'sec'::
+	Suspends the script execution for a given interval, specified in seconds.
+	The interval may be a floating-point number (e.g. '4.5').
+
++$time.now+::
+	Returns the number of seconds elapsed since the Epoch.
+
++$time.timestamp+ 'sec'::
+	Returns a timestamp object.
+
++$timestamp+ 'format fmt'::
+	Converts a timestamp to a textual representation, according to a
+	+strftime(3)+-style format string.
 
 Environment
 ^^^^^^^^^^^
