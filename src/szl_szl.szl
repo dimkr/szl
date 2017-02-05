@@ -40,10 +40,10 @@ $proc szl.shell {
 
 	$local interp [$szl.interp $argv]
 
-	$local obrace [$str.expand \x7b]
-	$local cbrace [$str.expand \x7d]
-	$local obracket [$str.expand \x5b]
-	$local cbracket [$str.expand \x5d]
+	$local obrace [$expand \x7b]
+	$local cbrace [$expand \x7d]
+	$local obracket [$expand \x5b]
+	$local cbracket [$expand \x5d]
 
 	$try {
 		$while 1 {

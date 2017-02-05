@@ -663,10 +663,10 @@ const struct szl_ext_export str_exports[] = {
 		              NULL)
 	},
 	{
-		SZL_PROC_INIT("str.expand", "str", 2, 2, szl_str_proc_expand, NULL)
+		SZL_PROC_INIT("expand", "str", 2, 2, szl_str_proc_expand, NULL)
 	},
 	{
-		SZL_PROC_INIT("str.format",
+		SZL_PROC_INIT("format",
 		              "fmt obj...",
 		              3,
 		              -1,
@@ -674,13 +674,13 @@ const struct szl_ext_export str_exports[] = {
 		              NULL)
 	},
 	{
-		SZL_PROC_INIT("str.ltrim", "str", 2, 2, szl_str_proc_ltrim, NULL)
+		SZL_PROC_INIT("ltrim", "str", 2, 2, szl_str_proc_ltrim, NULL)
 	},
 	{
-		SZL_PROC_INIT("str.rtrim", "str", 2, 2, szl_str_proc_rtrim, NULL)
+		SZL_PROC_INIT("rtrim", "str", 2, 2, szl_str_proc_rtrim, NULL)
 	},
 	{
-		SZL_PROC_INIT("str.trim", "str", 2, 2, szl_str_proc_trim, NULL)
+		SZL_PROC_INIT("trim", "str", 2, 2, szl_str_proc_trim, NULL)
 	},
 	{
 		SZL_PROC_INIT("byte.ord", "buf", 2, 2, szl_byte_proc_ord, NULL)

@@ -26,12 +26,12 @@ $try {$load curl}
 $load oop
 $load server
 
-$global http.meth_delim [$str.expand \r\n\r\n]
-$global http.hdr_newline [$str.expand \r\n]
+$global http.meth_delim [$expand \r\n\r\n]
+$global http.hdr_newline [$expand \r\n]
 $global http.hdr_delim {: }
-$global http.get_fmt [$str.expand {GET {}?{} HTTP/1.1\nHost: {}\r\nAccept-Encoding: gzip\r\nConnection: close\r\n\r\n}]
-$global http.post_fmt [$str.expand {POST {} HTTP/1.1\nHost: {}\r\nContent-Length: {}\r\nAccept-Encoding: gzip\r\nContent-Encoding: gzip\r\nConnection: close\r\n\r\n{}}]
-$global http.response_fmt [$str.expand {HTTP/1.1 {} {}\r\n{}\r\n\r\n{}}]
+$global http.get_fmt [$expand {GET {}?{} HTTP/1.1\nHost: {}\r\nAccept-Encoding: gzip\r\nConnection: close\r\n\r\n}]
+$global http.post_fmt [$expand {POST {} HTTP/1.1\nHost: {}\r\nContent-Length: {}\r\nAccept-Encoding: gzip\r\nContent-Encoding: gzip\r\nConnection: close\r\n\r\n{}}]
+$global http.response_fmt [$expand {HTTP/1.1 {} {}\r\n{}\r\n\r\n{}}]
 $global http.codes [$dict.new 200 OK 301 {Moved Permanently} 400 {Bad Request} 401 Unauthorized 403 Forbidden 404 {Not Found} 405 {Method Not Allowed} 408 {Request Timeout} 500 {Internal Server Error}]
 $global http.hdr_val_delim {, }
 $global http.banner szl
@@ -96,21 +96,21 @@ $proc http.request {
 }
 
 $proc http.get {
-	$http.request $1 $2 $3 [$str.format $http.get_fmt $4 [$list.join & [$map {k v} $5 {$str.format {{}={}} $k [$curl.encode $v]}]] $1]
+	$http.request $1 $2 $3 [$format $http.get_fmt $4 [$list.join & [$map {k v} $5 {$format {{}={}} $k [$curl.encode $v]}]] $1]
 }
 
 $proc http.post {
-	$local cont [$zlib.gzip [$list.join & [$map {k v} $5 {$str.format {{}={}} $k [$curl.encode $v]}]] 9]
-	$http.request $1 $2 $3 [$str.format $http.post_fmt $4 $1 [$byte.len $cont] $cont]
+	$local cont [$zlib.gzip [$list.join & [$map {k v} $5 {$format {{}={}} $k [$curl.encode $v]}]] 9]
+	$http.request $1 $2 $3 [$format $http.post_fmt $4 $1 [$byte.len $cont] $cont]
 }
 
 $global index_name index.html
 $global response_cache {}
 
-$global http.index_header_fmt [$str.expand {<!DOCTYPE HTML>\n<html>\n\t<head>\n\t\t<meta charset="UTF-8">\n\t\t<title>Index of {}</title>\n\t</head>\n\t<body>\n\t\t<h1>Index of {}</h1>\n\t\t<ul>\n}]
-$global http.index_dir_fmt [$str.expand {\t\t\t<li><a href="{}/{}">{}</a></li>\n}]
-$global http.index_file_fmt [$str.expand {\t\t\t<li><a href="{}/{}">{}</a> ({} bytes)</li>\n}]
-$global http.index_footer [$str.expand \t\t</ul>\n\t</body>\n</html>]
+$global http.index_header_fmt [$expand {<!DOCTYPE HTML>\n<html>\n\t<head>\n\t\t<meta charset="UTF-8">\n\t\t<title>Index of {}</title>\n\t</head>\n\t<body>\n\t\t<h1>Index of {}</h1>\n\t\t<ul>\n}]
+$global http.index_dir_fmt [$expand {\t\t\t<li><a href="{}/{}">{}</a></li>\n}]
+$global http.index_file_fmt [$expand {\t\t\t<li><a href="{}/{}">{}</a> ({} bytes)</li>\n}]
+$global http.index_footer [$expand \t\t</ul>\n\t</body>\n</html>]
 
 $class http.server {
 	$method get_response {
@@ -130,16 +130,16 @@ $class http.server {
 					$if [$path.exists $index_path] {
 						$export body [[$open $index_path ru] read]
 					} else {
-						$local body [$str.format $http.index_header_fmt $url $url]
+						$local body [$format $http.index_header_fmt $url $url]
 
 						$local names [$dir.list $path]
 
 						$for name [$list.index $names 0] {
-							$str.append $body [$str.format $http.index_dir_fmt $url $name $name]
+							$str.append $body [$format $http.index_dir_fmt $url $name $name]
 						}
 
 						$for name [$list.index $names 1] {
-							$str.append $body [$str.format $http.index_file_fmt $url $name $name [$file.size [$path.join $path $name]]]
+							$str.append $body [$format $http.index_file_fmt $url $name $name [$file.size [$path.join $path $name]]]
 						}
 
 						$str.append $body $http.index_footer
@@ -188,13 +188,13 @@ $class http.server {
 			}
 
 			$dict.set $headers {Content-Length} $len
-			$local response [$str.format $http.response_fmt $status_code $status_text [$list.join $http.hdr_newline [$map {k v} $headers {$str.format {{}: {}} $k $v}]] $body]
+			$local response [$format $http.response_fmt $status_code $status_text [$list.join $http.hdr_newline [$map {k v} $headers {$format {{}: {}} $k $v}]] $body]
 
 			$dict.set $response_cache $url $response
 			$export response
 		} except {
 			$local error $_
-			$export response [$str.format $http.response_fmt 500 [$dict.get $http.codes 500] {} [$str.format {Server error: {}} $error]]
+			$export response [$format $http.response_fmt 500 [$dict.get $http.codes 500] {} [$format {Server error: {}} $error]]
 		}
 
 		$return $response

@@ -1,6 +1,6 @@
 # this file is part of szl.
 #
-# Copyright (c) 2016 Dima Krasner
+# Copyright (c) 2016, 2017 Dima Krasner
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,7 @@ $proc test.run {
 		$if $2 {
 			$local output [$eval $3]
 			$if [$!= $output $4] {
-				$throw [$str.format {expected '{}', got '{}'} $4 $output]
+				$throw [$format {expected '{}', got '{}'} $4 $output]
 			}
 		} else {
 			$try {
@@ -34,14 +34,14 @@ $proc test.run {
 			} except {
 				$local error $_
 				$if [$!= $error $4] {
-					$throw [$str.format {expected exception '{}', got '{}'} $4 $error]
+					$throw [$format {expected exception '{}', got '{}'} $4 $error]
 				}
 			}
 		}
 	} except {
-		$stderr write [$str.format {fail: {}: {}} $1 $_]
+		$stderr write [$format {fail: {}: {}} $1 $_]
 		$stderr write $newline
 		$exit 1
 	}
-	$puts [$str.format {ok: {}} $1]
+	$puts [$format {ok: {}} $1]
 }

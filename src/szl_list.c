@@ -408,7 +408,7 @@ const struct szl_ext_export list_exports[] = {
 		              NULL)
 	},
 	{
-		SZL_PROC_INIT("list.zip",
+		SZL_PROC_INIT("zip",
 		              "list list...",
 		              3,
 		              -1,

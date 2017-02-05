@@ -186,6 +186,15 @@ This block of statements is a list, while a list is a string. To sum it up:
 A block can be idented using either spaces, tabs or both. Whitespace at the
 beginning or end of statements is ignored.
 
+[NOTE]
+Since this simple data model may lead to some confusion, as some operations can
+be performed on multiple data types with different results (for example,
+joining of strings or lists), the names of some procedures are prefixed with the
+data type they operate on. For instance, 'str.append' appends a string to an
+existing string, while 'list.append' appends an item to a list. Such methods can
+operate on any data type, but may not always return meaningful or useful
+results.
+
 Using Return Values
 ~~~~~~~~~~~~~~~~~~~
 To obtain the return value of a statement, wrap it with brackets. A statement
@@ -216,22 +225,22 @@ $local sum [$- [$str.len {hello world}] 3]
 Special Characters
 ~~~~~~~~~~~~~~~~~~
 Special characters such as line breaks can be used in object declarations, using
-a backslash ('\') and 'str.expand':
+a backslash ('\') and 'expand':
 
 --------------------------------------
-$local tabs [$str.expand \t\t]
+$local tabs [$expand \t\t]
 --------------------------------------
 
 Formatting Strings
 ~~~~~~~~~~~~~~~~~~
-To form more complex strings, such as user-friendly messages, use 'str.format':
+To form more complex strings, such as user-friendly messages, use 'format':
 
 --------------------------------------
-$puts [$str.format {the sum of {} and {} is {}} 3 4 [$+ 3 4]]
+$puts [$format {the sum of {} and {} is {}} 3 4 [$+ 3 4]]
 --------------------------------------
 
-'str.format' accepts a format string (or, a template) and replaces
-occurrences of '{}' with the arguments that follow.
+'format' accepts a format string (or, a template) and replaces occurrences of
+'{}' with the arguments that follow.
 
 Declaring Procedures
 ~~~~~~~~~~~~~~~~~~~~
@@ -262,7 +271,7 @@ object:
 
 --------------------------------------
 $proc print_statement {
-	$puts [$str.format {invoked with arguments: {}} $@]
+	$puts [$format {invoked with arguments: {}} $@]
 }
 
 $print_statement a b {c d} e f {g h}
@@ -436,29 +445,29 @@ byte-oriented procedures (e.g. 'byte.range') when working with binary data.
 [NOTE]
 'str.join' is the most efficient way to concatenate more than two strings.
 
-+$str.expand+ 'str'::
++$expand+ 'str'::
 	Expands escape sequences in a string: '\0', '\\', '\n', '\t', '\r' and
 	hexadecimal numbers in '\x' notation (e.g. '\xff').
 
 --------------------------------------
-$puts [$str.expand {this is a\n\tmulti-line strin\x67}]
+$puts [$expand {this is a\n\tmulti-line strin\x67}]
 --------------------------------------
 
-+$str.format+ 'fmt obj...'::
++$format+ 'fmt obj...'::
 	Receives a format string and replaces all occurrences of '{}' with their
 	values.
 
 --------------------------------------
-$puts [$str.format {the length of "{}" is {}} abcd [$str.len abcd]]
+$puts [$format {the length of "{}" is {}} abcd [$str.len abcd]]
 --------------------------------------
 
-+$str.rtrim+ 'str'::
++$rtrim+ 'str'::
 	Removes whitespace at the end of a string.
 
-+$str.ltrim+ 'str'::
++$ltrim+ 'str'::
 	Removes whitespace at the beginning of a string.
 
-+$str.trim+ 'str'::
++$trim+ 'str'::
 	Removes whitespace at both ends of a string.
 
 Byte Operations
@@ -485,7 +494,7 @@ List Operations
 
 --------------------------------------
 $local fruits {apple orange pear}
-$puts [$str.format {the first two fruits are: {}} [$list.range $fruits 0 1]]
+$puts [$format {the first two fruits are: {}} [$list.range $fruits 0 1]]
 --------------------------------------
 
 +$list.in+ 'list item'::
@@ -510,7 +519,7 @@ $puts $fruits
 	Joins the items of a list to form a string.
 
 --------------------------------------
-$puts [$str.format {three fruits: {}} [$list.join , {apple orange pear}]]
+$puts [$format {three fruits: {}} [$list.join , {apple orange pear}]]
 --------------------------------------
 
 +$list.set+ 'list index item'::
@@ -531,16 +540,6 @@ $puts [$list.extend $fruits {pear banana}]
 $puts $fruits
 --------------------------------------
 
-+$list.zip+ 'list list...'::
-	Returns a list of lists, each containing the 'n'-th elements of given lists
-	of the same length.
-
---------------------------------------
-$for pair [$list.zip {apple orange pear} {red orange green}] {
-	$puts [$str.format {{}s are {}} [$list.index $pair 0] [$list.index $pair 1]]
-}
---------------------------------------
-
 +$list.reverse+ 'list'::
 	Returns all items in a list, in reverse order.
 
@@ -556,6 +555,16 @@ $for pair [$list.zip {apple orange pear} {red orange green}] {
 
 --------------------------------------
 $for i [range 1 11] {$puts $i}
+--------------------------------------
+
++$zip+ 'list list...'::
+	Returns a list of lists, each containing the 'n'-th elements of given lists
+	of the same length.
+
+--------------------------------------
+$for pair [$zip {apple orange pear} {red orange green}] {
+	$puts [$format {{}s are {}} [$list.index $pair 0] [$list.index $pair 1]]
+}
 --------------------------------------
 
 Arithmetic and Logical Operations
@@ -700,7 +709,7 @@ usage (since the block return values are collected in a new list).
 
 --------------------------------------
 $for {a b} {1 2 3 4 5 6 7 8} {
-	$puts [$str.format {a is {} and b is {}} $a $b]
+	$puts [$format {a is {} and b is {}} $a $b]
 }
 --------------------------------------
 
@@ -734,7 +743,7 @@ Exceptions
 $try {
 	$puts
 } except {
-	$puts [$str.format {caught an error: {}} $_]
+	$puts [$format {caught an error: {}} $_]
 } finally {
 	$puts {Always executed}
 }
@@ -752,7 +761,7 @@ silently ignore errors.
 $try {
 	$throw {some error description}
 } except {
-	$puts [$str.format {caught an error: {}} $_]
+	$puts [$format {caught an error: {}} $_]
 }
 --------------------------------------
 
@@ -1144,7 +1153,7 @@ purpose data compression library.
 $load zlib
 
 $if [$== [$list.len $@] 2] {
-	$local dest [$str.format {{}.gz} $1]
+	$local dest [$format {{}.gz} $1]
 	$local in [$open $1 ru]
 	$local out [$open $dest wu]
 	$try {
@@ -1488,7 +1497,7 @@ Efficiency
 [quote, 'Socrates']
 Every action has its pleasures and its price.
 
-1. Avoid unnecessary 'str.expand' or 'str.format' calls.
+1. Avoid unnecessary 'expand' or 'format' calls.
 2. Avoid the wrapping of strings with braces, if they do not contain spaces.
 3. Avoid the creation of redundant objects; it's OK and even recommended not
    to save the return value of a statement if you don't need it.
@@ -1527,7 +1536,7 @@ $try {
 	.
 	.
 } except {
-	$puts [$str.format {an error has occurred: {}} $_]
+	$puts [$format {an error has occurred: {}} $_]
 }
 --------------------------------------
 instead of boolean return values and a pyramid of nested checks, e.g.:
