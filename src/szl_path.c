@@ -44,7 +44,7 @@ enum szl_res szl_path_proc_exists(struct szl_interp *interp,
 	if (!szl_as_str(interp, objv[1], &path, &len) || !len)
 		return SZL_ERR;
 
-	if (stat(path, &stbuf) < 0) {
+	if (lstat(path, &stbuf) < 0) {
 		if (errno == ENOENT)
 			return szl_set_last_bool(interp, 0);
 
@@ -66,7 +66,7 @@ enum szl_res szl_path_proc_isdir(struct szl_interp *interp,
 	if (!szl_as_str(interp, objv[1], &path, &len) || !len)
 		return SZL_ERR;
 
-	if (stat(path, &stbuf) < 0) {
+	if (lstat(path, &stbuf) < 0) {
 		if (errno == ENOENT)
 			return szl_set_last_bool(interp, 0);
 
