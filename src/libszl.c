@@ -1273,7 +1273,7 @@ int szl_len(struct szl_interp *interp, struct szl_obj *obj, size_t *len)
 	return szl_as_str(interp, obj, &buf, len) ? 1 : 0;
 }
 
-__attribute__((nonnull(1, 2)))
+__attribute__((nonnull(1, 2, 3)))
 char *szl_strdup(struct szl_interp *interp, struct szl_obj *obj, size_t *len)
 {
 	char *buf;

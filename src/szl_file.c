@@ -133,7 +133,7 @@ enum szl_res szl_file_proc_lock(struct szl_interp *interp,
 	if (!lock)
 		return SZL_ERR;
 
-	lock->path = szl_strdup(interp, objv[1], NULL);
+	lock->path = szl_strdup(interp, objv[1], &len);
 	if (!lock->path) {
 		free(lock);
 		return SZL_ERR;
