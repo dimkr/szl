@@ -236,9 +236,9 @@ enum szl_res szl_archive_proc_open(struct szl_interp *interp,
 
 	proc = szl_new_proc(interp,
 	                    name,
-	                    1,
-	                    3,
-	                    "archive list|extract",
+	                    2,
+	                    2,
+	                    "list|extract",
 	                    szl_archive_proc,
 	                    szl_archive_del,
 	                    ar);
