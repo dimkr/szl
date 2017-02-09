@@ -1,6 +1,6 @@
 # this file is part of szl.
 #
-# Copyright (c) 2016 Dima Krasner
+# Copyright (c) 2016, 2017 Dima Krasner
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -38,8 +38,6 @@ $proc szl.shell {
 		$export argv $1
 	}
 
-	$local interp [$szl.interp $argv]
-
 	$local obrace [$expand \x7b]
 	$local cbrace [$expand \x7d]
 	$local obracket [$expand \x5b]
@@ -68,7 +66,7 @@ $proc szl.shell {
 
 			$if $exp {
 				$try {
-					$interp eval $exp
+					$1 eval $exp
 					$local out $_
 					$if $in_tty {
 						$puts [$repr $out]
@@ -97,7 +95,7 @@ $proc szl.shell {
 
 $proc szl.main {
 	$try {
-		$szl.shell $@
+		$szl.shell [$szl.interp $@]
 	} except {
 		$stderr writeln $_
 		$exit 1

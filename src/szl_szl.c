@@ -1,7 +1,7 @@
 /*
  * this file is part of szl.
  *
- * Copyright (c) 2016 Dima Krasner
+ * Copyright (c) 2016, 2017 Dima Krasner
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,17 +32,17 @@ static const char szl_szl_inc[] = {
 };
 
 static
-void szl_szl_del(void *priv)
+void szl_interp_del(void *priv)
 {
 	szl_free_interp((struct szl_interp *)priv);
 }
 
 static
-enum szl_res szl_szl_proc(struct szl_interp *interp,
-                          const unsigned int objc,
-                          struct szl_obj **objv)
+enum szl_res szl_szl_interp_proc(struct szl_interp *interp,
+                                 struct szl_interp *interp2,
+                                 const unsigned int objc,
+                                 struct szl_obj **objv)
 {
-	struct szl_interp *interp2 = (struct szl_interp *)objv[0]->priv;
 	char *op;
 	enum szl_res res;
 
@@ -53,15 +53,27 @@ enum szl_res szl_szl_proc(struct szl_interp *interp,
 		return szl_set_last_help(interp, objv[0]);
 
 	res = szl_run_obj(interp2, objv[2]);
-	szl_set_last(interp, szl_ref(interp2->last));
+	if (interp != interp2)
+		szl_set_last(interp, szl_ref(interp2->last));
 
 	return res;
 }
 
 static
-enum szl_res szl_szl_proc_szl(struct szl_interp *interp,
-                              const unsigned int objc,
-                              struct szl_obj **objv)
+enum szl_res szl_interp_proc(struct szl_interp *interp,
+                             const unsigned int objc,
+                             struct szl_obj **objv)
+{
+	return szl_szl_interp_proc(interp,
+	                           (struct szl_interp *)objv[0]->priv,
+	                           objc,
+	                           objv);
+}
+
+static
+enum szl_res szl_szl_proc_interp(struct szl_interp *interp,
+                                 const unsigned int objc,
+                                 struct szl_obj **objv)
 {
 	struct szl_interp *interp2;
 	struct szl_obj *argl = objv[1], **argov, *name, *proc;
@@ -106,9 +118,9 @@ enum szl_res szl_szl_proc_szl(struct szl_interp *interp,
 	                    name,
 	                    3,
 	                    3,
-	                    "szl eval code",
-	                    szl_szl_proc,
-	                    szl_szl_del,
+	                    "eval code",
+	                    szl_interp_proc,
+	                    szl_interp_del,
 	                    interp2);
 	szl_unref(name);
 	if (!proc) {
@@ -120,15 +132,31 @@ enum szl_res szl_szl_proc_szl(struct szl_interp *interp,
 }
 
 static
+enum szl_res szl_szl_proc_this(struct szl_interp *interp,
+                               const unsigned int objc,
+                               struct szl_obj **objv)
+{
+	return szl_szl_interp_proc(interp, interp, objc, objv);
+}
+
+static
 const struct szl_ext_export szl_exports[] = {
 	{
 		SZL_PROC_INIT("szl.interp",
-		              "szl.interp ?args?",
+		              "?args?",
 		              1,
 		              2,
-		              szl_szl_proc_szl,
+		              szl_szl_proc_interp,
 		              NULL)
-	}
+	},
+	{
+		SZL_PROC_INIT("szl.this",
+		              "eval code",
+		              3,
+		              3,
+		              szl_szl_proc_this,
+		              NULL)
+	},
 };
 
 int szl_init_szl(struct szl_interp *interp)

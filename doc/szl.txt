@@ -772,11 +772,21 @@ Interpreters
 	If 'args' is unspecified, the new interpreter inherits the calling
 	interpreter's arguments.
 
++$szl.this+::
+	An object representing the calling interpreter.
+
 +$interp+ 'eval exp'::
 	Evaluates a +szl+ expression in an interpreter.
 
-+$szl.shell+::
-	Runs an interactive +szl+ interpreter.
++$szl.shell+ 'interp'::
+	Runs an interactive +szl+ interpreter, which invokes statements through
+	'interp'.
+
+[TIP]
+Call 'szl.shell' with 'szl.this' to start an interactive +szl+ shell at a given
+point in the execution flow of a script, while exposing the entire interpreter
+state to the user. This is useful for debugging or for applications that expose
+an interactive scripting shell.
 
 +$szl.main+::
 	Runs an interactive +szl+ interpreter; upon error, prints it and exits.
