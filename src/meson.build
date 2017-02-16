@@ -174,7 +174,7 @@ endif
 with_zstd = get_option('with_zstd')
 if with_zstd != 'no'
 	zstd_ext_deps = declare_dependency(include_directories: include_directories('zstd/lib/common', 'zstd/lib'),
-	                                   sources: ['zstd/lib/common/error_private.c', 'zstd/lib/compress/huf_compress.c', 'zstd/lib/compress/zstd_compress.c', 'zstd/lib/compress/fse_compress.c', 'zstd/lib/compress/zbuff_compress.c', 'zstd/lib/common/zstd_common.c', 'zstd/lib/common/fse_decompress.c', 'zstd/lib/common/entropy_common.c', 'zstd/lib/common/xxhash.c', 'zstd/lib/decompress/zbuff_decompress.c', 'zstd/lib/decompress/zstd_decompress.c', 'zstd/lib/decompress/huf_decompress.c'])
+	                                   sources: ['zstd/lib/common/threading.c', 'zstd/lib/common/zstd_common.c', 'zstd/lib/common/entropy_common.c', 'zstd/lib/common/error_private.c', 'zstd/lib/common/xxhash.c', 'zstd/lib/common/fse_decompress.c', 'zstd/lib/common/pool.c', 'zstd/lib/compress/huf_compress.c', 'zstd/lib/compress/zstd_compress.c', 'zstd/lib/compress/fse_compress.c', 'zstd/lib/compress/zstdmt_compress.c', 'zstd/lib/decompress/zstd_decompress.c', 'zstd/lib/decompress/huf_decompress.c'])
 	if builtin_all or with_zstd == 'builtin'
 		builtin_exts += 'zstd'
 	else
