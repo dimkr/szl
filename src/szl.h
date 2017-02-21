@@ -1299,6 +1299,7 @@ struct szl_stream;
  * The underlying, transport-specific implementation of an I/O stream
  */
 struct szl_stream_ops {
+	int (*connect)(struct szl_interp *, void *);
 	ssize_t (*read)(struct szl_interp *,
 	                void *,
 	                unsigned char *,
@@ -1323,10 +1324,11 @@ struct szl_stream_ops {
  * I/O stream flags
  */
 enum szl_stream_flags {
-	SZL_STREAM_CLOSED   = 1, /**< A flag set once the stream is closed */
-	SZL_STREAM_EOF      = 1 << 1, /**< A flag set once all stream data has been received */
-	SZL_STREAM_BLOCKING = 1 << 2, /**< A flag unset when a stream becomes non-blocking */
-	SZL_STREAM_KEEP     = 1 << 3 /**< A flag set for streams that should not be closed */
+	SZL_STREAM_CLOSED      = 1, /**< A flag set once the stream is closed */
+	SZL_STREAM_EOF         = 1 << 1, /**< A flag set once all stream data has been received */
+	SZL_STREAM_BLOCKING    = 1 << 2, /**< A flag unset when a stream becomes non-blocking */
+	SZL_STREAM_KEEP        = 1 << 3, /**< A flag set for streams that should not be closed */
+	SZL_STREAM_CONNECTING  = 1 << 4 /**< A flag set for connection-oriented streams, before conection is established */
 };
 
 /**

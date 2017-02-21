@@ -943,7 +943,13 @@ $local content [[$open /etc/hosts ru] read]
 Sockets
 ^^^^^^^
 +$stream.client+ 'host service'::
-	Creates a new TCP socket and connects to 'host:service'.
+	Creates a new TCP socket and initiates a connection to 'host:service'.
+
+[NOTE]
+'stream.client' does not wait until the connection is established. Instead, if
+the socket is blocking, the first 'read' or 'write' call blocks until then. This
+way, scripts can perform other connection-related initialization actions, while
+handshake is transparently performed in the background.
 
 +$socket+ 'setopt cork val'::
 	Enables ('1') or disables ('0') the 'TCP_CORK' option, as described in

@@ -2586,15 +2586,23 @@ enum szl_res szl_source(struct szl_interp *interp, const char *path)
 }
 
 static
-enum szl_res szl_stream_read(struct szl_interp *interp,
-                             struct szl_stream *strm,
-                             const size_t len)
+int szl_stream_connect(struct szl_interp *interp, struct szl_stream *strm)
 {
-	struct szl_obj *obj;
-	unsigned char *buf;
-	ssize_t out;
-	int more = 1;
+	if ((strm->flags & (SZL_STREAM_CONNECTING | SZL_STREAM_BLOCKING)) ==
+	                            (SZL_STREAM_CONNECTING | SZL_STREAM_BLOCKING)) {
+		if (!strm->ops->connect(interp, strm->priv))
+			return 0;
 
+		strm->flags &= ~SZL_STREAM_CONNECTING;
+	}
+
+	return 1;
+}
+
+static
+enum szl_res szl_stream_can_read(struct szl_interp *interp,
+                                 struct szl_stream *strm)
+{
 	if (!strm->ops->read) {
 		szl_set_last_str(interp,
 		                 "read from unsupported stream",
@@ -2604,6 +2612,27 @@ enum szl_res szl_stream_read(struct szl_interp *interp,
 
 	if (strm->flags & SZL_STREAM_EOF)
 		return SZL_OK;
+
+	if (!szl_stream_connect(interp, strm))
+		return SZL_ERR;
+
+	return SZL_CONT;
+}
+
+static
+enum szl_res szl_stream_read(struct szl_interp *interp,
+                             struct szl_stream *strm,
+                             const size_t len)
+{
+	struct szl_obj *obj;
+	unsigned char *buf;
+	ssize_t out;
+	int more = 1;
+	enum szl_res res;
+
+	res = szl_stream_can_read(interp, strm);
+	if (res != SZL_CONT)
+		return res;
 
 	buf = (unsigned char *)malloc(len + 1);
 	if (!buf)
@@ -2639,16 +2668,11 @@ enum szl_res szl_stream_read_all(struct szl_interp *interp,
 	unsigned char *buf, *nbuf;
 	ssize_t len = SZL_STREAM_BUFSIZ, tot, more;
 	int cont = 1;
+	enum szl_res res;
 
-	if (!strm->ops->read) {
-		szl_set_last_str(interp,
-		                 "read from unsupported stream",
-		                 sizeof("read from unsupported stream") - 1);
-		return SZL_ERR;
-	}
-
-	if (strm->flags & SZL_STREAM_EOF)
-		return SZL_OK;
+	res = szl_stream_can_read(interp, strm);
+	if (res != SZL_CONT)
+		return res;
 
 	/* if we know the amount of pending data, we'd like to enhance efficiency by
 	 * allocating a sufficient buffer in first place, so we allocate memory only
@@ -2723,16 +2747,11 @@ enum szl_res szl_stream_readln(struct szl_interp *interp,
 	size_t buflen = SZL_STREAM_BUFSIZ, tot = 0;
 	ssize_t out;
 	int more;
+	enum szl_res res;
 
-	if (!strm->ops->read) {
-		szl_set_last_str(interp,
-		                 "read from unsupported stream",
-		                 sizeof("read from unsupported stream") - 1);
-		return SZL_ERR;
-	}
-
-	if (strm->flags & SZL_STREAM_EOF)
-		return SZL_OK;
+	res = szl_stream_can_read(interp, strm);
+	if (res != SZL_CONT)
+		return res;
 
 	buf = (unsigned char *)malloc(buflen + 1);
 	if (!buf)
@@ -2792,6 +2811,9 @@ enum szl_res szl_stream_write(struct szl_interp *interp,
 		                 sizeof("write to closed stream") - 1);
 		return SZL_ERR;
 	}
+
+	if (!szl_stream_connect(interp, strm))
+		return SZL_ERR;
 
 	out = 0;
 	while ((size_t)out < len) {
