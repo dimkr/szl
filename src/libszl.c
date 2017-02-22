@@ -63,7 +63,7 @@ void szl_unref(struct szl_obj *obj)
 			free(obj->val.w);
 #endif
 
-		if ((obj->types & (1 << SZL_TYPE_LIST)) && obj->val.llen) {
+		if (obj->types & (1 << SZL_TYPE_LIST)) {
 			for (i = 0; i < obj->val.llen; ++i)
 				szl_unref(obj->val.items[i]);
 
