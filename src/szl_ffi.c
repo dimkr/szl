@@ -154,9 +154,12 @@ struct szl_obj *szl_ffi_new_at(struct szl_interp *interp,
 	                   proc,
 	                   del,
 	                   ffi_obj);
-	szl_unref(name);
-	if (!obj)
+	if (obj)
+		szl_unref(name);
+	else {
+		szl_free(name);
 		free(ffi_obj);
+	}
 
 	return obj;
 }
@@ -908,14 +911,15 @@ enum szl_res szl_ffi_proc_struct(struct szl_interp *interp,
 	                   szl_ffi_struct_proc,
 	                   szl_ffi_struct_del,
 	                   s);
-	szl_unref(name);
 	if (!obj) {
+		szl_free(name);
 		free(s->offs);
 		free(s->type.elements);
 		free(s);
 		return SZL_ERR;
 	}
 
+	szl_unref(name);
 	return szl_set_last(interp, obj);
 }
 
@@ -990,12 +994,13 @@ enum szl_res szl_ffi_proc_dlopen(struct szl_interp *interp,
 	                   szl_ffi_library_proc,
 	                   szl_unload,
 	                   h);
-	szl_unref(name);
 	if (!obj) {
+		szl_free(name);
 		dlclose(h);
 		return SZL_ERR;
 	}
 
+	szl_unref(name);
 	return szl_set_last(interp, obj);
 }
 
@@ -1161,14 +1166,15 @@ enum szl_res szl_ffi_proc_function(struct szl_interp *interp,
 	                   szl_ffi_function_proc,
 	                   szl_ffi_function_del,
 	                   f);
-	szl_unref(name);
 	if (!obj) {
+		szl_free(name);
 		if (f->atypes)
 			free(f->atypes);
 		free(f);
 		return SZL_ERR;
 	}
 
+	szl_unref(name);
 	f->p = (void *)(intptr_t)addr;
 	f->addr = szl_ref(objv[1]);
 	return szl_set_last(interp, obj);

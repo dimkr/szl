@@ -1,7 +1,7 @@
 /*
  * this file is part of szl.
  *
- * Copyright (c) 2016 Dima Krasner
+ * Copyright (c) 2016, 2017 Dima Krasner
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -136,7 +136,7 @@ enum szl_res szl_proc_proc_stack(struct szl_interp *interp,
 	call = interp->current;
 	for (i = 0; (call != interp->global) && (i < lim); ++i) {
 		if (!szl_list_append(interp, stack, call->args)) {
-			szl_unref(stack);
+			szl_free(stack);
 			return SZL_ERR;
 		}
 

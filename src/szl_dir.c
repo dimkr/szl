@@ -1,7 +1,7 @@
 /*
  * this file is part of szl.
  *
- * Copyright (c) 2016 Dima Krasner
+ * Copyright (c) 2016, 2017 Dima Krasner
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -115,9 +115,9 @@ enum szl_res szl_dir_proc_list(struct szl_interp *interp,
 
 	do {
 		if (readdir_r(dir, &ent, &entp) != 0) {
-			szl_unref(obj);
-			szl_unref(names[1]);
-			szl_unref(names[0]);
+			szl_free(obj);
+			szl_free(names[1]);
+			szl_free(names[0]);
 			closedir(dir);
 			return SZL_ERR;
 		}
@@ -138,9 +138,9 @@ enum szl_res szl_dir_proc_list(struct szl_interp *interp,
 			out = szl_list_append_str(interp, names[1], entp->d_name, -1);
 
 		if (!out) {
-			szl_unref(obj);
-			szl_unref(names[1]);
-			szl_unref(names[0]);
+			szl_free(obj);
+			szl_free(names[1]);
+			szl_free(names[0]);
 			closedir(dir);
 			return SZL_ERR;
 		}
@@ -149,9 +149,9 @@ enum szl_res szl_dir_proc_list(struct szl_interp *interp,
 	for (i = 0; i < 2; ++i) {
 		if (!szl_as_str(interp, names[i], &s, &len) ||
 		    !szl_list_append_str(interp, obj, s, (int)len)) {
-			szl_unref(obj);
-			szl_unref(names[1]);
-			szl_unref(names[0]);
+			szl_free(obj);
+			szl_free(names[1]);
+			szl_free(names[0]);
 			closedir(dir);
 			return SZL_ERR;
 		}

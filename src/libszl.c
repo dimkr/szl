@@ -42,42 +42,33 @@
  */
 
 __attribute__((nonnull(1)))
-inline
-struct szl_obj *szl_ref(struct szl_obj *obj)
-{
-	++obj->refc;
-	return obj;
-}
-
-__attribute__((nonnull(1)))
-void szl_unref(struct szl_obj *obj)
+void szl_free(struct szl_obj *obj)
 {
 	size_t i;
 
-	if (!--obj->refc) {
-		if (obj->types & (1 << SZL_TYPE_STR))
-			free(obj->val.s);
+	if (obj->types & (1 << SZL_TYPE_STR))
+		free(obj->val.s);
 
 #ifndef SZL_NO_UNICODE
-		if (obj->types & (1 << SZL_TYPE_WSTR))
-			free(obj->val.w);
+	if (obj->types & (1 << SZL_TYPE_WSTR))
+		free(obj->val.w);
 #endif
 
-		if (obj->types & (1 << SZL_TYPE_LIST)) {
-			for (i = 0; i < obj->val.llen; ++i)
-				szl_unref(obj->val.items[i]);
+	if (obj->types & (1 << SZL_TYPE_LIST)) {
+		for (i = 0; i < obj->val.llen; ++i)
+			szl_unref(obj->val.items[i]);
 
-			free(obj->val.items);
-		}
-
-		if (obj->types & (1 << SZL_TYPE_CODE))
-			szl_unref(obj->val.c);
-
-		if (obj->del)
-			obj->del(obj->priv);
-
-		free(obj);
+		free(obj->val.items);
 	}
+
+	if (obj->types & (1 << SZL_TYPE_CODE))
+		szl_unref(obj->val.c);
+
+	if (obj->del)
+		obj->del(obj->priv);
+
+	free(obj);
+
 }
 
 /*
@@ -88,11 +79,6 @@ static
 int szl_no_cast(struct szl_interp *interp, struct szl_obj *obj)
 {
 	return 1;
-}
-
-int szl_isspace(const char ch)
-{
-	return ((ch == ' ') || (ch == '\t') || (ch == '\n') || (ch == '\r'));
 }
 
 static
@@ -221,7 +207,7 @@ int szl_split(struct szl_interp *interp,
 		if (!mitems) {
 			if (*items) {
 				for (i = 0; i < *len; ++i)
-					szl_unref(*items[i]);
+					szl_free(*items[i]);
 
 				free(*items);
 			}
@@ -231,7 +217,7 @@ int szl_split(struct szl_interp *interp,
 		mitems[*len] = szl_new_str(tok, -1);
 		if (!mitems[*len]) {
 			for (i = 0; i < *len; ++i)
-				szl_unref(mitems[i]);
+				szl_free(mitems[i]);
 			free(mitems);
 			return 0;
 		}
@@ -409,7 +395,7 @@ int szl_str_to_code(struct szl_interp *interp, struct szl_obj *obj)
 
 			if (fmt) {
 				szl_set_last_fmt(interp, fmt, obj->val.s);
-				szl_unref(obj->val.c);
+				szl_free(obj->val.c);
 				free(copy);
 				return 0;
 			}
@@ -428,14 +414,14 @@ int szl_str_to_code(struct szl_interp *interp, struct szl_obj *obj)
 		if (line[0] != '\0' && line[0] != SZL_COMMENT_PFIX) {
 			stmt = szl_new_str(line, next - line);
 			if (!stmt) {
-				szl_unref(obj->val.c);
+				szl_free(obj->val.c);
 				free(copy);
 				return 0;
 			}
 
 			if (!szl_list_append(interp, obj->val.c, stmt)) {
-				szl_unref(stmt);
-				szl_unref(obj->val.c);
+				szl_free(stmt);
+				szl_free(obj->val.c);
 				free(copy);
 				return 0;
 			}
@@ -510,7 +496,7 @@ int szl_list_to_str(struct szl_interp *interp, struct szl_obj *obj)
 	obj->val.slen = str->val.slen;
 
 	str->types &= ~(1 << SZL_TYPE_STR);
-	szl_unref(str);
+	szl_free(str);
 
 	obj->types |= 1 << SZL_TYPE_STR;
 	return 1;
@@ -1025,7 +1011,7 @@ void szl_pop_call(struct szl_interp *interp)
 	struct szl_frame *call = interp->current;
 
 	szl_unref(call->args);
-	szl_unref(call->locals);
+	szl_free(call->locals);
 
 	--interp->depth;
 	interp->current = call->caller;
@@ -1063,7 +1049,7 @@ struct szl_frame *szl_new_call(struct szl_interp *interp,
 
 	call->args = szl_new_list(NULL, 0);
 	if (!call->args) {
-		szl_unref(call->locals);
+		szl_free(call->locals);
 		free(call);
 		return NULL;
 	}
@@ -1153,7 +1139,7 @@ struct szl_obj *szl_new_proc(struct szl_interp *interp,
 	obj = szl_new_str_fmt("proc:%x", (unsigned int)rand_r(&interp->seed));
 	if (obj) {
 		if (!szl_set(interp, szl_caller(interp), name, obj)) {
-			szl_unref(obj);
+			szl_free(obj);
 			return NULL;
 		}
 
@@ -1188,7 +1174,7 @@ int szl_set_args(struct szl_interp *interp,
 			return 0;
 
 		if (!szl_set(interp, call, arg, items[i])) {
-			szl_unref(arg);
+			szl_free(arg);
 			return 0;
 		}
 
@@ -1759,7 +1745,7 @@ struct szl_interp *szl_new_interp(int argc, char *argv[])
 
 	interp->space = szl_new_str(" ", 1);
 	if (!interp->space) {
-		szl_unref(interp->empty);
+		szl_free(interp->empty);
 		free(interp);
 		return NULL;
 	}
@@ -1768,9 +1754,9 @@ struct szl_interp *szl_new_interp(int argc, char *argv[])
 		interp->nums[i] = szl_new_int_nocache(i);
 		if (!interp->nums[i]) {
 			for (--i; i >= 0; --i)
-				szl_unref(interp->nums[i]);
-			szl_unref(interp->space);
-			szl_unref(interp->empty);
+				szl_free(interp->nums[i]);
+			szl_free(interp->space);
+			szl_free(interp->empty);
 			free(interp);
 			return NULL;
 		}
@@ -1780,9 +1766,9 @@ struct szl_interp *szl_new_interp(int argc, char *argv[])
 	interp->sep = szl_new_str("/", 1);
 	if (!interp->sep) {
 		for (--i; i >= 0; --i)
-			szl_unref(interp->nums[i]);
-		szl_unref(interp->space);
-		szl_unref(interp->empty);
+			szl_free(interp->nums[i]);
+		szl_free(interp->space);
+		szl_free(interp->empty);
 		free(interp);
 		return NULL;
 	}
@@ -1791,9 +1777,9 @@ struct szl_interp *szl_new_interp(int argc, char *argv[])
 	if (!interp->_) {
 		szl_unref(interp->sep);
 		for (--i; i >= 0; --i)
-			szl_unref(interp->nums[i]);
-		szl_unref(interp->space);
-		szl_unref(interp->empty);
+			szl_free(interp->nums[i]);
+		szl_free(interp->space);
+		szl_free(interp->empty);
 		free(interp);
 		return NULL;
 	}
@@ -1801,12 +1787,12 @@ struct szl_interp *szl_new_interp(int argc, char *argv[])
 	interp->depth = 0;
 	interp->global = szl_new_call(interp, interp->empty, NULL);
 	if (!interp->global) {
-		szl_unref(interp->_);
-		szl_unref(interp->sep);
+		szl_free(interp->_);
+		szl_free(interp->sep);
 		for (--i; i >= 0; --i)
-			szl_unref(interp->nums[i]);
-		szl_unref(interp->space);
-		szl_unref(interp->empty);
+			szl_free(interp->nums[i]);
+		szl_free(interp->space);
+		szl_free(interp->empty);
 		free(interp);
 		return NULL;
 	}
@@ -1814,41 +1800,41 @@ struct szl_interp *szl_new_interp(int argc, char *argv[])
 	interp->args = szl_new_str(SZL_OBJV_NAME, sizeof(SZL_OBJV_NAME) - 1);
 	if (!interp->args) {
 		szl_pop_call(interp);
-		szl_unref(interp->_);
-		szl_unref(interp->sep);
+		szl_free(interp->_);
+		szl_free(interp->sep);
 		for (--i; i >= 0; --i)
-			szl_unref(interp->nums[i]);
-		szl_unref(interp->space);
-		szl_unref(interp->empty);
+			szl_free(interp->nums[i]);
+		szl_free(interp->space);
+		szl_free(interp->empty);
 		free(interp);
 		return NULL;
 	}
 
 	interp->priv = szl_new_str(SZL_PRIV_NAME, sizeof(SZL_PRIV_NAME) - 1);
 	if (!interp->args) {
-		szl_unref(interp->args);
+		szl_free(interp->args);
 		szl_pop_call(interp);
-		szl_unref(interp->_);
-		szl_unref(interp->sep);
+		szl_free(interp->_);
+		szl_free(interp->sep);
 		for (--i; i >= 0; --i)
-			szl_unref(interp->nums[i]);
-		szl_unref(interp->space);
-		szl_unref(interp->empty);
+			szl_free(interp->nums[i]);
+		szl_free(interp->space);
+		szl_free(interp->empty);
 		free(interp);
 		return NULL;
 	}
 
 	interp->exts = szl_new_list(NULL, 0);
 	if (!interp->exts) {
-		szl_unref(interp->priv);
-		szl_unref(interp->args);
+		szl_free(interp->priv);
+		szl_free(interp->args);
 		szl_pop_call(interp);
-		szl_unref(interp->_);
-		szl_unref(interp->sep);
+		szl_free(interp->_);
+		szl_free(interp->sep);
 		for (--i; i >= 0; --i)
-			szl_unref(interp->nums[i]);
-		szl_unref(interp->space);
-		szl_unref(interp->empty);
+			szl_free(interp->nums[i]);
+		szl_free(interp->space);
+		szl_free(interp->empty);
 		free(interp);
 		return NULL;
 	}
@@ -1856,16 +1842,16 @@ struct szl_interp *szl_new_interp(int argc, char *argv[])
 #ifndef SZL_NO_DL
 	interp->libs = szl_new_list(NULL, 0);
 	if (!interp->libs) {
-		szl_unref(interp->exts);
-		szl_unref(interp->priv);
-		szl_unref(interp->args);
+		szl_free(interp->exts);
+		szl_free(interp->priv);
+		szl_free(interp->args);
 		szl_pop_call(interp);
-		szl_unref(interp->_);
-		szl_unref(interp->sep);
+		szl_free(interp->_);
+		szl_free(interp->sep);
 		for (--i; i >= 0; --i)
-			szl_unref(interp->nums[i]);
-		szl_unref(interp->space);
-		szl_unref(interp->empty);
+			szl_free(interp->nums[i]);
+		szl_free(interp->space);
+		szl_free(interp->empty);
 		free(interp);
 		return NULL;
 	}
@@ -2102,7 +2088,10 @@ int szl_get_byname(struct szl_interp *interp,
 			return SZL_ERR;
 
 		ret = szl_get(interp, nameo, obj);
-		szl_unref(nameo);
+		if (ret)
+			szl_unref(nameo);
+		else
+			szl_free(nameo);
 		return ret;
 	}
 
@@ -2223,7 +2212,7 @@ struct szl_obj *szl_parse_stmts(struct szl_interp *interp,
 
 			if (fmt) {
 				szl_set_last_fmt(interp, fmt, buf);
-				szl_unref(stmts);
+				szl_free(stmts);
 				free(copy);
 				return NULL;
 			}
@@ -2242,14 +2231,14 @@ struct szl_obj *szl_parse_stmts(struct szl_interp *interp,
 		if (line[0] != '\0' && line[0] != SZL_COMMENT_PFIX) {
 			stmt = szl_new_str(line, next - line);
 			if (!stmt) {
-				szl_unref(stmts);
+				szl_free(stmts);
 				free(copy);
 				return NULL;
 			}
 
 			if (!szl_list_append(interp, stmts, stmt)) {
-				szl_unref(stmt);
-				szl_unref(stmts);
+				szl_free(stmt);
+				szl_free(stmts);
 				free(copy);
 				return NULL;
 			}
@@ -2388,7 +2377,7 @@ int szl_new_ext(struct szl_interp *interp,
 	for (i = 0; i < n; ++i) {
 		obj_name = szl_new_str(exports[i].name, -1);
 		if (!obj_name) {
-			szl_unref(ext);
+			szl_free(ext);
 			return 0;
 		}
 
@@ -2419,21 +2408,21 @@ int szl_new_ext(struct szl_interp *interp,
 #endif
 
 			default:
-				szl_unref(obj_name);
-				szl_unref(ext);
+				szl_free(obj_name);
+				szl_free(ext);
 				return 0;
 		}
 
 		if (!val) {
-			szl_unref(obj_name);
-			szl_unref(ext);
+			szl_free(obj_name);
+			szl_free(ext);
 			return 0;
 		}
 
 		if (!szl_set(interp, interp->global, obj_name, val)) {
-			szl_unref(val);
-			szl_unref(obj_name);
-			szl_unref(ext);
+			szl_free(val);
+			szl_free(obj_name);
+			szl_free(ext);
 			return 0;
 		}
 
@@ -2442,7 +2431,7 @@ int szl_new_ext(struct szl_interp *interp,
 	}
 
 	if (!szl_list_append(interp, interp->exts, ext)) {
-		szl_unref(ext);
+		szl_free(ext);
 		return 0;
 	}
 
@@ -2486,24 +2475,24 @@ int szl_load(struct szl_interp *interp, const char *name)
 		return 0;
 
 	if (!szl_list_in(interp, lib, interp->libs, &loaded)) {
-		szl_unref(lib);
+		szl_free(lib);
 		return 0;
 	}
 
 	if (loaded) {
-		szl_unref(lib);
+		szl_free(lib);
 		return 1;
 	}
 
 	if (!szl_as_str(interp, lib, &path, NULL)) {
-		szl_unref(lib);
+		szl_free(lib);
 		return 0;
 	}
 
 	lib->priv = dlopen(path, RTLD_LAZY);
 	if (!lib->priv) {
 		szl_set_last_fmt(interp, "failed to load %s", path);
-		szl_unref(lib);
+		szl_free(lib);
 		return 0;
 	}
 
@@ -2513,12 +2502,12 @@ int szl_load(struct szl_interp *interp, const char *name)
 	*((void **)&init) = dlsym(lib->priv, init_name);
 	if (!init) {
 		szl_set_last_fmt(interp, "failed to locate %s", init_name);
-		szl_unref(lib);
+		szl_free(lib);
 		return 0;
 	}
 
 	if (!szl_list_append(interp, interp->libs, lib)) {
-		szl_unref(lib);
+		szl_free(lib);
 		return 0;
 	}
 	szl_unref(lib);
@@ -2940,7 +2929,7 @@ enum szl_res szl_stream_accept(struct szl_interp *interp,
 
 	do {
 		if (!strm->ops->accept(interp, strm->priv, &cstrm)) {
-			szl_unref(list);
+			szl_free(list);
 			return SZL_ERR;
 		}
 
@@ -2950,13 +2939,13 @@ enum szl_res szl_stream_accept(struct szl_interp *interp,
 		csock = szl_new_stream(interp, cstrm, "stream.client");
 		if (!csock) {
 			szl_stream_free(cstrm);
-			szl_unref(list);
+			szl_free(list);
 			return SZL_ERR;
 		}
 
 		if (!szl_list_append(interp, list, csock)) {
-			szl_unref(csock);
-			szl_unref(list);
+			szl_free(csock);
+			szl_free(list);
 			return SZL_ERR;
 		}
 
@@ -3149,6 +3138,10 @@ struct szl_obj *szl_new_stream(struct szl_interp *interp,
 	                    szl_stream_proc,
 	                    szl_stream_del,
 	                    strm);
-	szl_unref(name);
+	if (proc)
+		szl_unref(name);
+	else
+		szl_free(name);
+
 	return proc;
 }

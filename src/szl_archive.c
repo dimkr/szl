@@ -96,7 +96,7 @@ enum szl_res szl_archive_list(struct szl_interp *interp,
 		return SZL_ERR;
 
 	if (!szl_archive_iter(interp, ar, szl_archive_append_path, paths)) {
-		szl_unref(paths);
+		szl_free(paths);
 		return SZL_ERR;
 	}
 
@@ -242,13 +242,14 @@ enum szl_res szl_archive_proc_open(struct szl_interp *interp,
 	                    szl_archive_proc,
 	                    szl_archive_del,
 	                    ar);
-	szl_unref(name);
 
 	if (!proc) {
+		szl_free(name);
 		szl_archive_del(ar);
 		return SZL_ERR;
 	}
 
+	szl_unref(name);
 	return szl_set_last(interp, proc);
 }
 

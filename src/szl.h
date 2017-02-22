@@ -131,7 +131,11 @@
  * @param ch [in] A character
  * @return Non-zero if the character is whitespace, otherwise zero
  */
-int szl_isspace(const char ch);
+static inline
+int szl_isspace(const char ch)
+{
+	return ((ch == ' ') || (ch == '\t') || (ch == '\n') || (ch == '\r'));
+}
 
 /**
  * @}
@@ -392,7 +396,21 @@ struct szl_interp {
  * @param obj [in,out] An object
  * @return The passed object pointer
  */
-struct szl_obj *szl_ref(struct szl_obj *obj);
+__attribute__((nonnull(1)))
+static inline
+struct szl_obj *szl_ref(struct szl_obj *obj)
+{
+	++obj->refc;
+	return obj;
+}
+
+
+/**
+ * @fn void szl_free(struct szl_obj *obj)
+ * @brief Frees an object
+ * @param obj [in,out] An object
+ */
+void szl_free(struct szl_obj *obj);
 
 /**
  * @fn void szl_unref(struct szl_obj *obj)
@@ -400,7 +418,13 @@ struct szl_obj *szl_ref(struct szl_obj *obj);
  *        reference count reaches zero
  * @param obj [in,out] An object
  */
-void szl_unref(struct szl_obj *obj);
+__attribute__((nonnull(1)))
+static inline
+void szl_unref(struct szl_obj *obj)
+{
+	if (!--obj->refc)
+		szl_free(obj);
+}
 
 /**
  * @}

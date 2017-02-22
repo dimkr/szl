@@ -151,7 +151,7 @@ enum szl_res szl_list_proc_range(struct szl_interp *interp,
 
 	for (i = start; i <= end; ++i) {
 		if (!szl_list_append(interp, list, items[i])) {
-			szl_unref(list);
+			szl_free(list);
 			return SZL_ERR;
 		}
 	}
@@ -190,7 +190,7 @@ enum szl_res szl_list_proc_reverse(struct szl_interp *interp,
 
 	for (i = (szl_int)n - 1; i >= 0; --i) {
 		if (!szl_list_append(interp, list, items[i])) {
-			szl_unref(list);
+			szl_free(list);
 			return SZL_ERR;
 		}
 	}
@@ -219,8 +219,8 @@ enum szl_res szl_list_proc_join(struct szl_interp *interp,
 	for (i = 0; i < n; ++i) {
 		if (!szl_as_str(interp, items[i], &s, &len) ||
 		    !szl_str_append_str(interp, str, s, len) ||
-		   ((i < n - 1) && !szl_str_append_str(interp, str, delim, dlen))) {
-			szl_unref(str);
+		    ((i < n - 1) && !szl_str_append_str(interp, str, delim, dlen))) {
+			szl_free(str);
 			return SZL_ERR;
 		}
 	}
@@ -276,7 +276,7 @@ enum szl_res szl_list_proc_zip(struct szl_interp *interp,
 	for (j = 0; j < ns[0]; ++j) {
 		item = szl_new_empty();
 		if (!item) {
-			szl_unref(list);
+			szl_free(list);
 			free(ns);
 			free(items);
 			return SZL_ERR;
@@ -284,8 +284,8 @@ enum szl_res szl_list_proc_zip(struct szl_interp *interp,
 
 		for (i = 0; i < n; ++i) {
 			if (!szl_list_append(interp, item, items[i][j])) {
-				szl_unref(item);
-				szl_unref(list);
+				szl_free(item);
+				szl_free(list);
 				free(ns);
 				free(items);
 				return SZL_ERR;
@@ -293,8 +293,8 @@ enum szl_res szl_list_proc_zip(struct szl_interp *interp,
 		}
 
 		if (!szl_list_append(interp, list, item)) {
-			szl_unref(item);
-			szl_unref(list);
+			szl_free(item);
+			szl_free(list);
 			free(ns);
 			free(items);
 			return SZL_ERR;
@@ -327,7 +327,7 @@ enum szl_res szl_list_proc_uniq(struct szl_interp *interp,
 	for (i = 1; i < len; ++i) {
 		if (!szl_list_in(interp, items[i], uniq, &in) ||
 		    (!in && !szl_list_append(interp, uniq, items[i]))) {
-			szl_unref(uniq);
+			szl_free(uniq);
 			return SZL_ERR;
 		}
 	}

@@ -174,8 +174,8 @@ enum szl_res szl_file_proc_lock(struct szl_interp *interp,
 	                    szl_file_lock_proc,
 	                    szl_file_lock_del,
 	                    lock);
-	szl_unref(name);
 	if (!proc) {
+		szl_free(name);
 		lockf(lock->fd, F_ULOCK, 0);
 		close(lock->fd);
 		free(lock->path);
@@ -183,6 +183,7 @@ enum szl_res szl_file_proc_lock(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
+	szl_unref(name);
 	lock->locked = 1;
 	return szl_set_last(interp, proc);
 }

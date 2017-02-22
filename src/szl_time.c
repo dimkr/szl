@@ -157,12 +157,13 @@ enum szl_res szl_time_proc_timestamp(struct szl_interp *interp,
 	                    szl_timestamp_proc,
 	                    free,
 	                    ts);
-	szl_unref(name);
 	if (!proc) {
+		szl_free(name);
 		free(ts);
 		return SZL_ERR;
 	}
 
+	szl_unref(name);
 	return szl_set_last(interp, proc);
 }
 

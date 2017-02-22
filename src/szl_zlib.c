@@ -1,7 +1,7 @@
 /*
  * this file is part of szl.
  *
- * Copyright (c) 2016 Dima Krasner
+ * Copyright (c) 2016, 2017 Dima Krasner
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -188,7 +188,7 @@ enum szl_res szl_zlib_decompress(struct szl_interp *interp,
 					break;
 
 			default:
-				szl_unref(out);
+				szl_free(out);
 				free(buf);
 				inflateEnd(&strm);
 				if (strm.msg != NULL)

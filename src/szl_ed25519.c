@@ -1,7 +1,7 @@
 /*
  * this file is part of szl.
  *
- * Copyright (c) 2016 Dima Krasner
+ * Copyright (c) 2016, 2017 Dima Krasner
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -116,7 +116,7 @@ enum szl_res szl_ed25519_proc_keypair(struct szl_interp *interp,
 		return SZL_ERR;
 
 	if (ed25519_create_seed(buf + 96) != 0) {
-		szl_unref(list);
+		szl_free(list);
 		return SZL_ERR;
 	}
 
@@ -124,7 +124,7 @@ enum szl_res szl_ed25519_proc_keypair(struct szl_interp *interp,
 
 	if (!szl_list_append_str(interp, list, (const char *)buf + 32, 64) ||
 	    !szl_list_append_str(interp, list, (const char *)buf, 32)) {
-		szl_unref(list);
+		szl_free(list);
 		return SZL_ERR;
 	}
 

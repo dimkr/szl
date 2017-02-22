@@ -104,22 +104,22 @@ enum szl_res szl_poll_poll_proc(struct szl_interp *interp,
 
 			r = szl_new_list(NULL, 0);
 			if (!r) {
-				szl_unref(list);
+				szl_free(list);
 				return SZL_ERR;
 			}
 
 			w = szl_new_list(NULL, 0);
 			if (!w) {
-				szl_unref(r);
-				szl_unref(list);
+				szl_free(r);
+				szl_free(list);
 				return SZL_ERR;
 			}
 
 			e = szl_new_list(NULL, 0);
 			if (!e) {
-				szl_unref(w);
-				szl_unref(r);
-				szl_unref(list);
+				szl_free(w);
+				szl_free(r);
+				szl_free(list);
 				return SZL_ERR;
 			}
 
@@ -128,8 +128,8 @@ enum szl_res szl_poll_poll_proc(struct szl_interp *interp,
 			    !szl_list_append(interp, list, e)) {
 				szl_unref(e);
 				szl_unref(w);
-				szl_unref(r);
-				szl_unref(list);
+				szl_free(r);
+				szl_free(list);
 				return SZL_ERR;
 			}
 
@@ -139,14 +139,14 @@ enum szl_res szl_poll_poll_proc(struct szl_interp *interp,
 
 			evs = (struct epoll_event *)malloc(sizeof(struct epoll_event) * n);
 			if (!evs) {
-				szl_unref(list);
+				szl_free(list);
 				return SZL_ERR;
 			}
 
 			out = epoll_wait(efd, evs, (int)n, -1);
 			if (out < 0) {
 				free(evs);
-				szl_unref(list);
+				szl_free(list);
 				return SZL_ERR;
 			}
 
@@ -172,7 +172,7 @@ enum szl_res szl_poll_poll_proc(struct szl_interp *interp,
 
 err:
 				free(evs);
-				szl_unref(list);
+				szl_free(list);
 				return SZL_ERR;
 			}
 
@@ -216,13 +216,13 @@ enum szl_res szl_poll_proc_create(struct szl_interp *interp,
 	                    szl_poll_poll_proc,
 	                    szl_poll_poll_del,
 	                    (void *)(intptr_t)fd);
-	szl_unref(name);
-
 	if (!proc) {
+		szl_free(name);
 		close(fd);
 		return SZL_ERR;
 	}
 
+	szl_unref(name);
 	return szl_set_last(interp, proc);
 }
 

@@ -279,13 +279,13 @@ enum szl_res szl_str_proc_split(struct szl_interp *interp,
 				                         list,
 				                         tok,
 				                         (next - tok) - dlen)) {
-					szl_unref(list);
+					szl_free(list);
 					return SZL_ERR;
 				}
 			}
 			else {
 				if (!szl_list_append_str(interp, list, tok, slen - (tok - s))) {
-					szl_unref(list);
+					szl_free(list);
 					return SZL_ERR;
 				}
 				break;
@@ -298,7 +298,7 @@ enum szl_res szl_str_proc_split(struct szl_interp *interp,
 	else {
 		for (i = 0; i < slen; ++i) {
 			if (!szl_list_append_str(interp, list, &s[i], 1)) {
-				szl_unref(list);
+				szl_free(list);
 				return SZL_ERR;
 			}
 		}
@@ -481,12 +481,12 @@ enum szl_res szl_str_proc_format(struct szl_interp *interp,
 			if (i == objc)
 				break;
 
-			szl_unref(str);
+			szl_free(str);
 			szl_set_last_fmt(interp, "extra args for fmt: %s", fmt);
 			return SZL_ERR;
 		}
 		else if (i == objc) {
-			szl_unref(str);
+			szl_free(str);
 			szl_set_last_fmt(interp, "missing args for fmt: %s", fmt);
 			return SZL_ERR;
 		}
@@ -495,7 +495,7 @@ enum szl_res szl_str_proc_format(struct szl_interp *interp,
 		if ((plen && !szl_str_append_str(interp, str, prev, plen)) ||
 		    !szl_as_str(interp, objv[i], &item, &len) ||
 		    !szl_str_append_str(interp, str, item, len)) {
-			szl_unref(str);
+			szl_free(str);
 			return SZL_ERR;
 		}
 
@@ -506,7 +506,7 @@ enum szl_res szl_str_proc_format(struct szl_interp *interp,
 
 	len = flen - (prev - fmt);
 	if (len && !szl_str_append_str(interp, str, prev, len)) {
-		szl_unref(str);
+		szl_free(str);
 		return SZL_ERR;
 	}
 
@@ -593,7 +593,7 @@ enum szl_res szl_byte_proc_ord(struct szl_interp *interp,
 
 	for (i = 0; i < len; ++i) {
 		if (!szl_list_append_int(interp, list, (szl_int)s[i])) {
-			szl_unref(list);
+			szl_free(list);
 			return SZL_ERR;
 		}
 	}

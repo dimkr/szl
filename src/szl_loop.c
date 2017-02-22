@@ -1,7 +1,7 @@
 /*
  * this file is part of szl.
  *
- * Copyright (c) 2016 Dima Krasner
+ * Copyright (c) 2016, 2017 Dima Krasner
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -169,7 +169,7 @@ enum szl_res szl_loop_map(struct szl_interp *interp,
 		for (j = 0; j < nnames; ++j) {
 			if (!szl_set(interp, interp->current, names[j], toks[i + j])) {
 				if (obj)
-					szl_unref(obj);
+					szl_free(obj);
 				return SZL_ERR;
 			}
 		}
@@ -183,19 +183,19 @@ enum szl_res szl_loop_map(struct szl_interp *interp,
 
 		if (res == SZL_RET) {
 			if (obj)
-				szl_unref(obj);
+				szl_free(obj);
 			return SZL_RET;
 		}
 
 		if (res != SZL_OK) {
 			if (obj)
-				szl_unref(obj);
+				szl_free(obj);
 			return res;
 		}
 
 		if (obj) {
 			if (!szl_list_append(interp, obj, interp->last)) {
-				szl_unref(obj);
+				szl_free(obj);
 				return SZL_ERR;
 			}
 		}
@@ -246,7 +246,7 @@ enum szl_res szl_loop_proc_range(struct szl_interp *interp,
 
 	for (i = 0; i < n; ++i) {
 		if (!szl_list_append_int(interp, obj, start + i)) {
-			szl_unref(obj);
+			szl_free(obj);
 			return SZL_ERR;
 		}
 	}

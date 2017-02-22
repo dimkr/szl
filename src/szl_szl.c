@@ -122,12 +122,13 @@ enum szl_res szl_szl_proc_interp(struct szl_interp *interp,
 	                    szl_interp_proc,
 	                    szl_interp_del,
 	                    interp2);
-	szl_unref(name);
 	if (!proc) {
+		szl_free(name);
 		szl_free_interp(interp2);
 		return SZL_ERR;
 	}
 
+	szl_unref(name);
 	return szl_set_last(interp, proc);
 }
 
