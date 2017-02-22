@@ -1123,8 +1123,7 @@ struct szl_obj *szl_new_list(struct szl_obj **objv, const size_t len)
 	if (!obj)
 		return obj;
 
-	obj->val.items = (struct szl_obj **)malloc(
-	                                            sizeof(struct szl_obj *) * len);
+	obj->val.items = (struct szl_obj **)malloc(sizeof(struct szl_obj *) * len);
 	if (!obj->val.items) {
 		free(obj);
 		return NULL;
@@ -1854,6 +1853,7 @@ struct szl_interp *szl_new_interp(int argc, char *argv[])
 		return NULL;
 	}
 
+#ifndef SZL_NO_DL
 	interp->libs = szl_new_list(NULL, 0);
 	if (!interp->libs) {
 		szl_unref(interp->exts);
@@ -1869,6 +1869,7 @@ struct szl_interp *szl_new_interp(int argc, char *argv[])
 		free(interp);
 		return NULL;
 	}
+#endif
 
 	interp->last = szl_ref(interp->empty);
 
@@ -1919,9 +1920,11 @@ void szl_free_interp(struct szl_interp *interp)
 	szl_unref(interp->space);
 	szl_unref(interp->empty);
 
+#ifndef SZL_NO_DL
 	/* must happen after we free all other objects, in case a destructor is a
 	 * shared object function */
 	szl_unref(interp->libs);
+#endif
 
 	free(interp);
 }

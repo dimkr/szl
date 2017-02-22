@@ -371,7 +371,9 @@ struct szl_interp {
 	unsigned int depth; /**< The call stack depth */
 
 	struct szl_obj *exts; /**< Loaded extensions */
+#	ifndef SZL_NO_DL
 	struct szl_obj *libs; /**< Loaded extension shared objects */
+#	endif
 
 	unsigned int seed; /**< A random number generation seed */
 };
