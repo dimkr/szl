@@ -1,6 +1,6 @@
 # this file is part of szl.
 #
-# Copyright (c) 2016 Dima Krasner
+# Copyright (c) 2016, 2017 Dima Krasner
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -43,7 +43,7 @@ $proc class {
 			$for {methods data super} $. {
 				$local this $0
 				$local stmt [$list.new [$dict.get $methods $1]]
-				$list.extend $stmt [$list.range $@ 1 [$- [$list.len $@] 1]]
+				$list.extend $stmt [$list.range $@ 2 [$- [$list.len $@] 1]]
 				$call $stmt
 			}
 		} [$list.new $. [$dict.new] [$proc super {

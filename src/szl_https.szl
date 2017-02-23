@@ -26,7 +26,7 @@ $try {$load tls}
 
 $class https.server {
 	$method accept {
-		$local clients [$2 accept]
+		$local clients [$1 accept]
 		$local tls_clients {}
 
 		$for s $clients {

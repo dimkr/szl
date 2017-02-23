@@ -115,7 +115,7 @@ $global http.index_footer [$expand \t\t</ul>\n\t</body>\n</html>]
 $class http.server {
 	$method get_response {
 		$try {
-			$local request [$http.parse $2]
+			$local request [$http.parse $1]
 			$local url [$list.index $request 0]
 			$if [$str.in $url ..] {$throw}
 

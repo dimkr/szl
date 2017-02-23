@@ -80,7 +80,7 @@ $proc resp.error {
 $class resp.server {
 	$method get_response {
 		$try {
-			$local cmd [$list.index [$resp.array $2] 1]
+			$local cmd [$list.index [$resp.array $1] 1]
 
 			$switch [$list.index [$list.index $cmd 0] 1] SET {
 				$dict.set $resp.objects [$list.index [$list.index $cmd 1] 1] [$list.index $cmd 2]

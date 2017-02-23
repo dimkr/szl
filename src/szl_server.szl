@@ -24,15 +24,15 @@ $load oop
 
 $class server.tcp {
 	$method accept {
-		$2 accept
+		$1 accept
 	}
 
 	$method get_response {
-		$return $2
+		$return $1
 	}
 
 	$method serve {
-		$local backlog $4
+		$local backlog $3
 
 		$proc cleanup {
 			$for close_handle $1 {
@@ -67,7 +67,7 @@ $class server.tcp {
 		$local requests {}
 		$local responses {}
 
-		$local listening_socket [$stream.server $2 $3 $backlog]
+		$local listening_socket [$stream.server $1 $2 $backlog]
 		$listening_socket unblock
 		$local listening_socket_handle [$listening_socket handle]
 
