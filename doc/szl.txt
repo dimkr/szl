@@ -558,12 +558,12 @@ $for i [range 1 11] {$puts $i}
 --------------------------------------
 
 +$zip+ 'list list...'::
-	Returns a list of lists, each containing the 'n'-th elements of given lists
+	Returns a list consisting of sequences of the 'n'-th elements of given lists
 	of the same length.
 
 --------------------------------------
-$for pair [$zip {apple orange pear} {red orange green}] {
-	$puts [$format {{}s are {}} [$list.index $pair 0] [$list.index $pair 1]]
+$for {fruit color} [$zip {apple orange pear} {red orange green}] {
+	$puts [$format {{}s are {}} $fruit $color]
 }
 --------------------------------------
 

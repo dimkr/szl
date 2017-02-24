@@ -233,7 +233,7 @@ enum szl_res szl_list_proc_zip(struct szl_interp *interp,
                                const unsigned int objc,
                                struct szl_obj **objv)
 {
-	struct szl_obj *list, *item, ***items;
+	struct szl_obj *list, ***items;
 	size_t *ns, j;
 	int n, i;
 
@@ -274,33 +274,14 @@ enum szl_res szl_list_proc_zip(struct szl_interp *interp,
 	}
 
 	for (j = 0; j < ns[0]; ++j) {
-		item = szl_new_empty();
-		if (!item) {
-			szl_free(list);
-			free(ns);
-			free(items);
-			return SZL_ERR;
-		}
-
 		for (i = 0; i < n; ++i) {
-			if (!szl_list_append(interp, item, items[i][j])) {
-				szl_free(item);
+			if (!szl_list_append(interp, list, items[i][j])) {
 				szl_free(list);
 				free(ns);
 				free(items);
 				return SZL_ERR;
 			}
 		}
-
-		if (!szl_list_append(interp, list, item)) {
-			szl_free(item);
-			szl_free(list);
-			free(ns);
-			free(items);
-			return SZL_ERR;
-		}
-
-		szl_unref(item);
 	}
 
 	free(ns);
