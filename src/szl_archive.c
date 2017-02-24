@@ -36,13 +36,13 @@ struct szl_archive {
 };
 
 static
-int szl_archive_iter(struct szl_interp *interp,
-                     struct szl_archive *ar,
-                     int (*cb)(struct szl_interp *,
-                               struct szl_archive *,
-                               struct archive_entry *,
-                               void *),
-                     void *arg)
+enum szl_res szl_archive_iter(struct szl_interp *interp,
+                              struct szl_archive *ar,
+                              int (*cb)(struct szl_interp *,
+                                        struct szl_archive *,
+                                        struct archive_entry *,
+                                        void *),
+                              void *arg)
 {
 	struct archive_entry *entry;
 	const char *err;
@@ -53,20 +53,20 @@ int szl_archive_iter(struct szl_interp *interp,
 				break;
 
 			case ARCHIVE_EOF:
-				return 1;
+				return SZL_OK;
 
 			default:
 				err = archive_error_string(ar->in);
 				if (err)
 					szl_set_last_str(interp, err, -1);
-				return 0;
+				return SZL_ERR;
 		}
 
 		if (!cb(interp, ar, entry, arg))
 			break;
 	} while (1);
 
-	return 0;
+	return SZL_ERR;
 }
 
 static
@@ -78,10 +78,10 @@ int szl_archive_append_path(struct szl_interp *interp,
 	const char *path;
 
 	path = archive_entry_pathname(entry);
-	if (!path)
-		return 0;
+	if (path)
+		return szl_list_append_str(interp, (struct szl_obj *)arg, path, -1);
 
-	return szl_list_append_str(interp, (struct szl_obj *)arg, path, -1);
+	return 0;
 }
 
 static
@@ -89,17 +89,20 @@ enum szl_res szl_archive_list(struct szl_interp *interp,
                               struct szl_archive *ar)
 {
 	struct szl_obj *paths;
+	enum szl_res res;
 
 	paths = szl_new_list(NULL, 0);
-	if (!paths)
-		return SZL_ERR;
+	if (paths) {
+		if (szl_archive_iter(interp,
+		                     ar,
+		                     szl_archive_append_path,
+		                     paths) == SZL_OK)
+			return szl_set_last(interp, paths);
 
-	if (!szl_archive_iter(interp, ar, szl_archive_append_path, paths)) {
 		szl_free(paths);
-		return SZL_ERR;
 	}
 
-	return szl_set_last(interp, paths);
+	return SZL_ERR;
 }
 
 static
@@ -149,10 +152,7 @@ static
 enum szl_res szl_archive_extract(struct szl_interp *interp,
                                  struct szl_archive *ar)
 {
-	return szl_archive_iter(interp,
-	                        ar,
-	                        szl_archive_extract_file,
-	                        NULL) ? SZL_OK : SZL_ERR;
+	return szl_archive_iter(interp, ar, szl_archive_extract_file, NULL);
 }
 
 static
