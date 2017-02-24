@@ -40,12 +40,12 @@ int szl_archive_iter(struct szl_interp *interp,
                      struct szl_archive *ar,
                      int (*cb)(struct szl_interp *,
                                struct szl_archive *,
-                               const char *,
+                               struct archive_entry *,
                                void *),
                      void *arg)
 {
 	struct archive_entry *entry;
-	const char *path;
+	const char *err;
 
 	do {
 		switch (archive_read_next_header(ar->in, &entry)) {
@@ -56,20 +56,13 @@ int szl_archive_iter(struct szl_interp *interp,
 				return 1;
 
 			default:
-				szl_set_last_str(interp, "failed to read a file header", -1);
+				err = archive_error_string(ar->in);
+				if (err)
+					szl_set_last_str(interp, err, -1);
 				return 0;
 		}
 
-		path = archive_entry_pathname(entry);
-		if (!path)
-			break;
-
-		if (archive_write_header(ar->out, entry) != ARCHIVE_OK) {
-			szl_set_last_str(interp, "failed to write a file header", -1);
-			break;
-		}
-
-		if (!cb(interp, ar, path, arg))
+		if (!cb(interp, ar, entry, arg))
 			break;
 	} while (1);
 
@@ -79,9 +72,15 @@ int szl_archive_iter(struct szl_interp *interp,
 static
 int szl_archive_append_path(struct szl_interp *interp,
                             struct szl_archive *ar,
-                            const char *path,
+                            struct archive_entry *entry,
                             void *arg)
 {
+	const char *path;
+
+	path = archive_entry_pathname(entry);
+	if (!path)
+		return 0;
+
 	return szl_list_append_str(interp, (struct szl_obj *)arg, path, -1);
 }
 
@@ -106,12 +105,18 @@ enum szl_res szl_archive_list(struct szl_interp *interp,
 static
 int szl_archive_extract_file(struct szl_interp *interp,
                              struct szl_archive *ar,
-                             const char *path,
+                             struct archive_entry *entry,
                              void *arg)
 {
 	const void *blk;
+	const char *err;
 	size_t size;
 	__LA_INT64_T off;
+
+	if (archive_write_header(ar->out, entry) != ARCHIVE_OK) {
+		err = archive_error_string(ar->out);
+		goto bail;
+	}
 
 	do {
 		switch (archive_read_data_block(ar->in, &blk, &size, &off)) {
@@ -124,14 +129,19 @@ int szl_archive_extract_file(struct szl_interp *interp,
 				                             size,
 				                             off) == ARCHIVE_OK)
 					break;
-				/* fall through */
+
+				err = archive_error_string(ar->out);
+				goto bail;
 
 			default:
-				szl_set_last_fmt(interp, "failed to extract %s", path);
-				return 0;
+				err = archive_error_string(ar->in);
+				goto bail;
 		}
 	} while (1);
 
+bail:
+	if (err)
+		szl_set_last_str(interp, err, -1);
 	return 0;
 }
 
@@ -186,6 +196,7 @@ enum szl_res szl_archive_proc_open(struct szl_interp *interp,
 {
 	struct szl_obj *name, *proc;
 	char *data;
+	const char *err;
 	struct szl_archive *ar;
 	size_t len;
 
@@ -223,7 +234,9 @@ enum szl_res szl_archive_proc_open(struct szl_interp *interp,
 	archive_write_disk_set_standard_lookup(ar->out);
 
 	if (archive_read_open_memory(ar->in, (void *)data, len) != 0) {
-		szl_set_last_str(interp, archive_error_string(ar->in), -1);
+		err = archive_error_string(ar->in);
+		if (err)
+			szl_set_last_str(interp, err, -1);
 		szl_archive_del(ar);
 		return SZL_ERR;
 	}
