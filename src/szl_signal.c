@@ -118,7 +118,7 @@ enum szl_res szl_signal_proc_signal(struct szl_interp *interp,
 	szl_int signo;
 	unsigned int i;
 
-	sig = (struct szl_sig *)malloc(sizeof(*sig));
+	sig = (struct szl_sig *)szl_malloc(interp,sizeof(*sig));
 	if (!sig)
 		return SZL_ERR;
 
@@ -149,7 +149,7 @@ enum szl_res szl_signal_proc_signal(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	strm = (struct szl_stream *)malloc(sizeof(*strm));
+	strm = (struct szl_stream *)szl_malloc(interp, sizeof(*strm));
 	if (!strm) {
 		close(sig->fd);
 		sigprocmask(SIG_UNBLOCK, &sig->set, NULL);

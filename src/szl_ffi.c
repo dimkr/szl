@@ -135,7 +135,7 @@ struct szl_obj *szl_ffi_new_at(struct szl_interp *interp,
 		return NULL;
 	}
 
-	ffi_obj = (struct szl_ffi_obj *)malloc(sizeof(*ffi_obj));
+	ffi_obj = (struct szl_ffi_obj *)szl_malloc(interp, sizeof(*ffi_obj));
 	if (!ffi_obj)
 		return NULL;
 

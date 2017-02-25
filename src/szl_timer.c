@@ -117,7 +117,7 @@ enum szl_res szl_timer_proc_timer(struct szl_interp *interp,
 		return szl_set_last_strerror(interp, err);
 	}
 
-	strm = (struct szl_stream *)malloc(sizeof(struct szl_stream));
+	strm = (struct szl_stream *)szl_malloc(interp, sizeof(struct szl_stream));
 	if (!strm) {
 		close(timer->fd);
 		free(timer);
