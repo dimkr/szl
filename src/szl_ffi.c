@@ -1039,7 +1039,7 @@ enum szl_res szl_ffi_function_proc(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	args = (void **)szl_malloc(sizeof(void *) * f->argc);
+	args = (void **)szl_malloc(interp, sizeof(void *) * f->argc);
 	if (!args)
 		return SZL_ERR;
 
