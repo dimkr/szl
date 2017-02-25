@@ -1,7 +1,7 @@
 /*
  * this file is part of szl.
  *
- * Copyright (c) 2016 Dima Krasner
+ * Copyright (c) 2016, 2017 Dima Krasner
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -85,24 +85,24 @@ enum szl_res szl_curl_proc_get(struct szl_interp *interp,
 
 	n = (objc - 1) / 2;
 
-	cs = (CURL **)malloc(sizeof(CURL *) * n);
+	cs = (CURL **)szl_malloc(interp, sizeof(CURL *) * n);
 	if (!cs)
 		return SZL_ERR;
 
-	fhs = (FILE **)malloc(sizeof(FILE *) * n);
+	fhs = (FILE **)szl_malloc(interp, sizeof(FILE *) * n);
 	if (!fhs) {
 		free(cs);
 		return SZL_ERR;
 	}
 
-	urls = (char **)malloc(sizeof(char *) * n);
+	urls = (char **)szl_malloc(interp, sizeof(char *) * n);
 	if (!urls) {
 		free(fhs);
 		free(cs);
 		return SZL_ERR;
 	}
 
-	paths = (char **)malloc(sizeof(char *) * n);
+	paths = (char **)szl_malloc(interp, sizeof(char *) * n);
 	if (!paths) {
 		free(urls);
 		free(fhs);
@@ -146,7 +146,7 @@ enum szl_res szl_curl_proc_get(struct szl_interp *interp,
 			szl_set_last_fmt(interp,
 			                   "failed to open %s: %s",
 			                   paths[i],
-			                   strerror(err));
+			                   szl_set_last_strerror(interp, err));
 			goto restore_sigmask;
 		}
 	}

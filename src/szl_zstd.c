@@ -54,7 +54,7 @@ enum szl_res szl_zstd_proc_compress(struct szl_interp *interp,
 	}
 
 	blen = ZSTD_compressBound(inlen);
-	out = (char *)malloc(blen);
+	out = (char *)szl_malloc(interp, blen);
 	if (!out)
 		return SZL_ERR;
 
@@ -65,7 +65,7 @@ enum szl_res szl_zstd_proc_compress(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	obj = szl_new_str_noalloc(out, outlen);
+	obj = szl_new_str_noalloc(interp, out, outlen);
 	if (!obj) {
 		free(out);
 		return SZL_ERR;
@@ -105,7 +105,7 @@ enum szl_res szl_zstd_proc_decompress(struct szl_interp *interp,
 			return SZL_ERR;
 	}
 
-	out = (char *)malloc((size_t)blen);
+	out = (char *)szl_malloc(interp, (size_t)blen);
 	if (!out)
 		return SZL_ERR;
 
@@ -116,7 +116,7 @@ enum szl_res szl_zstd_proc_decompress(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	obj = szl_new_str_noalloc(out, outlen);
+	obj = szl_new_str_noalloc(interp, out, outlen);
 	if (!obj) {
 		free(out);
 		return SZL_ERR;

@@ -22,7 +22,6 @@
  * THE SOFTWARE.
  */
 
-#include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
@@ -57,7 +56,7 @@ ssize_t szl_exec_read(struct szl_interp *interp,
 		if ((errno == EAGAIN) || (errno == EWOULDBLOCK))
 			return 0;
 
-		szl_set_last_str(interp, strerror(errno), -1);
+		szl_set_last_strerror(interp, errno);
 		return -1;
 	} else if (out == 0) {
 		if (exec->reap) {
@@ -67,7 +66,7 @@ ssize_t szl_exec_read(struct szl_interp *interp,
 			if (pid == exec->pid)
 				exec->reap = 0;
 			else if ((pid < 0) && (errno != ECHILD)) {
-				szl_set_last_str(interp, strerror(errno), -1);
+				szl_set_last_strerror(interp, errno);
 				return -1;
 			}
 		}
@@ -90,7 +89,7 @@ ssize_t szl_exec_write(struct szl_interp *interp,
 		if ((errno == EAGAIN) || (errno == EWOULDBLOCK))
 			return 0;
 
-		szl_set_last_str(interp, strerror(errno), -1);
+		szl_set_last_strerror(interp, errno);
 		return -1;
 	}
 
@@ -98,18 +97,18 @@ ssize_t szl_exec_write(struct szl_interp *interp,
 }
 
 static
-enum szl_res szl_exec_unblock(void *priv)
+enum szl_res szl_exec_unblock(struct szl_interp *interp, void *priv)
 {
 	struct szl_exec *exec = (struct szl_exec *)priv;
 	int fl;
 
 	fl = fcntl(exec->in, F_GETFL);
 	if ((fl < 0) || (fcntl(exec->in, F_SETFL, fl | O_NONBLOCK) < 0))
-		return SZL_ERR;
+		return szl_set_last_strerror(interp, errno);
 
 	fl = fcntl(exec->out, F_GETFL);
 	if ((fl < 0) || (fcntl(exec->out, F_SETFL, fl | O_NONBLOCK) < 0))
-		return SZL_ERR;
+		return szl_set_last_strerror(interp, errno);
 
 	return SZL_OK;
 }
@@ -145,7 +144,7 @@ enum szl_res szl_exec_proc_exec(struct szl_interp *interp,
                                 const unsigned int objc,
                                 struct szl_obj **objv)
 {
-	int in[2], out[2];
+	int in[2], out[2], err;
 	char *cmd;
 	struct szl_obj *obj;
 	struct szl_stream *strm;
@@ -155,39 +154,42 @@ enum szl_res szl_exec_proc_exec(struct szl_interp *interp,
 	if (!szl_as_str(interp, objv[1], &cmd, &len) || !len)
 		return SZL_ERR;
 
-	exec = (struct szl_exec *)malloc(sizeof(*exec));
+	exec = (struct szl_exec *)szl_malloc(interp, sizeof(*exec));
 	if (!exec)
 		return SZL_ERR;
 
-	strm = (struct szl_stream *)malloc(sizeof(struct szl_stream));
+	strm = (struct szl_stream *)szl_malloc(interp, sizeof(struct szl_stream));
 	if (!strm) {
 		free(exec);
 		return SZL_ERR;
 	}
 
 	if (pipe(in) < 0) {
+		err = errno;
 		free(strm);
 		free(exec);
-		return SZL_ERR;
+		return szl_set_last_strerror(interp, err);
 	}
 
 	if (pipe(out) < 0) {
+		err = errno;
 		close(in[1]);
 		close(in[0]);
 		free(strm);
 		free(exec);
-		return SZL_ERR;
+		return szl_set_last_strerror(interp, err);
 	}
 
 	exec->pid = fork();
 	if (exec->pid < 0) {
+		err = errno;
 		close(out[1]);
 		close(out[0]);
 		close(in[1]);
 		close(in[0]);
 		free(strm);
 		free(exec);
-		return SZL_ERR;
+		return szl_set_last_strerror(interp, err);
 	}
 	else if (exec->pid == 0) {
 		close(in[1]);

@@ -40,7 +40,7 @@ enum szl_res szl_poll_poll_proc(struct szl_interp *interp,
 	struct szl_obj *list, *r, *w, *e;
 	szl_int fd, n, i, j;
 	unsigned int k;
-	int out, efd = (int)(intptr_t)objv[0]->priv;
+	int out, err, efd = (int)(intptr_t)objv[0]->priv;
 
 	if (!szl_as_str(interp, objv[1], &op, NULL))
 		return SZL_ERR;
@@ -70,7 +70,7 @@ enum szl_res szl_poll_poll_proc(struct szl_interp *interp,
 		ev.data.fd = (int)fd;
 		if ((epoll_ctl(efd, EPOLL_CTL_ADD, (int)fd, &ev) < 0) &&
 			(errno != EEXIST))
-			return SZL_ERR;
+			return szl_set_last_strerror(interp, errno);
 
 		return SZL_OK;
 	}
@@ -86,7 +86,7 @@ enum szl_res szl_poll_poll_proc(struct szl_interp *interp,
 
 			if ((epoll_ctl(efd, EPOLL_CTL_DEL, (int)fd, NULL) < 0) &&
 			    (errno != ENOENT))
-				return SZL_ERR;
+				return szl_set_last_strerror(interp, errno);
 
 			return SZL_OK;
 		} else if (strcmp("wait", op) == 0) {
@@ -98,24 +98,24 @@ enum szl_res szl_poll_poll_proc(struct szl_interp *interp,
 				return SZL_ERR;
 			}
 
-			list = szl_new_empty();
+			list = szl_new_empty(interp);
 			if (!list)
 				return SZL_ERR;
 
-			r = szl_new_list(NULL, 0);
+			r = szl_new_list(interp, NULL, 0);
 			if (!r) {
 				szl_free(list);
 				return SZL_ERR;
 			}
 
-			w = szl_new_list(NULL, 0);
+			w = szl_new_list(interp, NULL, 0);
 			if (!w) {
 				szl_free(r);
 				szl_free(list);
 				return SZL_ERR;
 			}
 
-			e = szl_new_list(NULL, 0);
+			e = szl_new_list(interp, NULL, 0);
 			if (!e) {
 				szl_free(w);
 				szl_free(r);
@@ -137,7 +137,9 @@ enum szl_res szl_poll_poll_proc(struct szl_interp *interp,
 			szl_unref(w);
 			szl_unref(r);
 
-			evs = (struct epoll_event *)malloc(sizeof(struct epoll_event) * n);
+			evs = (struct epoll_event *)szl_malloc(
+			                                    interp,
+			                                    sizeof(struct epoll_event) * n);
 			if (!evs) {
 				szl_free(list);
 				return SZL_ERR;
@@ -145,9 +147,10 @@ enum szl_res szl_poll_poll_proc(struct szl_interp *interp,
 
 			out = epoll_wait(efd, evs, (int)n, -1);
 			if (out < 0) {
+				err = errno;
 				free(evs);
 				szl_free(list);
-				return SZL_ERR;
+				return szl_set_last_strerror(interp, err);
 			}
 
 			j = 0;
@@ -200,9 +203,9 @@ enum szl_res szl_poll_proc_create(struct szl_interp *interp,
 
 	fd = epoll_create1(0);
 	if (fd < 0)
-		return SZL_ERR;
+		return szl_set_last_strerror(interp, errno);
 
-	name = szl_new_str_fmt("poll:%d", fd);
+	name = szl_new_str_fmt(interp, "poll:%d", fd);
 	if (!name) {
 		close(fd);
 		return SZL_ERR;

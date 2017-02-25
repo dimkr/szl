@@ -86,7 +86,13 @@ int szl_zlib_compress(struct szl_interp *interp,
 		deflateEnd(&strm);
 		return SZL_ERR;
 	}
-	buf = (Bytef *)malloc((size_t)strm.avail_out);
+
+	buf = (Bytef *)szl_malloc(interp, (size_t)strm.avail_out);
+	if (!buf) {
+		deflateEnd(&strm);
+		return SZL_ERR;
+	}
+
 	strm.next_out = buf;
 	strm.next_in = (Bytef *)in;
 	strm.avail_in = (uInt)len;
@@ -107,7 +113,7 @@ int szl_zlib_compress(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	obj = szl_new_str_noalloc((char *)buf, (size_t)strm.total_out);
+	obj = szl_new_str_noalloc(interp, (char *)buf, (size_t)strm.total_out);
 	if (!obj) {
 		free(buf);
 		return SZL_ERR;
@@ -159,13 +165,16 @@ enum szl_res szl_zlib_decompress(struct szl_interp *interp,
 	/* allocate a buffer - decompression is done in chunks, into this buffer;
 	 * when the decompressed data size is given, decompression is faster because
 	 * it's done in one pass, with less memcpy() overhead */
-	buf = malloc((size_t)bufsiz);
-	if (!buf)
+	buf = szl_malloc(interp, (size_t)bufsiz);
+	if (!buf) {
+		inflateEnd(&strm);
 		return SZL_ERR;
+	}
 
-	out = szl_new_empty();
+	out = szl_new_empty(interp);
 	if (!out) {
 		free(buf);
+		inflateEnd(&strm);
 		return SZL_ERR;
 	}
 

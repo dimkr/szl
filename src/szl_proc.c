@@ -77,7 +77,7 @@ enum szl_res szl_proc_proc_proc(struct szl_interp *interp,
 	struct szl_proc *proc;
 	struct szl_obj *obj;
 
-	proc = (struct szl_proc *)malloc(sizeof(*proc));
+	proc = (struct szl_proc *)szl_malloc(interp, sizeof(*proc));
 	if (!proc)
 		return SZL_ERR;
 
@@ -129,7 +129,7 @@ enum szl_res szl_proc_proc_stack(struct szl_interp *interp,
 		}
 	}
 
-	stack = szl_new_empty();
+	stack = szl_new_empty(interp);
 	if (!stack)
 		return SZL_ERR;
 

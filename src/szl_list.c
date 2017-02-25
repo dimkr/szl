@@ -35,7 +35,7 @@ enum szl_res szl_list_proc_new(struct szl_interp *interp,
 {
 	struct szl_obj *list;
 
-	list = szl_new_list(&objv[1], objc - 1);
+	list = szl_new_list(interp, &objv[1], objc - 1);
 	if (!list)
 		return SZL_ERR;
 
@@ -145,7 +145,7 @@ enum szl_res szl_list_proc_range(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	list = szl_new_list(NULL, 0);
+	list = szl_new_list(interp, NULL, 0);
 	if (!list)
 		return SZL_ERR;
 
@@ -184,7 +184,7 @@ enum szl_res szl_list_proc_reverse(struct szl_interp *interp,
 	if (!szl_as_list(interp, objv[1], &items, &n) || (n > SIZE_MAX))
 		return SZL_ERR;
 
-	list = szl_new_list(NULL, 0);
+	list = szl_new_list(interp, NULL, 0);
 	if (!list)
 		return SZL_ERR;
 
@@ -212,7 +212,7 @@ enum szl_res szl_list_proc_join(struct szl_interp *interp,
 	    (n > SIZE_MAX))
 		return SZL_ERR;
 
-	str = szl_new_empty();
+	str = szl_new_empty(interp);
 	if (!str)
 		return SZL_ERR;
 
@@ -239,11 +239,12 @@ enum szl_res szl_list_proc_zip(struct szl_interp *interp,
 
 	n = objc - 1;
 
-	items = (struct szl_obj ***)malloc(sizeof(struct szl_obj **) * n);
+	items = (struct szl_obj ***)szl_malloc(interp,
+	                                       sizeof(struct szl_obj **) * n);
 	if (!items)
 		return SZL_ERR;
 
-	ns = (size_t *)malloc(sizeof(size_t) * n);
+	ns = (size_t *)szl_malloc(interp, sizeof(size_t) * n);
 	if (!ns) {
 		free(items);
 		return SZL_ERR;
@@ -266,7 +267,7 @@ enum szl_res szl_list_proc_zip(struct szl_interp *interp,
 		}
 	}
 
-	list = szl_new_empty();
+	list = szl_new_empty(interp);
 	if (!list) {
 		free(ns);
 		free(items);
@@ -301,7 +302,7 @@ enum szl_res szl_list_proc_uniq(struct szl_interp *interp,
 	if (!szl_as_list(interp, objv[1], &items, &len))
 		return SZL_ERR;
 
-	uniq = szl_new_list(items, len ? 1 : 0);
+	uniq = szl_new_list(interp, items, len ? 1 : 0);
 	if (!uniq)
 		return SZL_ERR;
 

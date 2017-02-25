@@ -88,7 +88,7 @@ enum szl_res szl_szl_proc_interp(struct szl_interp *interp,
 		if (argc > (INT_MAX / sizeof(char *)))
 			return SZL_ERR;
 
-		argv = (char **)malloc(sizeof(char *) * argc);
+		argv = (char **)szl_malloc(interp, sizeof(char *) * argc);
 		if (!argv)
 			return SZL_ERR;
 
@@ -108,7 +108,7 @@ enum szl_res szl_szl_proc_interp(struct szl_interp *interp,
 	if (!interp2)
 		return SZL_ERR;
 
-	name = szl_new_str_fmt("szl:%"PRIxPTR, (uintptr_t)interp2);
+	name = szl_new_str_fmt(interp, "szl:%"PRIxPTR, (uintptr_t)interp2);
 	if (!name) {
 		szl_free_interp(interp2);
 		return SZL_ERR;

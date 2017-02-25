@@ -1,7 +1,7 @@
 /*
  * this file is part of szl.
  *
- * Copyright (c) 2016 Dima Krasner
+ * Copyright (c) 2016, 2017 Dima Krasner
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -48,7 +48,7 @@ enum szl_res szl_path_proc_exists(struct szl_interp *interp,
 		if (errno == ENOENT)
 			return szl_set_last_bool(interp, 0);
 
-		return SZL_ERR;
+		return szl_set_last_strerror(interp, errno);
 	}
 
 	return szl_set_last_bool(interp, 1);
@@ -70,7 +70,7 @@ enum szl_res szl_path_proc_isdir(struct szl_interp *interp,
 		if (errno == ENOENT)
 			return szl_set_last_bool(interp, 0);
 
-		return SZL_ERR;
+		return szl_set_last_strerror(interp, errno);
 	}
 
 	return szl_set_last_bool(interp, S_ISDIR(stbuf.st_mode));
@@ -90,9 +90,9 @@ enum szl_res szl_path_proc_realpath(struct szl_interp *interp,
 
 	rpath = realpath(path, NULL);
 	if (!rpath)
-		return SZL_ERR;
+		return szl_set_last_strerror(interp, errno);
 
-	obj = szl_new_str_noalloc(rpath, strlen(rpath));
+	obj = szl_new_str_noalloc(interp, rpath, strlen(rpath));
 	if (!obj) {
 		free(rpath);
 		return SZL_ERR;

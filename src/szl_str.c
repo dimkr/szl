@@ -265,7 +265,7 @@ enum szl_res szl_str_proc_split(struct szl_interp *interp,
 	if (!slen)
 		return SZL_OK;
 
-	list = szl_new_list(NULL, 0);
+	list = szl_new_list(interp, NULL, 0);
 	if (!list)
 		return SZL_ERR;
 
@@ -333,7 +333,7 @@ enum szl_res szl_str_proc_expand(struct szl_interp *interp,
 	if (!szl_as_str(interp, objv[1], &s, &len))
 		return SZL_ERR;
 
-	s2 = (char *)malloc(len + 1);
+	s2 = (char *)szl_malloc(interp, len + 1);
 	if (!s2)
 		return SZL_ERR;
 
@@ -442,7 +442,7 @@ enum szl_res szl_str_proc_expand(struct szl_interp *interp,
 	}
 
 	s2[out] = '\0';
-	str = szl_new_str_noalloc(s2, out);
+	str = szl_new_str_noalloc(interp, s2, out);
 	if (!str) {
 		free(s2);
 		return SZL_ERR;
@@ -469,7 +469,7 @@ enum szl_res szl_str_proc_format(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	str = szl_new_empty();
+	str = szl_new_empty(interp);
 	if (!str)
 		return SZL_ERR;
 
@@ -587,7 +587,7 @@ enum szl_res szl_byte_proc_ord(struct szl_interp *interp,
 	if (!szl_as_str(interp, objv[1], &s, &len))
 		return SZL_ERR;
 
-	list = szl_new_list(NULL, 0);
+	list = szl_new_list(interp, NULL, 0);
 	if (!list)
 		return SZL_ERR;
 

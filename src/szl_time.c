@@ -57,7 +57,7 @@ enum szl_res szl_time_proc_sleep(struct szl_interp *interp,
 			break;
 
 		if (errno != EINTR)
-			return SZL_ERR;
+			return szl_set_last_strerror(interp, errno);
 
 		req.tv_sec = rem.tv_sec;
 		req.tv_nsec = rem.tv_nsec;
@@ -101,7 +101,7 @@ enum szl_res szl_timestamp_proc(struct szl_interp *interp,
 	if (!len)
 		return SZL_OK;
 
-	buf = (char *)malloc(SZL_STRFTIME_BUFSIZ);
+	buf = (char *)szl_malloc(interp, SZL_STRFTIME_BUFSIZ);
 	if (!buf)
 		return SZL_ERR;
 
@@ -112,7 +112,7 @@ enum szl_res szl_timestamp_proc(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	obj = szl_new_str_noalloc(buf, len);
+	obj = szl_new_str_noalloc(interp, buf, len);
 	if (!obj) {
 		free(buf);
 		return SZL_ERR;
@@ -133,7 +133,7 @@ enum szl_res szl_time_proc_timestamp(struct szl_interp *interp,
 	if (!szl_as_float(interp, objv[1], &f) || (f < 0) || (f > UINT_MAX))
 		return SZL_ERR;
 
-	ts = (struct szl_timestamp *)malloc(sizeof(*ts));
+	ts = (struct szl_timestamp *)szl_malloc(interp, sizeof(*ts));
 	if (!ts)
 		return SZL_ERR;
 
@@ -143,7 +143,7 @@ enum szl_res szl_time_proc_timestamp(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	name = szl_new_str_fmt("timestamp:%p", ts);
+	name = szl_new_str_fmt(interp, "timestamp:%p", ts);
 	if (!name) {
 		free(ts);
 		return SZL_ERR;

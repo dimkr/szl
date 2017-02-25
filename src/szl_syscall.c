@@ -56,10 +56,8 @@ enum szl_res szl_syscall_proc_syscall(struct szl_interp *interp,
 	              (long)args[4],
 	              (long)args[5],
 	              (long)args[6]);
-	if (ret < 0) {
-		szl_set_last_str(interp, strerror(errno), -1);
-		return SZL_ERR;
-	}
+	if (ret < 0)
+		return szl_set_last_strerror(interp, errno);
 
 	return szl_set_last_int(interp, (szl_int)ret);
 }

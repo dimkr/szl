@@ -27,35 +27,36 @@
 #include <fcntl.h>
 #include <sys/timerfd.h>
 #include <math.h>
+#include <errno.h>
 
 #include "szl.h"
 
 struct szl_timer {
-	int fd;
 	struct itimerspec its;
+	int fd;
 };
 
 static
-enum szl_res szl_timer_unblock(void *priv)
+enum szl_res szl_timer_unblock(struct szl_interp *interp, void *priv)
 {
 	int fl, fd = ((struct szl_timer *)priv)->fd;
 
 	fl = fcntl(fd, F_GETFL);
 	if ((fl < 0) || (fcntl(fd, F_SETFL, fl | O_NONBLOCK) < 0))
-		return SZL_ERR;
+		return szl_set_last_strerror(interp, errno);
 
 	return SZL_OK;
 }
 
 static
-enum szl_res szl_timer_rewind(void *priv)
+enum szl_res szl_timer_rewind(struct szl_interp *interp, void *priv)
 {
 	struct szl_timer *timer = (struct szl_timer *)priv;
 
-	return (timerfd_settime(timer->fd,
-	                        0,
-	                        &timer->its,
-	                        NULL) < 0) ? SZL_ERR : SZL_OK;
+	if (timerfd_settime(timer->fd, 0, &timer->its, NULL) < 0)
+		return szl_set_last_strerror(interp, errno);
+
+	return SZL_OK;
 }
 
 static
@@ -88,18 +89,20 @@ enum szl_res szl_timer_proc_timer(struct szl_interp *interp,
 	struct szl_stream *strm;
 	struct szl_obj *obj;
 	szl_float timeout;
+	int err;
 
 	if (!szl_as_float(interp, objv[1], &timeout))
 		return SZL_ERR;
 
-	timer = (struct szl_timer *)malloc(sizeof(*timer));
+	timer = (struct szl_timer *)szl_malloc(interp, sizeof(*timer));
 	if (!timer)
 		return SZL_ERR;
 
 	timer->fd = timerfd_create(CLOCK_MONOTONIC, 0);
 	if (timer->fd < 0) {
+		err = errno;
 		free(timer);
-		return SZL_ERR;
+		return szl_set_last_strerror(interp, err);
 	}
 
 	timer->its.it_value.tv_sec = (time_t)floor(timeout);
@@ -108,9 +111,10 @@ enum szl_res szl_timer_proc_timer(struct szl_interp *interp,
 	timer->its.it_interval.tv_sec = timer->its.it_value.tv_sec;
 	timer->its.it_interval.tv_nsec = timer->its.it_value.tv_nsec;
 	if (timerfd_settime(timer->fd, 0, &timer->its, NULL) < 0) {
+		err = errno;
 		close(timer->fd);
 		free(timer);
-		return SZL_ERR;
+		return szl_set_last_strerror(interp, err);
 	}
 
 	strm = (struct szl_stream *)malloc(sizeof(struct szl_stream));

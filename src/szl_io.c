@@ -50,7 +50,7 @@ ssize_t szl_file_read(struct szl_interp *interp,
 	ret = fread(buf, 1, len, (FILE *)priv);
 	if (!ret) {
 		if (ferror((FILE *)priv)) {
-			szl_set_last_str(interp, strerror(errno), -1);
+			szl_set_last_strerror(interp, errno);
 			return -1;
 		}
 	}
@@ -73,7 +73,7 @@ ssize_t szl_file_write(struct szl_interp *interp,
 		chunk = fwrite(buf + total, 1, len - total, (FILE *)priv);
 		if (chunk == 0) {
 			if (ferror((FILE *)priv)) {
-				szl_set_last_str(interp, strerror(errno), -1);
+				szl_set_last_strerror(interp, errno);
 				return -1;
 			}
 			break;
@@ -128,9 +128,11 @@ const struct szl_stream_ops szl_file_ops = {
 };
 
 static
-int szl_io_enable_fbf(struct szl_stream *strm, FILE *fp)
+int szl_io_enable_fbf(struct szl_interp *interp,
+                      struct szl_stream *strm,
+                      FILE *fp)
 {
-	strm->buf = malloc(SZL_STREAM_BUFSIZ);
+	strm->buf = szl_malloc(interp, SZL_STREAM_BUFSIZ);
 	if (!strm->buf)
 		return 0;
 
@@ -152,7 +154,7 @@ int szl_new_file(struct szl_interp *interp,
 	struct szl_obj *obj;
 	struct szl_stream *strm;
 
-	strm = (struct szl_stream *)malloc(sizeof(struct szl_stream));
+	strm = (struct szl_stream *)szl_malloc(interp, sizeof(struct szl_stream));
 	if (!strm)
 		return 0;
 
@@ -169,7 +171,7 @@ int szl_new_file(struct szl_interp *interp,
 	}
 
 	if (bmode == _IOFBF) {
-		if (!szl_io_enable_fbf(strm, fp)) {
+		if (!szl_io_enable_fbf(interp, strm, fp)) {
 			szl_stream_free(strm);
 			return 0;
 		}
@@ -274,10 +276,8 @@ enum szl_res szl_io_proc_open(struct szl_interp *interp,
 	}
 
 	fp = fopen(path, rmode);
-	if (!fp) {
-		szl_set_last_str(interp, strerror(errno), -1);
-		return SZL_ERR;
-	}
+	if (!fp)
+		return szl_set_last_strerror(interp, errno);
 
 	if (!szl_new_file(interp, fp, bmode, 0)) {
 		fclose(fp);
@@ -305,7 +305,7 @@ enum szl_res szl_io_proc_isatty(struct szl_interp *interp,
 	if ((errno == EINVAL) || (errno == ENOTTY))
 		return szl_set_last_bool(interp, 0);
 
-	return szl_set_last_str(interp, strerror(errno), -1);
+	return szl_set_last_strerror(interp, errno);
 }
 
 static
@@ -322,7 +322,7 @@ struct szl_stream *szl_io_wrap_pipe(struct szl_interp *interp, FILE *fp)
 {
 	struct szl_stream *strm;
 
-	strm = (struct szl_stream *)malloc(sizeof(struct szl_stream));
+	strm = (struct szl_stream *)szl_malloc(interp, sizeof(struct szl_stream));
 	if (!strm)
 		return strm;
 
@@ -331,7 +331,7 @@ struct szl_stream *szl_io_wrap_pipe(struct szl_interp *interp, FILE *fp)
 	strm->priv = fp;
 	strm->buf = NULL;
 
-	if (!isatty(fileno(fp)) && !szl_io_enable_fbf(strm, fp)) {
+	if (!isatty(fileno(fp)) && !szl_io_enable_fbf(interp, strm, fp)) {
 		szl_stream_free(strm);
 		return NULL;
 	}

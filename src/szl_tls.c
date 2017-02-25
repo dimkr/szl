@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <errno.h>
 
 #include <openssl/ssl.h>
 #include <openssl/engine.h>
@@ -80,7 +81,7 @@ ssize_t szl_tls_write(struct szl_interp *interp,
 }
 
 static
-enum szl_res szl_tls_unblock(void *priv)
+enum szl_res szl_tls_unblock(struct szl_interp *interp, void *priv)
 {
 	int fl, fd;
 	BIO *rbio, *wbio;
@@ -91,7 +92,7 @@ enum szl_res szl_tls_unblock(void *priv)
 
 	fl = fcntl(fd, F_GETFL);
 	if ((fl < 0) || (fcntl(fd, F_SETFL, fl | O_NONBLOCK) < 0))
-		return SZL_ERR;
+		return szl_set_last_strerror(interp, errno);
 
 	rbio = SSL_get_rbio((SSL *)priv);
 	if (!rbio)
@@ -146,11 +147,12 @@ enum szl_res szl_tls_new(struct szl_interp *interp,
 	struct szl_obj *obj;
 	struct szl_stream *strm;
 	SSL *ssl;
+	int err;
 
 	if (!szl_tls_ctx)
 		return SZL_ERR;
 
-	strm = (struct szl_stream *)malloc(sizeof(struct szl_stream));
+	strm = (struct szl_stream *)szl_malloc(interp, sizeof(struct szl_stream));
 	if (!strm)
 		return SZL_ERR;
 
@@ -162,9 +164,9 @@ enum szl_res szl_tls_new(struct szl_interp *interp,
 
 	fd = dup(fd);
 	if (fd < 0) {
+		err = errno;
 		free(strm);
-		szl_set_last_str(interp, strerror(errno), -1);
-		return SZL_ERR;
+		return szl_set_last_strerror(interp, err);
 	}
 
 	if (SSL_set_fd(ssl, fd) == 0) {

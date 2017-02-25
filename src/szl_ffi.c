@@ -139,7 +139,7 @@ struct szl_obj *szl_ffi_new_at(struct szl_interp *interp,
 	if (!ffi_obj)
 		return NULL;
 
-	name = szl_new_str_fmt("%s:%"PRIxPTR, type, (uintptr_t)ffi_obj);
+	name = szl_new_str_fmt(interp, "%s:%"PRIxPTR, type, (uintptr_t)ffi_obj);
 	if (!name)
 		return NULL;
 
@@ -204,7 +204,9 @@ static enum szl_res szl_ffi_scalar_proc(struct szl_interp *interp,
 	if (strcmp("value", op) == 0)
 		return szl_set_last(interp, ffi_obj->to_str(interp, ffi_obj));
 	else if (strcmp("raw", op) == 0) {
-		obj = szl_new_str((char *)ffi_obj->addr, (ssize_t)ffi_obj->size);
+		obj = szl_new_str(interp,
+		                  (char *)ffi_obj->addr,
+		                  (ssize_t)ffi_obj->size);
 		if (!obj)
 			return SZL_ERR;
 
@@ -242,7 +244,7 @@ struct szl_obj *SZL_FFI_TOSTR_NAME(szl_name)(                                  \
 		return NULL;                                                           \
 	}                                                                          \
 	                                                                           \
-	obj = szl_new_str_noalloc(s, (size_t)len);                                 \
+	obj = szl_new_str_noalloc(interp, s, (size_t)len);                         \
 	if (!obj)                                                                  \
 		free(s);                                                               \
 	                                                                           \
@@ -468,7 +470,7 @@ static
 struct szl_obj *SZL_FFI_TOSTR_NAME(string)(struct szl_interp *interp,
                                            const struct szl_ffi_obj *ffi_obj)
 {
-	return szl_new_str((char *)ffi_obj->val.vp, ffi_obj->size - 1);
+	return szl_new_str(interp, (char *)ffi_obj->val.vp, ffi_obj->size - 1);
 }
 
 static
@@ -537,7 +539,7 @@ enum szl_res SZL_FFI_NEW_PROC_NAME(string)(struct szl_interp *interp,
 		}
 		else {
 			slen = (size_t)len;
-			s2 = (char *)malloc(slen + 1);
+			s2 = (char *)szl_malloc(interp, slen + 1);
 			if (!s2)
 				return SZL_ERR;
 			memcpy(s2, (char *)(intptr_t)addr, slen);
@@ -746,7 +748,7 @@ enum szl_res szl_ffi_struct_proc(struct szl_interp *interp,
 
 	if (objc == 2) {
 		if ((strcmp("raw", op) == 0) || (strcmp("value", op) == 0)) {
-			obj = szl_new_str((char *)s->buf, (ssize_t)s->size);
+			obj = szl_new_str(interp, (char *)s->buf, (ssize_t)s->size);
 			if (!obj)
 				return SZL_ERR;
 
@@ -811,17 +813,19 @@ enum szl_res szl_ffi_proc_struct(struct szl_interp *interp,
 	size_t len;
 	unsigned int i, j;
 
-	s = (struct szl_ffi_struct *)malloc(sizeof(*s));
+	s = (struct szl_ffi_struct *)szl_malloc(interp, sizeof(*s));
 	if (!s)
 		return SZL_ERR;
 
 	s->nmemb = objc - 1;
-	s->type.elements = (ffi_type **)malloc(sizeof(ffi_type *) * (s->nmemb + 1));
+	s->type.elements = (ffi_type **)szl_malloc(
+	                                       interp,
+	                                       sizeof(ffi_type *) * (s->nmemb + 1));
 	if (!s->type.elements) {
 		free(s);
 		return SZL_ERR;
 	}
-	s->offs = (int *)malloc(sizeof(int) * s->nmemb);
+	s->offs = (int *)szl_malloc(interp, sizeof(int) * s->nmemb);
 	if (!s->offs) {
 		free(s->type.elements);
 		free(s);
@@ -876,7 +880,7 @@ enum szl_res szl_ffi_proc_struct(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	s->buf = (unsigned char*)malloc((size_t)s->size);
+	s->buf = (unsigned char*)szl_malloc(interp, (size_t)s->size);
 	if (!s->buf) {
 		free(s->offs);
 		free(s->type.elements);
@@ -895,7 +899,7 @@ enum szl_res szl_ffi_proc_struct(struct szl_interp *interp,
 	s->type.type = FFI_TYPE_STRUCT;
 	s->type.elements[s->nmemb] = NULL;
 
-	name = szl_new_str_fmt("ffi.struct:%"PRIxPTR, (uintptr_t)s);
+	name = szl_new_str_fmt(interp, "ffi.struct:%"PRIxPTR, (uintptr_t)s);
 	if (!name) {
 		free(s->offs);
 		free(s->type.elements);
@@ -980,7 +984,7 @@ enum szl_res szl_ffi_proc_dlopen(struct szl_interp *interp,
 	if (!h)
 		return SZL_ERR;
 
-	name = szl_new_str_fmt("ffi.library:%"PRIxPTR, (uintptr_t)h);
+	name = szl_new_str_fmt(interp, "ffi.library:%"PRIxPTR, (uintptr_t)h);
 	if (!name) {
 		dlclose(h);
 		return SZL_ERR;
@@ -1035,7 +1039,7 @@ enum szl_res szl_ffi_function_proc(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	args = (void **)malloc(sizeof(void *) * f->argc);
+	args = (void **)szl_malloc(sizeof(void *) * f->argc);
 	if (!args)
 		return SZL_ERR;
 
@@ -1101,7 +1105,7 @@ enum szl_res szl_ffi_proc_function(struct szl_interp *interp,
 	if (!szl_as_str(interp, objv[2], &s, &len) || !len)
 		return SZL_ERR;
 
-	f = (struct szl_ffi_func *)malloc(sizeof(*f));
+	f = (struct szl_ffi_func *)szl_malloc(interp, sizeof(*f));
 	if (!f)
 		return SZL_ERR;
 
@@ -1113,7 +1117,7 @@ enum szl_res szl_ffi_proc_function(struct szl_interp *interp,
 	}
 
 	f->argc = objc - 3;
-	f->atypes = (ffi_type **)malloc(sizeof(ffi_type *) * f->argc);
+	f->atypes = (ffi_type **)szl_malloc(interp, sizeof(ffi_type *) * f->argc);
 	if (!f->atypes) {
 		free(f);
 		return SZL_ERR;
@@ -1150,7 +1154,7 @@ enum szl_res szl_ffi_proc_function(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	name = szl_new_str_fmt("ffi.function:%"PRIxPTR, (uintptr_t)f);
+	name = szl_new_str_fmt(interp, "ffi.function:%"PRIxPTR, (uintptr_t)f);
 	if (!name) {
 		if (f->atypes)
 			free(f->atypes);

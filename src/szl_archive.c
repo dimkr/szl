@@ -91,7 +91,7 @@ enum szl_res szl_archive_list(struct szl_interp *interp,
 	struct szl_obj *paths;
 	enum szl_res res;
 
-	paths = szl_new_list(NULL, 0);
+	paths = szl_new_list(interp, NULL, 0);
 	if (paths) {
 		if (szl_archive_iter(interp,
 		                     ar,
@@ -203,7 +203,7 @@ enum szl_res szl_archive_proc_open(struct szl_interp *interp,
 	if (!szl_as_str(interp, objv[1], &data, &len) || !len)
 		return SZL_ERR;
 
-	ar = (struct szl_archive *)malloc(sizeof(*ar));
+	ar = (struct szl_archive *)szl_malloc(interp, sizeof(*ar));
 	if (!ar)
 		return SZL_ERR;
 
@@ -241,7 +241,7 @@ enum szl_res szl_archive_proc_open(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	name = szl_new_str_fmt("archive:%"PRIxPTR, (uintptr_t)ar);
+	name = szl_new_str_fmt(interp, "archive:%"PRIxPTR, (uintptr_t)ar);
 	if (!name) {
 		szl_archive_del(ar);
 		return SZL_ERR;

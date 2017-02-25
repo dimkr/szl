@@ -67,7 +67,7 @@ int szl_init_null(struct szl_interp *interp)
 	};
 	struct szl_stream *strm;
 
-	strm = (struct szl_stream *)malloc(sizeof(struct szl_stream));
+	strm = (struct szl_stream *)szl_malloc(interp, sizeof(struct szl_stream));
 	if (!strm)
 		return 0;
 

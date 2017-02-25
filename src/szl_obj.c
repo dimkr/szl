@@ -126,7 +126,7 @@ enum szl_res szl_obj_proc_hex(struct szl_interp *interp,
 	if (len < 0)
 		return SZL_ERR;
 
-	obj = szl_new_str_noalloc(s, (size_t)len);
+	obj = szl_new_str_noalloc(interp, s, (size_t)len);
 	if (!obj) {
 		free(s);
 		return SZL_ERR;

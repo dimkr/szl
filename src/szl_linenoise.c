@@ -48,7 +48,7 @@ enum szl_res szl_linenoise_proc_read(struct szl_interp *interp,
 	if (!s)
 		return SZL_ERR;
 
-	obj = szl_new_str_noalloc(s, strlen(s));
+	obj = szl_new_str_noalloc(interp, s, strlen(s));
 	if (!obj) {
 		linenoiseFree(s);
 		return SZL_ERR;

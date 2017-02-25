@@ -26,6 +26,7 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include "szl.h"
 
@@ -41,10 +42,11 @@ enum szl_res szl_dir_proc_create(struct szl_interp *interp,
 	char *path;
 	size_t len;
 
-	if (!szl_as_str(interp, objv[1], &path, &len) ||
-	    !len ||
-	    (mkdir(path, 0755) < 0))
+	if (!szl_as_str(interp, objv[1], &path, &len) || !len)
 		return SZL_ERR;
+
+	if (mkdir(path, 0755) < 0)
+		return szl_set_last_strerror(interp, errno);
 
 	return SZL_OK;
 }
@@ -57,10 +59,11 @@ enum szl_res szl_dir_proc_delete(struct szl_interp *interp,
 	char *path;
 	size_t len;
 
-	if (!szl_as_str(interp, objv[1], &path, &len) ||
-	    !len ||
-	    (rmdir(path) < 0))
+	if (!szl_as_str(interp, objv[1], &path, &len) || !len)
 		return SZL_ERR;
+
+	if (rmdir(path) < 0)
+		return szl_set_last_strerror(interp, errno);
 
 	return SZL_OK;
 }
@@ -73,10 +76,11 @@ enum szl_res szl_dir_proc_cd(struct szl_interp *interp,
 	char *path;
 	size_t len;
 
-	if (!szl_as_str(interp, objv[1], &path, &len) ||
-	    !len ||
-	    (chdir(path) < 0))
+	if (!szl_as_str(interp, objv[1], &path, &len) || !len)
 		return SZL_ERR;
+
+	if (chdir(path) < 0)
+		return szl_set_last_strerror(interp, errno);
 
 	return SZL_OK;
 }
@@ -97,15 +101,15 @@ enum szl_res szl_dir_proc_list(struct szl_interp *interp,
 	if (!szl_as_str(interp, objv[1], &path, &len) || !len)
 		return SZL_ERR;
 
-	names[0] = szl_new_list(NULL, 0);
+	names[0] = szl_new_list(interp, NULL, 0);
 	if (!names[0])
 		return SZL_ERR;
 
-	names[1] = szl_new_list(NULL, 0);
+	names[1] = szl_new_list(interp, NULL, 0);
 	if (!names[1])
 		return SZL_ERR;
 
-	obj = szl_new_empty();
+	obj = szl_new_empty(interp);
 	if (!obj)
 		return SZL_ERR;
 

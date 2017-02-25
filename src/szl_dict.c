@@ -22,10 +22,6 @@
  * THE SOFTWARE.
  */
 
-#include <stdlib.h>
-#include <signal.h>
-#include <string.h>
-
 #include "szl.h"
 
 static
@@ -39,7 +35,7 @@ enum szl_res szl_dict_proc_new(struct szl_interp *interp,
 	if (objc % 2 == 0)
 		return szl_set_last_help(interp, objv[0]);
 
-	dict = szl_new_list(NULL, 0);
+	dict = szl_new_list(interp, NULL, 0);
 	if (!dict)
 		return SZL_ERR;
 

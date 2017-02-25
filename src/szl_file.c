@@ -125,11 +125,12 @@ enum szl_res szl_file_proc_lock(struct szl_interp *interp,
 	struct szl_flock *lock;
 	char *path;
 	size_t len;
+	int err;
 
 	if (!szl_as_str(interp, objv[1], &path, &len) || !len)
 		return SZL_ERR;
 
-	lock = (struct szl_flock *)malloc(sizeof(*lock));
+	lock = (struct szl_flock *)szl_malloc(interp, sizeof(*lock));
 	if (!lock)
 		return SZL_ERR;
 
@@ -143,21 +144,21 @@ enum szl_res szl_file_proc_lock(struct szl_interp *interp,
 	                O_WRONLY | O_CREAT,
 	                S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 	if (lock->fd < 0) {
-		szl_set_last_fmt(interp, "failed to open %s", path);
+		err = errno;
 		free(lock->path);
 		free(lock);
-		return SZL_ERR;
+		return szl_set_last_strerror(interp, err);
 	}
 
 	if (lockf(lock->fd, F_LOCK, 0) < 0) {
-		szl_set_last_fmt(interp, "failed to lock %s", path);
+		err = errno;
 		close(lock->fd);
 		free(lock->path);
 		free(lock);
-		return SZL_ERR;
+		return szl_set_last_strerror(interp, err);
 	}
 
-	name = szl_new_str_fmt("file.lock:%d", lock->fd);
+	name = szl_new_str_fmt(interp, "file.lock:%d", lock->fd);
 	if (!name) {
 		lockf(lock->fd, F_ULOCK, 0);
 		close(lock->fd);
@@ -195,17 +196,15 @@ enum szl_res szl_file_proc_locked(struct szl_interp *interp,
 {
 	char *path;
 	size_t len;
-	int fd;
+	int fd, err;
 
 	if (!szl_as_str(interp, objv[1], &path, &len) || !len)
 		return SZL_ERR;
 
 	fd = open(path, O_RDONLY, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 	if (fd < 0) {
-		if (errno != ENOENT) {
-			szl_set_last_fmt(interp, "failed to open %s", path);
-			return SZL_ERR;
-		}
+		if (errno != ENOENT)
+			return szl_set_last_strerror(interp, errno);
 
 		return szl_set_last_bool(interp, 0);
 	}
@@ -216,9 +215,9 @@ enum szl_res szl_file_proc_locked(struct szl_interp *interp,
 	}
 
 	if ((errno != EAGAIN) && (errno != EACCES)) {
+		err = errno;
 		close(fd);
-		szl_set_last_fmt(interp, "failed to check whether %s is locked", path);
-		return SZL_ERR;
+		return szl_set_last_strerror(interp, err);
 	}
 
 	return szl_set_last_bool(interp, 1);

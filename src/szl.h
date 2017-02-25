@@ -34,7 +34,9 @@
 #	include <sys/types.h>
 #	include <limits.h>
 #	include <stdarg.h>
+#	include <stdlib.h>
 #	include <stdio.h>
+#	include <errno.h>
 #	ifndef SZL_NO_UNICODE
 #		include <wchar.h>
 #	endif
@@ -557,18 +559,24 @@ int szl_as_bool(struct szl_obj *obj, int *b);
  */
 
 /**
- * @fn struct szl_obj *szl_new_str(const char *buf, ssize_t len)
+ * @fn struct szl_obj *szl_new_str(struct szl_interp *interp,
+ *                                 const char *buf,
+ *                                 ssize_t len)
  * @brief Creates a new string object, by copying an existing C string
+ * @param interp [in,out] An interpreter
  * @param buf [in] The string
  * @param len [in] The string length or -1 if unknown
  * @return A new reference to the created string object or NULL
  */
-struct szl_obj *szl_new_str(const char *buf, ssize_t len);
+struct szl_obj *szl_new_str(struct szl_interp *interp,
+                            const char *buf,
+                            ssize_t len);
 
 /**
  * @fn struct szl_obj *szl_new_wstr(const szl_wchar *ws, ssize_t len)
  * @brief Creates a new wide-character string object, by copying an existing C
  *        string
+ * @param interp [in,out] An interpreter
  * @param ws [in] The wide-character string
  * @param len [in] The string length or -1 if unknown
  * @return A new reference to the created wide-character string object or NULL
@@ -576,26 +584,33 @@ struct szl_obj *szl_new_str(const char *buf, ssize_t len);
 #	ifdef SZL_NO_UNICODE
 #		define szl_new_str szl_new_str
 #	else
-struct szl_obj *szl_new_wstr(const szl_wchar *ws, ssize_t len);
+struct szl_obj *szl_new_wstr(struct szl_interp *interp,
+                             const szl_wchar *ws,
+                             ssize_t len);
 #	endif
 
 /**
  * @fn struct szl_obj *szl_new_str_noalloc(char *buf, const size_t len)
  * @brief Creates a new string object
+ * @param interp [in,out] An interpreter
  * @param buf [in] The string, allocated using malloc()
  * @param len [in] The string length
  * @return A new reference to the created string object or NULL
  * @note buf is freed automatically upon success
  */
-struct szl_obj *szl_new_str_noalloc(char *buf, const size_t len);
+struct szl_obj *szl_new_str_noalloc(struct szl_interp *interp,
+                                    char *buf,
+                                    const size_t len);
 
 /**
  * @fn struct szl_obj *szl_new_str_fmt(const char *fmt, ...)
  * @brief Creates a new string object, using a format string
+ * @param interp [in,out] An interpreter
  * @param fmt in] The format string
  * @return A new reference to the created string object or NULL
  */
-struct szl_obj *szl_new_str_fmt(const char *fmt, ...);
+struct szl_obj *szl_new_str_fmt(struct szl_interp *interp,
+                                const char *fmt, ...);
 
 /**
  * @fn struct szl_obj *szl_new_int(struct szl_interp *interp, const szl_int i)
@@ -624,16 +639,21 @@ struct szl_obj *szl_new_float(struct szl_interp *interp, const szl_float f);
  * @def szl_new_empty
  * Creates a new, empty string object
  */
-#	define szl_new_empty() szl_new_str("", 0)
+#	define szl_new_empty(interp) szl_new_str(interp, "", 0)
 
 /**
- * @fn struct szl_obj *szl_new_list(struct szl_obj **objv, const size_t len)
+ * @fn struct szl_obj *szl_new_list(struct szl_interp *interp,
+ *                                  struct szl_obj **objv,
+ *                                  const size_t len)
  * @brief Creates a new list object
+ * @param interp [in,out] An interpreter
  * @param objv [in,out] The list items
  * @param len [in] The list length
  * @return A new reference to the created list object or NULL
  */
-struct szl_obj *szl_new_list(struct szl_obj **objv, const size_t len);
+struct szl_obj *szl_new_list(struct szl_interp *interp,
+                             struct szl_obj **objv,
+                             const size_t len);
 
 /**
  * @def szl_new_dict
@@ -1080,14 +1100,25 @@ enum szl_res szl_set_last_fmt(struct szl_interp *interp,
 /**
  * @fn enum szl_res szl_set_last_help(struct szl_interp *interp,
  *                                    struct szl_obj *proc)
- * @brief Sets the return value of a procedure a new string object specifying a
- *        help message
+ * @brief Sets the return value of a procedure to a new string object specifying
+ *        a help message
  * @param interp [in,out] An interpreter
  * @param proc [in] The calling procedure
  * @return SZL_ERR
  */
 enum szl_res szl_set_last_help(struct szl_interp *interp,
                                struct szl_obj *proc);
+
+/**
+ * @fn enum szl_res szl_set_last_strerror(struct szl_interp *interp,
+ *                                        const int err)
+ * @brief Sets the return value of a procedure to a new string object specifying
+ *        a text representation of errno
+ * @param interp [in,out] An interpreter
+ * @param err [in] An error code
+ * @return SZL_ERR
+ */
+enum szl_res szl_set_last_strerror(struct szl_interp *interp, const int err);
 
 /**
  * @}
@@ -1340,8 +1371,8 @@ struct szl_stream_ops {
 	int (*accept)(struct szl_interp *, void *, struct szl_stream **); /**< Optional, accepts a client */
 	szl_int (*handle)(void *); /**< Returns the underlying file descriptor */
 	ssize_t (*size)(void *); /**< Returns the total amount of incoming bytes */
-	enum szl_res (*unblock)(void *); /**< Enables non-blocking I/O */
-	enum szl_res (*rewind)(void *); /**< Return to the initial reading or writing position */
+	enum szl_res (*unblock)(struct szl_interp *, void *); /**< Enables non-blocking I/O */
+	enum szl_res (*rewind)(struct szl_interp *, void *); /**< Return to the initial reading or writing position */
 	int (*setopt)(struct szl_interp *, void *, struct szl_obj *, struct szl_obj *); /**< Sets low-level options */
 };
 
@@ -1429,6 +1460,34 @@ void szl_stream_del(void *priv);
 	.val.proc.help = SZL_STREAM_HELP, \
 	.val.proc.proc = szl_stream_proc, \
 	.val.proc.del = szl_stream_del
+
+/**
+ * @}
+ *
+ * @defgroup mem Memory allocation
+ * @ingroup low_level
+ * @{
+ */
+
+/**
+ * @fn void *szl_malloc(struct szl_interp *interp, const size_t len)
+ * @brief A wrapper around malloc() which calls szl_set_last_strerror() on error
+ * @param interp [in,out] An interpreter
+ * @param len [in] The amount of memory to allocate
+ * @return A pointer to the allocated memory or NULL
+ * @ingroup util
+ */
+static inline
+void *szl_malloc(struct szl_interp *interp, const size_t len)
+{
+	void *p;
+
+	p = malloc(len);
+	if (!p && interp)
+		szl_set_last_strerror(interp, ENOMEM);
+
+	return p;
+}
 
 /**
  * @}

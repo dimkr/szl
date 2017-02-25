@@ -64,7 +64,7 @@ ssize_t szl_signal_read(struct szl_interp *interp,
 		if ((errno == EAGAIN) || (errno == EWOULDBLOCK))
 			return 0;
 
-		szl_set_last_str(interp, strerror(errno), -1);
+		szl_set_last_strerror(interp, errno);
 		return -1;
 	}
 
@@ -72,13 +72,13 @@ ssize_t szl_signal_read(struct szl_interp *interp,
 }
 
 static
-enum szl_res szl_signal_unblock(void *priv)
+enum szl_res szl_signal_unblock(struct szl_interp *interp, void *priv)
 {
 	int fl, fd = ((struct szl_sig *)priv)->fd;
 
 	fl = fcntl(fd, F_GETFL);
 	if ((fl < 0) || (fcntl(fd, F_SETFL, fl | O_NONBLOCK) < 0))
-		return SZL_ERR;
+		return szl_set_last_strerror(interp, errno);
 
 	return SZL_OK;
 }
@@ -187,10 +187,8 @@ enum szl_res szl_signal_proc_kill(struct szl_interp *interp,
 	      (sig > INT_MAX))))
 		return SZL_ERR;
 
-	if (kill((pid_t)(long)pid, (int)sig) < 0) {
-		szl_set_last_str(interp, strerror(errno), -1);
-		return SZL_ERR;
-	}
+	if (kill((pid_t)(long)pid, (int)sig) < 0)
+		return szl_set_last_strerror(interp, errno);
 
 	return SZL_OK;
 }

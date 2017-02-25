@@ -53,11 +53,11 @@ enum szl_res szl_lzfse_op(struct szl_interp *interp,
 		return SZL_ERR;
 	}
 
-	out = (char *)malloc(outlen + 1);
+	out = (char *)szl_malloc(interp, outlen + 1);
 	if (!out)
 		return SZL_ERR;
 
-	aux = malloc(get_auxlen());
+	aux = szl_malloc(interp, get_auxlen());
 	if (!aux) {
 		free(out);
 		return SZL_ERR;
@@ -72,7 +72,7 @@ enum szl_res szl_lzfse_op(struct szl_interp *interp,
 	}
 
 	out[outlen] = '\0';
-	str = szl_new_str_noalloc(out, outlen);
+	str = szl_new_str_noalloc(interp, out, outlen);
 	if (!str) {
 		free(out);
 		return SZL_ERR;
