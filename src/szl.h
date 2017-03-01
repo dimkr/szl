@@ -354,7 +354,7 @@ struct szl_frame;
 struct szl_frame {
 	struct szl_frame *caller; /**< The calling frame */
 	struct szl_obj *locals; /**< Local objects */
-	struct szl_obj *args; /**< The calling statement */
+	struct szl_obj *args; /**< The running statement */
 };
 
 /**
@@ -374,13 +374,14 @@ struct szl_interp {
 
 	struct szl_frame *global; /**< The global frame */
 	struct szl_frame *current; /**< The currently running procedure */
-	unsigned int depth; /**< The call stack depth */
+	struct szl_obj *bt; /**< The list of statements leading to the last error */
 
 	struct szl_obj *exts; /**< Loaded extensions */
 #	ifndef SZL_NO_DL
 	struct szl_obj *libs; /**< Loaded extension shared objects */
 #	endif
 
+	unsigned int depth; /**< The call stack depth */
 	unsigned int seed; /**< A random number generation seed */
 };
 

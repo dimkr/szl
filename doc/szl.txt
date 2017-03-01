@@ -765,6 +765,25 @@ $try {
 }
 --------------------------------------
 
++$backtrace+::
+	Returns the list of statements that lead to an error condition.
+
+--------------------------------------
+$proc a {
+	$/ 1 0
+}
+
+$proc b {
+	$a [$+ 4 3]
+}
+
+$try {
+	$b
+} except {
+	$puts [$format {{} in: {}} $_ [$backtrace]]
+}
+--------------------------------------
+
 Interpreters
 ++++++++++++
 +$szl.interp+ '?args?'::

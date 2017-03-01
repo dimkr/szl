@@ -22,6 +22,20 @@
 
 $load linenoise
 
+$proc szl.backtrace {
+	$local frames [$1 eval {$backtrace}]
+
+	$stdout writeln [$format {Unhandled error: {}} $2]
+
+	$if [$== [$list.len $frames] 1] {
+		$stdout writeln [$format { # {}} $frames]
+	} else {
+		$for {i f} [$zip [$range [$list.len $frames]] [$list.reverse $frames]] {
+			$stdout writeln [$format { #{}: {}} $i $f]
+		}
+	}
+}
+
 $proc szl.shell {
 	$local in_tty [$isatty [$stdin handle]]
 
@@ -29,7 +43,7 @@ $proc szl.shell {
 		$local history [$path.join [$env.get HOME] .szl_history]
 		$if [$path.exists $history] {$linenoise.load $history}
 		$export history
-		$puts [$str.join { } szl $env.ver]
+		$stdout writeln [$str.join { } szl $env.ver]
 	}
 
 	$if [$== [$list.len $@] 1] {
@@ -69,17 +83,16 @@ $proc szl.shell {
 					$1 eval $exp
 					$local out $_
 					$if $in_tty {
-						$puts [$repr $out]
+						$stdout writeln [$repr $out]
 					} else {
-						$if [$byte.len $out] {$puts $out}
+						$if [$byte.len $out] {$stdout writeln $out}
 					}
 				} except {
 					$local out $_
-					$stdout write {[error] }
 					$if $in_tty {
-						$puts [$repr $out]
+						$szl.backtrace $1 [$repr $out]
 					} else {
-						$if [$byte.len $out] {$puts $out} else {$puts {}}
+						$if [$byte.len $out] {$szl.backtrace $1 $out} else {$stdout write $newline}
 					}
 				}
 

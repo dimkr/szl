@@ -1,7 +1,7 @@
 /*
  * this file is part of szl.
  *
- * Copyright (c) 2016 Dima Krasner
+ * Copyright (c) 2016, 2017 Dima Krasner
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -107,6 +107,15 @@ enum szl_res szl_exc_proc_throw(struct szl_interp *interp,
 }
 
 static
+enum szl_res szl_exc_proc_backtrace(struct szl_interp *interp,
+                                    const unsigned int objc,
+                                    struct szl_obj **objv)
+{
+	szl_set_last(interp, szl_ref(interp->bt));
+	return SZL_OK;
+}
+
+static
 const struct szl_ext_export exc_exports[] = {
 	{
 		SZL_PROC_INIT("try",
@@ -118,6 +127,9 @@ const struct szl_ext_export exc_exports[] = {
 	},
 	{
 		SZL_PROC_INIT("throw", "?msg?", 1, 2, szl_exc_proc_throw, NULL)
+	},
+	{
+		SZL_PROC_INIT("backtrace", NULL, 1, 1, szl_exc_proc_backtrace, NULL)
 	}
 };
 

@@ -1031,7 +1031,6 @@ void szl_pop_call(struct szl_interp *interp)
 
 static
 struct szl_frame *szl_new_call(struct szl_interp *interp,
-                               struct szl_obj *stmt,
                                struct szl_frame *caller)
 {
 	struct szl_frame *call;
@@ -1741,9 +1740,7 @@ struct szl_obj *szl_copy_dict(struct szl_interp *interp, struct szl_obj *dict)
 extern int szl_init_builtin_exts(struct szl_interp *);
 
 static
-struct szl_frame *szl_new_call(struct szl_interp *,
-                               struct szl_obj *,
-                               struct szl_frame *);
+struct szl_frame *szl_new_call(struct szl_interp *, struct szl_frame *);
 
 struct szl_interp *szl_new_interp(int argc, char *argv[])
 {
@@ -1801,7 +1798,7 @@ struct szl_interp *szl_new_interp(int argc, char *argv[])
 		return NULL;
 	}
 
-	interp->global = szl_new_call(NULL, interp->empty, NULL);
+	interp->global = szl_new_call(NULL, NULL);
 	if (!interp->global) {
 		szl_free(interp->_);
 		szl_free(interp->sep);
@@ -1857,9 +1854,26 @@ struct szl_interp *szl_new_interp(int argc, char *argv[])
 		return NULL;
 	}
 
+	interp->bt = szl_new_list(interp, NULL, 0);
+	if (!interp->bt) {
+		szl_free(interp->exts);
+		szl_free(interp->priv);
+		szl_free(interp->args);
+		szl_pop_call(interp);
+		szl_free(interp->_);
+		szl_free(interp->sep);
+		for (--i; i >= 0; --i)
+			szl_free(interp->nums[i]);
+		szl_free(interp->space);
+		szl_free(interp->empty);
+		free(interp);
+		return NULL;
+	}
+
 #ifndef SZL_NO_DL
 	interp->libs = szl_new_list(NULL, NULL, 0);
 	if (!interp->libs) {
+		szl_free(interp->bt);
 		szl_free(interp->exts);
 		szl_free(interp->priv);
 		szl_free(interp->args);
@@ -1890,9 +1904,7 @@ struct szl_interp *szl_new_interp(int argc, char *argv[])
 	}
 
 	for (i = 0; i < argc; ++i) {
-		if (!szl_list_append_str(interp,
-		                         interp->global->args,
-		                         argv[i], -1)) {
+		if (!szl_list_append_str(interp, interp->global->args, argv[i], -1)) {
 			szl_free_interp(interp);
 			return NULL;
 		}
@@ -1912,6 +1924,7 @@ void szl_free_interp(struct szl_interp *interp)
 {
 	unsigned int i;
 
+	szl_unref(interp->bt);
 	szl_unref(interp->last);
 	szl_unref(interp->exts);
 	szl_unref(interp->priv);
@@ -2288,6 +2301,29 @@ struct szl_obj *szl_parse_stmts(struct szl_interp *interp,
 	return stmts;
 }
 
+static
+enum szl_res szl_on_stmt_res(struct szl_interp *interp,
+                             struct szl_obj *stmt,
+                             enum szl_res res)
+{
+	struct szl_obj *bt;
+
+	if (res != SZL_ERR) {
+		bt = szl_new_list(interp, NULL, 0);
+		if (bt) {
+			szl_unref(interp->bt);
+			interp->bt = bt;
+		}
+		else
+			res = SZL_ERR;
+	}
+
+	if (res == SZL_ERR)
+		szl_list_append(interp, interp->bt, stmt);
+
+	return res;
+}
+
 __attribute__((nonnull(1, 2)))
 enum szl_res szl_run_stmt(struct szl_interp *interp, struct szl_obj *stmt)
 {
@@ -2302,16 +2338,16 @@ enum szl_res szl_run_stmt(struct szl_interp *interp, struct szl_obj *stmt)
 		szl_set_last_str(interp,
 		                 "reached nesting limit",
 		                 sizeof("reached nesting limit") - 1);
-		return SZL_ERR;
+		return szl_on_stmt_res(interp, stmt, SZL_ERR);
 	}
 
 	if (!szl_as_list(interp, stmt, &toks, &len) || (len > UINT_MAX))
-		return SZL_ERR;
+		return szl_on_stmt_res(interp, stmt, SZL_ERR);
 
 	/* create a new frame */
-	call = szl_new_call(interp, stmt, interp->current);
+	call = szl_new_call(interp, interp->current);
 	if (!call)
-		return SZL_ERR;
+		return szl_on_stmt_res(interp, stmt, SZL_ERR);
 
 	++interp->depth;
 	interp->current = call;
@@ -2321,25 +2357,25 @@ enum szl_res szl_run_stmt(struct szl_interp *interp, struct szl_obj *stmt)
 		res = szl_eval(interp, toks[i]);
 		if (res != SZL_OK) {
 			szl_pop_call(interp);
-			return res;
+			return szl_on_stmt_res(interp, stmt, res);
 		}
 
 		if (!szl_list_append(interp, call->args, interp->last)) {
 			szl_pop_call(interp);
-			return SZL_ERR;
+			return szl_on_stmt_res(interp, stmt, SZL_ERR);
 		}
 	}
 
 	if (!szl_as_list(interp, call->args, &objv, &objc)) {
 		szl_pop_call(interp);
-		return SZL_ERR;
+		return szl_on_stmt_res(interp, stmt, SZL_ERR);
 	}
 
 	if (((objv[0]->min_objc != -1) && (objc < (size_t)objv[0]->min_objc)) ||
 	    ((objv[0]->max_objc != -1) && (objc > (size_t)objv[0]->max_objc))) {
 		szl_set_last_help(interp, objv[0]);
 		szl_pop_call(interp);
-		return SZL_ERR;
+		return szl_on_stmt_res(interp, stmt, SZL_ERR);
 	}
 
 	/* clear the last return value: it was modified during argument
@@ -2354,8 +2390,7 @@ enum szl_res szl_run_stmt(struct szl_interp *interp, struct szl_obj *stmt)
 		res = SZL_ERR;
 
 	szl_pop_call(interp);
-
-	return res;
+	return szl_on_stmt_res(interp, stmt, res);
 }
 
 __attribute__((nonnull(1, 2)))
