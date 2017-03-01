@@ -31,7 +31,12 @@ $proc szl.backtrace {
 		$stdout writeln [$format { # {}} $frames]
 	} else {
 		$for {i f} [$zip [$range [$list.len $frames]] [$list.reverse $frames]] {
-			$stdout writeln [$format { #{}: {}} $i $f]
+			$local l [$str.split $f $newline]
+			$if [$> [$list.len $l] 1] {
+				$stdout writeln [$format { #{}: {} ...} $i [$list.index $l 0]]
+			} else {
+				$stdout writeln [$format { #{}: {}} $i $f]
+			}
 		}
 	}
 }
