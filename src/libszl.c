@@ -2940,6 +2940,23 @@ struct szl_obj *szl_stream_handle(struct szl_interp *interp,
 }
 
 static
+struct szl_obj *szl_stream_peer(struct szl_interp *interp,
+                                struct szl_stream *strm)
+{
+	if (!strm->ops->peer) {
+		szl_set_last_str(interp,
+		                 "peer of unsupported stream",
+		                 sizeof("peer of unsupported stream") - 1);
+		return NULL;
+	}
+
+	if (strm->flags & SZL_STREAM_CLOSED)
+		return szl_ref(interp->empty);
+
+	return strm->ops->peer(interp, strm->priv);
+}
+
+static
 enum szl_res szl_stream_accept(struct szl_interp *interp,
                                struct szl_stream *strm)
 {
@@ -3129,6 +3146,12 @@ enum szl_res szl_stream_proc(struct szl_interp *interp,
 			return szl_stream_accept(interp, strm);
 		else if (strcmp("handle", op) == 0) {
 			obj = szl_stream_handle(interp, strm);
+			if (!obj)
+				return SZL_ERR;
+			return szl_set_last(interp, obj);
+		}
+		else if (strcmp("peer", op) == 0) {
+			obj = szl_stream_peer(interp, strm);
 			if (!obj)
 				return SZL_ERR;
 			return szl_set_last(interp, obj);

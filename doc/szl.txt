@@ -922,6 +922,9 @@ immediately. To flush queued data to disk, call 'flush'.
 	Returns an opaque value (an integer) that represents a stream, suitable for
 	'poll'.
 
++$stream+ 'peer'::
+	Returns the address of the peer connected to a stream.
+
 +$stream+ 'close'::
 	Closes a stream.
 

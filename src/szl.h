@@ -1370,6 +1370,7 @@ struct szl_stream_ops {
 	void (*close)(void *); /**< Closes the stream */
 	int (*accept)(struct szl_interp *, void *, struct szl_stream **); /**< Optional, accepts a client */
 	szl_int (*handle)(void *); /**< Returns the underlying file descriptor */
+	struct szl_obj *(*peer)(struct szl_interp *, void *); /**< Returns the peer address */
 	ssize_t (*size)(void *); /**< Returns the total amount of incoming bytes */
 	enum szl_res (*unblock)(struct szl_interp *, void *); /**< Enables non-blocking I/O */
 	enum szl_res (*rewind)(struct szl_interp *, void *); /**< Return to the initial reading or writing position */
@@ -1446,7 +1447,7 @@ void szl_stream_del(void *priv);
  * The help message of @ref szl_stream_proc
  */
 #	define SZL_STREAM_HELP \
-	"read|readln|write|writeln|flush|handle|close|unblock|rewind|setopt|accept ?len|opt val?"
+	"read|readln|write|writeln|flush|handle|peer|close|unblock|rewind|setopt|accept ?len|opt val?"
 
 /**
  * @def SZL_STREAM_INIT

@@ -34,19 +34,27 @@
 #include <sys/socket.h>
 #include <netinet/tcp.h>
 #include <poll.h>
+#include <arpa/inet.h>
 
 #include "szl.h"
 
 #define SZL_DEFAULT_SERVER_SOCKET_BACKLOG 5
 
+struct szl_socket {
+	struct sockaddr peer;
+	int fd;
+	socklen_t len;
+};
+
 static
 int szl_socket_connect(struct szl_interp *interp, void *priv)
 {
 	struct pollfd pfd;
-	int err, fd = (int)(intptr_t)priv;
+	struct szl_socket *s = (struct szl_socket *)priv;
+	int err;
 	socklen_t len = sizeof(err);
 
-	pfd.fd = fd;
+	pfd.fd = s->fd;
 	pfd.events = POLLOUT | POLLERR | POLLHUP;
 	if (poll(&pfd, 1, -1) < 0) {
 		szl_set_last_strerror(interp, errno);
@@ -56,7 +64,7 @@ int szl_socket_connect(struct szl_interp *interp, void *priv)
 	if (pfd.revents == POLLOUT)
 		return 1;
 
-	if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &len) < 0)
+	if (getsockopt(s->fd, SOL_SOCKET, SO_ERROR, &err, &len) < 0)
 		szl_set_last_strerror(interp, errno);
 	else
 		szl_set_last_strerror(interp, err);
@@ -65,15 +73,10 @@ int szl_socket_connect(struct szl_interp *interp, void *priv)
 }
 
 static
-ssize_t szl_socket_read(struct szl_interp *interp,
-                        void *priv,
-                        unsigned char *buf,
-                        const size_t len,
-                        int *more)
+ssize_t szl_socket_read_common(struct szl_interp *interp,
+                               const ssize_t out,
+                               int *more)
 {
-	ssize_t out;
-
-	out = recv((int)(intptr_t)priv, buf, len, 0);
 	if (out < 0) {
 		if ((errno == EAGAIN) || (errno == EWOULDBLOCK))
 			return 0;
@@ -86,6 +89,41 @@ ssize_t szl_socket_read(struct szl_interp *interp,
 }
 
 static
+ssize_t szl_socket_read(struct szl_interp *interp,
+                        void *priv,
+                        unsigned char *buf,
+                        const size_t len,
+                        int *more)
+{
+	return szl_socket_read_common(interp,
+	                              recv(((struct szl_socket *)priv)->fd,
+	                                   buf,
+	                                   len,
+	                                   0),
+	                              more);
+}
+
+static
+ssize_t szl_socket_readfrom(struct szl_interp *interp,
+                            void *priv,
+                            unsigned char *buf,
+                            const size_t len,
+                            int *more)
+{
+	struct szl_socket *s = (struct szl_socket *)priv;
+
+	s->len = sizeof(s->peer);
+	return szl_socket_read_common(interp,
+	                              recvfrom(s->fd,
+	                                       buf,
+	                                       len,
+	                                       0,
+	                                       &s->peer,
+	                                       &s->len),
+	                              more);
+}
+
+static
 ssize_t szl_socket_write(struct szl_interp *interp,
                          void *priv,
                          const unsigned char *buf,
@@ -93,7 +131,7 @@ ssize_t szl_socket_write(struct szl_interp *interp,
 {
 	ssize_t out;
 
-	out = send((int)(intptr_t)priv, buf, len, 0);
+	out = send(((struct szl_socket *)priv)->fd, buf, len, 0);
 	if (out < 0) {
 		if ((errno == EAGAIN) || (errno == EWOULDBLOCK))
 			return 0;
@@ -107,10 +145,11 @@ ssize_t szl_socket_write(struct szl_interp *interp,
 static
 enum szl_res szl_socket_unblock(struct szl_interp *interp, void *priv)
 {
-	int fl, fd = (int)(intptr_t)priv;
+	struct szl_socket *s = (struct szl_socket *)priv;
+	int fl;
 
-	fl = fcntl(fd, F_GETFL);
-	if ((fl < 0) || (fcntl(fd, F_SETFL, fl | O_NONBLOCK) < 0))
+	fl = fcntl(s->fd, F_GETFL);
+	if ((fl < 0) || (fcntl(s->fd, F_SETFL, fl | O_NONBLOCK) < 0))
 		return SZL_ERR;
 
 	return SZL_OK;
@@ -119,22 +158,37 @@ enum szl_res szl_socket_unblock(struct szl_interp *interp, void *priv)
 static
 void szl_socket_close(void *priv)
 {
-	close((int)(intptr_t)priv);
+	close(((struct szl_socket *)priv)->fd);
+	free(priv);
 }
 
 static
 struct szl_stream *szl_socket_new(struct szl_interp *interp,
                                   const int fd,
+                                  const struct sockaddr *peer,
+                                  const socklen_t len,
                                   const struct szl_stream_ops *ops,
                                   const unsigned int flags)
 {
 	struct szl_stream *strm;
+	struct szl_socket *s;
 
-	strm = (struct szl_stream *)szl_malloc(interp, sizeof(struct szl_stream));
-	if (!strm)
+	s = (struct szl_socket *)szl_malloc(interp, sizeof(struct szl_socket));
+	if (!s)
 		return NULL;
 
-	strm->priv = (void *)(intptr_t)fd;
+	strm = (struct szl_stream *)szl_malloc(interp, sizeof(struct szl_stream));
+	if (!strm) {
+		free(s);
+		return NULL;
+	}
+
+	s->fd = fd;
+	if (peer)
+		memcpy(&s->peer, peer, (size_t)len);
+	s->len = len;
+
+	strm->priv = s;
 	strm->ops = ops;
 	strm->flags = flags;
 	strm->buf = NULL;
@@ -149,11 +203,16 @@ int szl_socket_accept(struct szl_interp *interp,
                       void *priv,
                       struct szl_stream **strm)
 {
-	int fd;
+	struct sockaddr peer;
+	int fd, err;
+	socklen_t len = sizeof(peer);
 
-	fd = accept((int)(intptr_t)priv, NULL, NULL);
+	fd = accept(((struct szl_socket *)priv)->fd, &peer, &len);
 	if (fd < 0) {
-		if ((errno == EAGAIN) || (errno == EWOULDBLOCK)) {
+		err = errno;
+		szl_stream_free(*strm);
+
+		if ((err == EAGAIN) || (err == EWOULDBLOCK)) {
 			*strm = NULL;
 			return 1;
 		}
@@ -163,12 +222,12 @@ int szl_socket_accept(struct szl_interp *interp,
 	else {
 		*strm = szl_socket_new(interp,
 		                       fd,
+		                       &peer,
+		                       len,
 		                       &szl_stream_client_ops,
 		                       SZL_STREAM_BLOCKING);
 		if (*strm)
 			return 1;
-
-		close(fd);
 	}
 
 	return 0;
@@ -177,7 +236,72 @@ int szl_socket_accept(struct szl_interp *interp,
 static
 szl_int szl_socket_handle(void *priv)
 {
-	return (szl_int)(intptr_t)priv;
+	return ((struct szl_socket *)priv)->fd;
+}
+
+static
+struct szl_obj *szl_socket_peer(struct szl_interp *interp, void *priv)
+{
+	char *buf;
+	struct szl_obj *obj, *list;
+	struct szl_socket *s = (struct szl_socket *)priv;
+	struct sockaddr_in *sin = (struct sockaddr_in *)&s->peer;
+	struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)&s->peer;
+	const void *addr;
+	size_t len = INET6_ADDRSTRLEN + sizeof(":65535");
+	unsigned short port;
+
+	if (!s->len)
+		return szl_ref(interp->empty);
+
+	buf = (char *)szl_malloc(interp, len);
+	if (!buf)
+		return NULL;
+
+	switch (s->peer.sa_family) {
+		case AF_INET:
+			addr = &sin->sin_addr;
+			port = ntohs(sin->sin_port);
+			break;
+
+		case AF_INET6:
+			addr = &sin6->sin6_addr;
+			port = ntohs(sin6->sin6_port);
+			break;
+
+		default:
+			free(buf);
+			szl_set_last_str(interp,
+			                 "unknown address family",
+			                 sizeof("unknown address family") - 1);
+			return NULL;
+	}
+
+	if (!inet_ntop(s->peer.sa_family, addr, buf, len)) {
+		free(buf);
+		return NULL;
+	}
+
+	obj = szl_new_str_noalloc(interp, buf, strlen(buf));
+	if (!obj) {
+		free(buf);
+		return NULL;
+	}
+
+	list = szl_new_list(interp, &obj, 1);
+	if (!list) {
+		szl_free(obj);
+		return NULL;
+	}
+
+	szl_unref(obj);
+
+	if (!szl_list_append_int(interp, list, (szl_int)port)) {
+		szl_free(list);
+		return NULL;
+	}
+
+	return list;
 }
 
 static
@@ -196,7 +320,7 @@ int szl_socket_setopt(struct szl_interp *interp,
 		if (!szl_as_bool(val, &b))
 			return 0;
 
-		if (setsockopt((int)(intptr_t)priv,
+		if (setsockopt(((struct szl_socket *)priv)->fd,
 		               SOL_TCP,
 		               TCP_CORK,
 		               &b,
@@ -226,15 +350,17 @@ const struct szl_stream_ops szl_stream_client_ops = {
 	.write = szl_socket_write,
 	.close = szl_socket_close,
 	.handle = szl_socket_handle,
+	.peer = szl_socket_peer,
 	.unblock = szl_socket_unblock,
 	.setopt = szl_socket_setopt
 };
 
 static
 const struct szl_stream_ops szl_dgram_server_ops = {
-	.read = szl_socket_read,
+	.read = szl_socket_readfrom,
 	.close = szl_socket_close,
 	.handle = szl_socket_handle,
+	.peer = szl_socket_peer,
 	.unblock = szl_socket_unblock
 };
 
@@ -243,6 +369,7 @@ const struct szl_stream_ops szl_dgram_client_ops = {
 	.write = szl_socket_write,
 	.close = szl_socket_close,
 	.handle = szl_socket_handle,
+	.peer = szl_socket_peer,
 	.unblock = szl_socket_unblock
 };
 
@@ -306,7 +433,12 @@ struct szl_stream *szl_socket_new_client(struct szl_interp *interp,
 		return NULL;
 	}
 
-	strm = szl_socket_new(interp, fd, ops, flags);
+	strm = szl_socket_new(interp,
+	                      fd,
+	                      res->ai_addr,
+	                      res->ai_addrlen,
+	                      ops,
+	                      flags);
 	if (!strm)
 		close(fd);
 
@@ -454,6 +586,8 @@ struct szl_stream *szl_socket_new_stream_server(struct szl_interp *interp,
 
 	strm = szl_socket_new(interp,
 	                      fd,
+	                      NULL,
+	                      0,
 	                      &szl_stream_server_ops,
 	                      SZL_STREAM_BLOCKING);
 	if (!strm)
@@ -518,6 +652,8 @@ struct szl_stream *szl_socket_new_dgram_server(struct szl_interp *interp,
 
 	strm = szl_socket_new(interp,
 	                      fd,
+	                      NULL,
+	                      0,
 	                      &szl_dgram_server_ops,
 	                      SZL_STREAM_BLOCKING);
 	if (!strm)
