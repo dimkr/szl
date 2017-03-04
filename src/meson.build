@@ -59,7 +59,7 @@ endif
 if not with_dl
 	cflags += ['-DSZL_NO_DL']
 endif
-add_project_arguments(cflags, language: 'c', license: 'MIT')
+add_project_arguments(cflags, language: 'c')
 
 doc_dir = join_paths(get_option('datadir'), 'doc', 'szl')
 

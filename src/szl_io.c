@@ -146,10 +146,7 @@ int szl_io_enable_fbf(struct szl_interp *interp,
 }
 
 static
-int szl_new_file(struct szl_interp *interp,
-                 FILE *fp,
-                 const int bmode,
-                 const int keep)
+int szl_new_file(struct szl_interp *interp, FILE *fp, const int bmode)
 {
 	struct szl_obj *obj;
 	struct szl_stream *strm;
@@ -159,8 +156,7 @@ int szl_new_file(struct szl_interp *interp,
 		return 0;
 
 	strm->ops = &szl_file_ops;
-	strm->flags =
-	       keep ? (SZL_STREAM_BLOCKING | SZL_STREAM_KEEP) : SZL_STREAM_BLOCKING;
+	strm->flags = SZL_STREAM_BLOCKING;
 	strm->priv = fp;
 	strm->buf = NULL;
 
@@ -279,7 +275,7 @@ enum szl_res szl_io_proc_open(struct szl_interp *interp,
 	if (!fp)
 		return szl_set_last_strerror(interp, errno);
 
-	if (!szl_new_file(interp, fp, bmode, 0)) {
+	if (!szl_new_file(interp, fp, bmode)) {
 		fclose(fp);
 		return SZL_ERR;
 	}
