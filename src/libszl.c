@@ -334,9 +334,28 @@ SZL_STR_CONV(szl_str_to_wstr,
 static
 int szl_str_to_int(struct szl_interp *interp, struct szl_obj *obj)
 {
-	if (sscanf(obj->val.s, SZL_INT_SCANF_FMT"d", &obj->val.i) == 1) {
-		obj->types |= 1 << SZL_TYPE_INT;
-		return 1;
+	char *p = NULL;
+
+	if (obj->val.slen) {
+		/* two if clauses should be optimized away */
+		if (sizeof(long long) == sizeof(szl_int)) {
+			obj->val.i = (szl_int)strtoll(obj->val.s, &p, 0);
+			if (!*p) {
+				obj->types |= 1 << SZL_TYPE_INT;
+				return 1;
+			}
+		}
+		else if (sizeof(long) == sizeof(szl_int)) {
+			obj->val.i = (szl_int)strtol(obj->val.s, &p, 0);
+			if (!*p) {
+				obj->types |= 1 << SZL_TYPE_INT;
+				return 1;
+			}
+		}
+		else if (sscanf(obj->val.s, SZL_INT_SCANF_FMT"d", &obj->val.i) == 1) {
+			obj->types |= 1 << SZL_TYPE_INT;
+			return 1;
+		}
 	}
 
 	szl_set_last_fmt(interp, "bad int: %s", obj->val.s);
@@ -348,9 +367,18 @@ int szl_str_to_int(struct szl_interp *interp, struct szl_obj *obj)
 static
 int szl_str_to_float(struct szl_interp *interp, struct szl_obj *obj)
 {
-	if (sscanf(obj->val.s, SZL_FLOAT_SCANF_FMT, &obj->val.f) == 1) {
-		obj->types |= 1 << SZL_TYPE_FLOAT;
-		return 1;
+	char *p = NULL;
+
+	if (obj->val.slen) {
+#ifdef SZL_USE_FLOAT
+		obj->val.f = strtof(obj->val.s, &p);
+#else
+		obj->val.f = strtod(obj->val.s, &p);
+#endif
+		if (!*p) {
+			obj->types |= 1 << SZL_TYPE_FLOAT;
+			return 1;
+		}
 	}
 
 	szl_set_last_fmt(interp, "bad float: %s", obj->val.s);
