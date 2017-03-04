@@ -24,18 +24,19 @@ $load linenoise
 
 $proc szl.backtrace {
 	$local frames [$1 eval {$backtrace}]
-
 	$stdout writeln [$format {Unhandled error: {}} $2]
 
 	$if [$== [$list.len $frames] 1] {
 		$stdout writeln [$format { # {}} $frames]
 	} else {
-		$for {i f} [$zip [$range [$list.len $frames]] [$list.reverse $frames]] {
-			$local l [$str.split $f $newline]
-			$if [$> [$list.len $l] 1] {
-				$stdout writeln [$format { #{}: {} ...} $i [$list.index $l 0]]
-			} else {
-				$stdout writeln [$format { #{}: {}} $i $f]
+		$if [$> [$list.len $frames] 1] {
+			$for {i f} [$zip [$range [$list.len $frames]] [$list.reverse $frames]] {
+				$local l [$str.split $f $newline]
+				$if [$> [$list.len $l] 1] {
+					$stdout writeln [$format { #{}: {} ...} $i [$list.index $l 0]]
+				} else {
+					$stdout writeln [$format { #{}: {}} $i $f]
+				}
 			}
 		}
 	}

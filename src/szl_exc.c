@@ -31,7 +31,7 @@ enum szl_res szl_exc_proc_try(struct szl_interp *interp,
                               const unsigned int objc,
                               struct szl_obj **objv)
 {
-	struct szl_obj *obj, *except = NULL, *finally = NULL;
+	struct szl_obj *obj, *except = NULL, *finally = NULL, *bt;
 	char *s;
 	enum szl_res res, eres = SZL_OK, fres;
 
@@ -65,11 +65,19 @@ enum szl_res szl_exc_proc_try(struct szl_interp *interp,
 
 	res = szl_run_obj(interp, objv[1]);
 	obj = szl_ref(interp->last);
-	if ((res == SZL_ERR) && except) {
-		eres = szl_run_obj(interp, except);
-		if (eres == SZL_ERR) {
-			szl_unref(obj);
-			obj = szl_ref(interp->last);
+	if (res == SZL_ERR) {
+		if (except) {
+			eres = szl_run_obj(interp, except);
+			if (eres == SZL_ERR) {
+				szl_unref(obj);
+				obj = szl_ref(interp->last);
+			}
+		}
+
+		bt = szl_new_list(interp, NULL, 0);
+		if (bt) {
+			szl_unref(interp->bt);
+			interp->bt = bt;
 		}
 	}
 
@@ -111,7 +119,14 @@ enum szl_res szl_exc_proc_backtrace(struct szl_interp *interp,
                                     const unsigned int objc,
                                     struct szl_obj **objv)
 {
-	szl_set_last(interp, szl_ref(interp->bt));
+	struct szl_obj *bt;
+
+	bt = szl_new_list(interp, NULL, 0);
+	if (!bt)
+		return SZL_ERR;
+
+	szl_set_last(interp, interp->bt);
+	interp->bt = bt;
 	return SZL_OK;
 }
 

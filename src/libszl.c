@@ -2075,6 +2075,7 @@ enum szl_res szl_set_last_help(struct szl_interp *interp,
 	return SZL_ERR;
 }
 
+__attribute__((nonnull(1)))
 enum szl_res szl_set_last_strerror(struct szl_interp *interp, const int err)
 {
 	char buf[128];
@@ -2306,18 +2307,6 @@ enum szl_res szl_on_stmt_res(struct szl_interp *interp,
                              struct szl_obj *stmt,
                              enum szl_res res)
 {
-	struct szl_obj *bt;
-
-	if (res != SZL_ERR) {
-		bt = szl_new_list(interp, NULL, 0);
-		if (bt) {
-			szl_unref(interp->bt);
-			interp->bt = bt;
-		}
-		else
-			res = SZL_ERR;
-	}
-
 	if (res == SZL_ERR)
 		szl_list_append(interp, interp->bt, stmt);
 
