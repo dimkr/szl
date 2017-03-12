@@ -131,7 +131,7 @@ ssize_t szl_socket_write(struct szl_interp *interp,
 {
 	ssize_t out;
 
-	out = send(((struct szl_socket *)priv)->fd, buf, len, 0);
+	out = send(((struct szl_socket *)priv)->fd, buf, len, MSG_NOSIGNAL);
 	if (out < 0) {
 		if ((errno == EAGAIN) || (errno == EWOULDBLOCK))
 			return 0;
